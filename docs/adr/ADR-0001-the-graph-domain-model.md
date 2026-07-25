@@ -6,7 +6,7 @@
 
 ## Context
 
-Infrastructure is inherently composed of interconnected entities.
+Infrastructure is inherently composed of interconnected concepts.
 
 Persiqa aims to preserve infrastructure knowledge, support progressive
 discovery, and generate multiple projections from a single source of
@@ -24,11 +24,12 @@ The Persiqa domain model is built on four fundamental concepts.
 
 ### Entity
 
-An Entity represents a real-world object.
+An Entity represents a meaningful infrastructure concept whose existence
+and relationships are worth preserving.
 
-An Entity is **not** limited to physical assets. Physical devices,
-logical constructs, virtual resources, locations, and infrastructure
-concepts are all represented as entities.
+Entities are not limited to physical assets. Physical devices, logical
+constructs, virtual resources, locations, and infrastructure concepts
+are all represented as entities.
 
 Examples include:
 
@@ -40,10 +41,14 @@ Examples include:
 -   Switch
 -   VLAN
 -   IP Subnet
+-   DNS Zone
 -   Virtual Machine
+-   Firewall Rule
 
 Entities have a stable identity and evolve as knowledge about them
 grows.
+
+Persiqa models infrastructure concepts rather than physical assets.
 
 ------------------------------------------------------------------------
 
@@ -53,6 +58,9 @@ A Relationship connects two entities with explicit semantic meaning.
 
 Relationships are explicitly typed and are first-class citizens of the
 domain model.
+
+Context is established through relationships rather than isolated
+metadata.
 
 Examples include:
 
@@ -136,3 +144,6 @@ introduced without changing the core domain model.
 
 Future projections are generated from the same graph instead of
 maintaining independent representations.
+
+The platform models meaningful infrastructure concepts rather than
+inventories of physical assets.
