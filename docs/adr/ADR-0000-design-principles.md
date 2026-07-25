@@ -27,9 +27,10 @@ justify why an exception is necessary.
 
 Persiqa is not an inventory system.
 
-Persiqa is an infrastructure knowledge platform that models
-infrastructure and preserves the relationships, context, and meaning of
-its entities.
+Persiqa is an infrastructure knowledge platform.
+
+Its purpose is not to describe perfect reality, but to preserve and
+continuously improve our understanding of it.
 
 The objective is not to store data.
 
@@ -64,16 +65,18 @@ Context is created by connections rather than isolated metadata.
 
 ## Principle 4 -- Knowledge Is Progressive
 
-Infrastructure knowledge is accumulated over time.
+Knowledge is discovered incrementally.
 
 Incomplete knowledge is valid knowledge.
+
+Unknown is a valid state.
 
 The system must never require complete information before knowledge can
 be stored.
 
-Unknown values are expected.
+Each new discovery enriches the existing graph rather than replacing it.
 
-The model should become richer as understanding improves.
+Persiqa continuously refines its understanding of reality.
 
 ------------------------------------------------------------------------
 
@@ -134,23 +137,25 @@ The core remains stable while capabilities evolve independently.
 
 ## Principle 9 -- Stable Identity
 
-Identity is permanent.
+Identity represents the continuity of an infrastructure concept.
 
 Metadata is mutable.
 
 Relationships evolve.
 
-An entity remains the same object even as our knowledge about it
-changes.
+Identity remains stable while knowledge grows.
 
 ------------------------------------------------------------------------
 
 ## Principle 10 -- Context Over Completeness
 
-Complete data without context has limited value.
+Context is more valuable than completeness.
 
-A partially known graph with accurate relationships is more valuable
-than a complete spreadsheet of disconnected assets.
+A partially understood graph with accurate relationships is more
+valuable than a perfectly filled spreadsheet of disconnected assets.
+
+The graph represents the best understanding available at a given point
+in time.
 
 ------------------------------------------------------------------------
 
