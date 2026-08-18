@@ -1,0 +1,32 @@
+# macOS
+.DS_Store
+
+# Editor / IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS / temporary files
+Thumbs.db
+Desktop.ini
+*.tmp
+*.temp
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+env/
+
+# Build / coverage artifacts
+build/
+dist/
+coverage/
+*.egg-info/
+
+# Local tooling / generated artifacts
+*.log
+
