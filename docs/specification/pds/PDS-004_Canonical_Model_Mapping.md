@@ -18,6 +18,12 @@ semantic model.
 The DSL is an authoring and serialization representation. The CKM is the
 authoritative semantic representation produced by semantic processing.
 
+Natural-language ingestion is outside the scope of this specification.
+Natural-language processing is a future, non-normative vision and is not
+required to construct or consume the CKM. Future natural-language ingestion
+MAY use PDS as an intermediate representation, but this does not alter PDS or
+CKM semantics.
+
 ---
 
 # 2. Mapping Principle

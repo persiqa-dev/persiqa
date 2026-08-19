@@ -1,21 +1,31 @@
 # Persiqa Vision
 
-This section describes the purpose, scope, goals, and intended direction of the
-Persiqa project.
+This section describes the intended future direction of the Persiqa project.
 
-Vision documents are non-normative. They provide context and explain why the
-project exists and where it is intended to go.
+**All documents in this directory are non-normative.** They describe future
+capabilities, goals, or long-term direction. They do not define current
+implementation requirements or override the normative specifications.
 
 ## Relationship to Other Documentation
 
-For normative definitions and behavior, see `docs/specification/`.
+For current normative definitions and behavior, see `docs/specification/`.
 
-For architectural decisions and their rationale, see `docs/architecture/adr/`.
+For current architectural decisions and their rationale, see
+`docs/architecture/adr/`.
 
 For canonical terminology, see `docs/glossary/`.
 
 For concrete usage examples, see `docs/examples/`.
 
-## Documents
+## Vision Documents
 
-The documents in this directory provide the high-level context for Persiqa.
+### VISION-001 — Natural-Language Infrastructure Ingestion
+
+`VISION-001_Natural_Language_Infrastructure_Ingestion.md`
+
+Describes a future capability for extracting infrastructure knowledge from
+natural-language source material and routing it through structured Persiqa
+representation into the CKM.
+
+Natural-language processing is explicitly outside the initial implementation
+scope.

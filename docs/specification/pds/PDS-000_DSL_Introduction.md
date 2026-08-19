@@ -52,6 +52,10 @@ The DSL SHALL be:
 The DSL specifies lexical elements, grammar, canonical syntax, semantic
 rules, validation rules and serialization.
 
+Natural-language ingestion is outside the scope of the PDS specification.
+Natural-language processing is a future, non-normative vision and is not
+required to construct or consume the CKM.
+
 It does not specify parser implementation details.
 
 ------------------------------------------------------------------------
