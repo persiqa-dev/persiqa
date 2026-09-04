@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+viewBox="0 0 1000 1000" width="1000" height="1000">
+<rect width="1000" height="1000" fill="#fff"/>
+
+<!-- OUTER REGULAR HEXAGON -->
+<g fill="none" stroke="#000" stroke-width="52"
+   stroke-linecap="round" stroke-linejoin="round">
+  <!-- left upper + top + upper right -->
+  <path d="M 188.231,320.000
+           L 500.000,140.000
+           L 811.769,320.000"/>
+
+  <!-- left side + lower-left side, terminating at P stem -->
+  <path d="M 188.231,320.000
+           L 188.231,680.000
+           L 344.000,769.933"/>
+
+  <!-- right side: visible gap from node to edge equals the visible gap from P stem to bottom vertex -->
+  <path d="M 811.769,517.700
+           L 811.769,680.000"/>
+
+  <!-- lower-right edge -->
+  <path d="M 811.769,680.000
+           L 500.000,860.000"/>
+</g>
+
+<!-- P STEM + CUBE-EDGE CONTINUATION.
+     One geometric line: the cube's left-face left edge continues downward. -->
+<path d="M 344.135,410.000
+         L 344.135,770.000"
+      fill="none" stroke="#000" stroke-width="52"
+      stroke-linecap="round"/>
+
+<!-- REGULAR FILLED HEXAGON / FLAT CUBE -->
+<polygon points="500.000,290.000 681.865,395.000 681.865,605.000 500.000,710.000 318.135,605.000 318.135,395.000" fill="#000"/>
+
+<!-- Three internal face edges are real white masks.
+     The mask width is an explicit parameter and can be tuned independently. -->
+<g fill="none" stroke="#fff" stroke-width="52"
+   stroke-linecap="butt" stroke-linejoin="miter">
+  <path d="M 500,500 L 318.135,395.000"/>
+  <path d="M 500,500 L 681.865,395.000"/>
+  <path d="M 500,500 L 500.000,710.000"/>
+</g>
+
+<!-- Node -->
+<circle cx="811.769" cy="320.000" r="39" fill="#000"/>
+</svg>
