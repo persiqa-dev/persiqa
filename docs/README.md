@@ -71,7 +71,7 @@ For a new contributor or reader:
 2. Architecture and ADRs
 3. Glossary
 4. Core model specifications
-   - Start with `specification/pms/PMS-008_CKM_v0.1_Semantic_Baseline.md`
+   - Start with `specification/pms/PMS-008_CKM_Semantic_Baseline.md`
      for the consolidated CKM v0.1 semantics.
    - Continue with `specification/pms/PMS-009_Relation_Type_Registry.md`
      for Relation Type contracts and validation behavior.
@@ -79,6 +79,6 @@ For a new contributor or reader:
    - Use `specification/pds/PDS-007_Relation_Type_and_Knowledge_Context_Syntax.md`
      for the CKM v0.1 fixture syntax profile.
 6. Validation and conformance specifications
-   - Use `specification/pcs/PCS-006_CKM_v0.1_Conformance_Corpus.md` for the
+   - Use `specification/pcs/PCS-006_CKM_Conformance_Corpus.md` for the
      CKM v0.1 electrical and Kubernetes semantic corpus.
 7. Examples and reference material
