@@ -76,6 +76,8 @@ For a new contributor or reader:
    - Continue with `specification/pms/PMS-009_Relation_Type_Registry.md`
      for Relation Type contracts and validation behavior.
 5. DSL and semantic specifications
+   - Use `specification/pds/PDS-007_Relation_Type_and_Knowledge_Context_Syntax.md`
+     for the CKM v0.1 fixture syntax profile.
 6. Validation and conformance specifications
    - Use `specification/pcs/PCS-006_CKM_v0.1_Conformance_Corpus.md` for the
      CKM v0.1 electrical and Kubernetes semantic corpus.

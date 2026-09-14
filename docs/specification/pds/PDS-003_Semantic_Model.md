@@ -302,11 +302,11 @@ The semantic context determines which CKM object kinds are valid.
 For example:
 
 ```text
-Statement Subject → Entity | Relation
+Statement Subject → predicate-permitted CKM object, Concept, or value context
 State Owner       → Entity | Relation
-Capability Owner  → Entity
-Relation Source   → Entity
-Relation Target   → Entity
+Capability        → explicit Entity association
+Relation Source   → Relation-Type-permitted endpoint
+Relation Target   → Relation-Type-permitted endpoint
 ```
 
 A resolved reference of an incompatible kind SHALL be rejected.
@@ -377,6 +377,8 @@ PDS-002 defines syntax.
 PDS-003 defines semantic interpretation and reference resolution.
 
 PDS-004 defines canonical mapping.
+
+PDS-007 defines Relation Type and Statement knowledge-context syntax.
 
 PDS-005 defines validation rules.
 

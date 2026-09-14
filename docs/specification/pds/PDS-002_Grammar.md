@@ -100,6 +100,7 @@ referenceable objects.
 DeclarationBody ::= EntityDecl
                   | CapabilityDecl
                   | RelationDecl
+                  | RelationTypeDecl
                   | StateDecl
                   | StatementDecl
                   | RefinementDecl
@@ -298,3 +299,6 @@ ZoomDecl ::= "zoom" Integer "{"
 
 Each Zoom SHALL describe the same modeled reality at a different level of
 representation.
+
+PDS-007 defines the additive grammar for Relation Type declarations and
+Statement knowledge-context annotations.
