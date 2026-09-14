@@ -30,8 +30,9 @@ It SHALL NOT answer:
 
 # 2. Definition
 
-A State is a temporal property describing the current condition of an
-Entity or Relation.
+A State is a contextual semantic condition of an Entity or Relation. It MAY
+represent current, historical, planned, asserted, observed, or derived
+knowledge when that context is explicit.
 
 State is expected to change over time without affecting identity.
 
@@ -45,8 +46,8 @@ A State:
 -   MAY change over time.
 -   SHALL belong to exactly one Entity or one Relation.
 -   SHALL NOT define an independent continuity identity.
--   Within its owner context, State has a canonical identity determined by
-    its semantic predicate.
+-   State has contextual identity determined by owner, semantic predicate,
+    and applicable context.
 -   SHALL NOT define Capability.
 -   MAY be replaced by a newer State.
 
@@ -106,7 +107,8 @@ Battery Charge = 79%.
 Battery Charge = 61%.
 ```
 
-Each Statement represents knowledge valid at a specific point in time.
+Each Statement MAY represent knowledge valid at a specific point in time or
+interval when such temporal context is supplied.
 
 Implementations MAY preserve history, but the Core does not require
 historical storage.
@@ -190,4 +192,5 @@ model to represent dynamic systems accurately.
 
 ### State Identity
 
-State SHALL NOT define an independent continuity identity. Within its owner context, State has a canonical identity determined by its semantic predicate. Changing the State value SHALL NOT create a new canonical State object.
+State SHALL NOT define an independent continuity identity. State has
+contextual identity through owner, semantic predicate, and applicable context.

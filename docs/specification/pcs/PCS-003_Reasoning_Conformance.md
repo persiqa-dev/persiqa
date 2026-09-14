@@ -55,7 +55,8 @@ SHALL be:
 
 -   complete,
 -   deterministic,
--   semantically consistent.
+-   semantically well-defined, including preservation of detected conflicting
+    Statements.
 
 Repeated execution SHALL produce semantically equivalent closures.
 
@@ -105,7 +106,7 @@ A conforming reasoning engine SHALL reject or report:
 
 -   unsupported inference,
 -   invalid refinement assumptions,
--   unresolved contradictions,
+-   unreported contradictions whose context makes them incompatible,
 -   non-deterministic reasoning outcomes.
 
 Diagnostic behaviour SHALL remain semantically consistent.

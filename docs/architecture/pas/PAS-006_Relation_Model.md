@@ -12,7 +12,8 @@
 This chapter defines the normative architectural model for Relations in
 Persiqa.
 
-A Relation expresses a semantic connection between two Entities.
+A Relation expresses a semantic connection between two endpoints permitted by
+its declared Relation Type.
 
 Relations are first-class concepts of the Persiqa Core ontology.
 
@@ -20,19 +21,20 @@ Relations are first-class concepts of the Persiqa Core ontology.
 
 # 2. Definition
 
-A Relation represents a directed semantic connection from a source Entity to a
-target Entity.
+A Relation represents a directed semantic connection from a source endpoint to
+a target endpoint.
 
 The fundamental structure is:
 
 ```text
 Relation
-    source → Entity
-    target → Entity
+    source → permitted endpoint
+    target → permitted endpoint
 ```
 
-A Relation SHALL therefore have exactly one source Entity and exactly one
-target Entity.
+A Relation SHALL therefore have exactly one source endpoint and exactly one
+target endpoint. The Relation Type SHALL declare which endpoint kinds are
+permitted.
 
 This binary representation is normative.
 
@@ -60,8 +62,9 @@ Application
 Server
 ```
 
-A Relation predicate SHALL define the semantic meaning of the directed
-connection.
+A Relation Type SHALL define the semantic meaning, endpoint constraints,
+directionality, and any inverse, symmetry, composition, or transitivity rules
+of the directed connection.
 
 If a domain requires bidirectional semantics, the model MAY represent the
 relationship using two explicitly defined Relations or another valid
@@ -71,7 +74,8 @@ higher-level domain construction.
 
 # 4. First-Class Status
 
-Relations SHALL be first-class model elements.
+Relations SHALL be first-class model elements. Their identity SHALL NOT be
+derived solely from type and endpoints.
 
 A Relation SHALL have an identity within the Canonical Knowledge Model and MAY
 be referenced by other model elements.
@@ -107,7 +111,8 @@ NOT be interpreted as the State of either endpoint Entity.
 
 # 6. Relation Semantics
 
-The semantic meaning of a Relation is determined by its relation predicate.
+The semantic meaning of a Relation is determined by its declared Relation
+Type.
 
 Examples include:
 
@@ -134,8 +139,8 @@ Knowledge Model.
 Its identity SHALL distinguish the Relation from its source and target
 Entities.
 
-Two Relations connecting the same pair of Entities MAY coexist when their
-semantics differ.
+Two Relations connecting the same endpoints MAY coexist when their semantics,
+physical association, route, time, or other modeled context differs.
 
 For example:
 
@@ -180,15 +185,18 @@ a Relation.
 
 **REL-001**
 
-Every Relation SHALL have exactly one source Entity.
+Every Relation SHALL have exactly one source endpoint permitted by its
+Relation Type.
 
 **REL-002**
 
-Every Relation SHALL have exactly one target Entity.
+Every Relation SHALL have exactly one target endpoint permitted by its
+Relation Type.
 
 **REL-003**
 
-The source and target SHALL be Entities.
+The source and target SHALL satisfy the declared endpoint constraints of the
+Relation Type.
 
 **REL-004**
 
@@ -240,8 +248,8 @@ the convenience of a single domain.
 The Canonical Knowledge Model SHALL preserve:
 
 - Relation identity,
-- source Entity,
-- target Entity,
+- source endpoint,
+- target endpoint,
 - semantic meaning,
 - optional Relation State,
 - refinement information.
@@ -292,9 +300,11 @@ Canonical Knowledge Model preserves the normative Relation invariants defined
 in this chapter.
 
 In particular, an implementation SHALL NOT represent a Core Relation as an
-implicit n-ary relationship or omit its explicit source or target Entity.
+implicit n-ary relationship or omit its explicit source or target endpoint.
 
 
 ### Canonical Relation Identity
 
-A Relation SHALL have a canonical identity determined by its relation type, source Entity, and target Entity. The canonical identity is the tuple (relation type, source Entity, target Entity) and SHALL distinguish the Relation from other Relations.
+A Relation SHALL have independent canonical identity. Relation Type and
+endpoints are required semantic attributes, but their tuple SHALL NOT by
+itself determine Relation identity.

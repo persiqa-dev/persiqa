@@ -167,7 +167,7 @@ Zoom SHALL preserve semantic equivalence.
 
 Knowledge typically follows this lifecycle:
 
-Unknown
+Initial incomplete model
 
 ↓
 

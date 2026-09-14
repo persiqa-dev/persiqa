@@ -97,7 +97,8 @@ Entity can exhibit.
 Capabilities are semantic concepts. They are not methods, APIs or executable
 code.
 
-A concrete Capability SHALL have exactly one owning Entity.
+A concrete Capability association SHALL be explicit. A reusable Capability
+concept MAY be associated with more than one Entity.
 
 A `capability` declaration introduces a Capability semantic identifier. A
 concrete owned Capability is established when a valid Statement asserts the
@@ -107,9 +108,8 @@ applicable ownership relationship, for example:
 transport: HeatPump has Transport
 ```
 
-The resulting Capability has canonical semantic identity derived from its
-owner and Capability semantic type. The local reference `transport` does not
-contribute to that canonical identity.
+The resulting Capability SHALL follow the kind-specific identity semantics in
+PMS-008. The local reference `transport` does not contribute to that identity.
 
 Domain-specific capabilities SHALL be expressed through refinement.
 
@@ -117,19 +117,20 @@ Domain-specific capabilities SHALL be expressed through refinement.
 
 # 6. Relation Semantics
 
-A Relation represents a directed semantic connection between two Entities.
+A Relation represents a directed semantic connection between endpoints
+permitted by its declared Relation Type.
 
 A Relation SHALL have:
 
-- exactly one source Entity,
-- exactly one target Entity.
+- exactly one source endpoint,
+- exactly one target endpoint permitted by its Relation Type.
 
 Relations are first-class CKM objects.
 
 A `relation` declaration introduces a Relation semantic identifier. A concrete
 Relation instance is derived from a valid Statement whose predicate resolves
-to that Relation semantic identifier and whose subject and object resolve to
-the source and target Entities.
+to that Relation Type semantic identifier and whose subject and object resolve
+to valid source and target endpoints.
 
 For example:
 
@@ -137,11 +138,9 @@ For example:
 connection: HeatPump connected_to BufferTank
 ```
 
-produces a Relation with canonical semantic identity derived from:
-
-```text
-(relation type, source Entity, target Entity)
-```
+produces a Relation with independent canonical identity. Relation Type and
+endpoints are required semantic attributes but do not, by tuple alone,
+determine that identity.
 
 A Relation MAY own:
 
@@ -182,7 +181,9 @@ state connection RSSI = -58
 
 creates a State owned by the Relation expressed by `connection`.
 
-State SHALL NOT define an independent continuity identity. Within its owner context, a State is identified by its semantic predicate; changing its value SHALL NOT create a new canonical State object.
+State SHALL NOT define an independent continuity identity. Its identity is
+contextual to owner, semantic predicate, and applicable context; changing a
+value SHALL NOT by itself create Entity-like continuity.
 
 State MAY change without changing the identity of the model element that owns
 it.
@@ -202,7 +203,9 @@ Every Statement SHALL preserve:
 - object,
 - meaning.
 
-A Statement Subject SHALL identify an Entity or Relation.
+A Statement Subject SHALL identify an object permitted by the predicate
+semantics. This MAY include Entity, Capability, Relation, State, Statement,
+or a declared concept.
 
 A Statement predicate MAY identify a Relation semantic type, a Capability
 semantic type, or another semantically defined predicate.

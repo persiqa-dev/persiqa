@@ -39,7 +39,8 @@ Current behaviour SHALL be represented by State.
 
 A Capability:
 
--   SHALL belong to exactly one Entity.
+-   SHALL be explicitly associated with the Entity or Entities for which the
+    capability is modeled.
 -   SHALL be implementation independent.
 -   SHALL be timeless.
 -   MAY be refined.

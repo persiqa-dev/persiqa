@@ -57,7 +57,7 @@ Current behaviour SHALL be represented by State.
 
 # LAW-004 --- State Temporality
 
-State represents the current condition of an Entity or Relation.
+State represents a contextual condition of an Entity or Relation.
 
 State:
 
@@ -73,7 +73,7 @@ Relations are first-class model elements.
 
 A Relation:
 
--   connects Entities,
+-   connects endpoints permitted by its declared Relation Type,
 -   owns its own semantics,
 -   MAY own State,
 -   SHALL be independently addressable.

@@ -117,12 +117,14 @@ information represented by the CKM.
 This includes, where applicable:
 
 - Entity identity,
-- Capability identity and ownership,
+- Capability identity and explicit associations,
 - Relation identity,
 - Relation source and target,
 - Relation semantics,
 - State ownership and values,
 - Statement meaning,
+- Statement provenance, temporal context, confidence, derivation, and conflict
+  information where present,
 - refinement,
 - namespace information,
 - imported model references.
@@ -194,7 +196,7 @@ The following SHALL NOT change:
 - capability meaning,
 - relation meaning,
 - relation endpoints,
-- state meaning,
+- state contextual meaning,
 - statement meaning,
 - refinement semantics,
 - namespace semantics.

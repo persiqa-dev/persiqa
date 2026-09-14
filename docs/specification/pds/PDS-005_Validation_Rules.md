@@ -119,11 +119,11 @@ they are used.
 The following minimum constraints SHALL hold:
 
 ```text
-Statement Subject → Entity | Relation
+Statement Subject → predicate-permitted CKM object, concept, or value context
 State Owner       → Entity | Relation
-Capability Owner  → Entity
-Relation Source   → Entity
-Relation Target   → Entity
+Capability        → explicit Entity association
+Relation Source   → Relation-Type-permitted endpoint
+Relation Target   → Relation-Type-permitted endpoint
 ```
 
 A reference of an incompatible kind SHALL be rejected as a semantic type
@@ -138,8 +138,9 @@ Semantic validation SHALL verify:
 - All referenced elements exist and resolve unambiguously.
 - Element kinds are compatible.
 - Statements have valid semantic meaning.
-- Capability ownership conforms to the Capability Model.
-- Relation endpoints conform to the binary Relation Model.
+- Capability associations conform to the Capability Model.
+- Relation endpoints conform to the declared Relation Type and binary
+  Relation Model.
 - State ownership conforms to the State Model.
 - Semantic derivations used for references are explicitly defined.
 
@@ -150,8 +151,8 @@ Semantic validation SHALL verify:
 Implementations SHALL verify:
 
 - No refinement cycles exist.
-- Every refinement has a valid parent.
-- Identity is preserved.
+- Every explicit refinement reference resolves to valid supporting knowledge.
+- Refinement does not silently merge or replace canonical identities.
 - Refinement never contradicts the Core ontology.
 
 Invalid refinement SHALL invalidate the model.
@@ -166,8 +167,8 @@ Consistency validation SHALL verify:
 - Duplicate declaration handling
 - Namespace consistency
 - Import consistency
-- Statement consistency
-- State conflicts
+- Statement semantic validity and knowledge context
+- State conflicts, retained as distinguishable assertions where applicable
 
 Implementations MAY additionally report redundant Statements as warnings.
 

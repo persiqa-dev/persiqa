@@ -109,7 +109,10 @@ Statements reference first-class elements but do not own them.
 
 # 5. Canonical Identity
 
-Every first-class element SHALL possess a canonical identity.
+Every first-class element SHALL be independently addressable in the CKM.
+The kind-specific identity semantics are defined by PMS-008. In particular,
+State has contextual identity and SHALL NOT be interpreted as having
+Entity-like continuity.
 
 Canonical identity:
 
@@ -143,10 +146,13 @@ Ownership within the CKM SHALL be explicit.
 
 Rules:
 
-- Statements reference elements.
-- Relations connect source and target Entities.
+- Statements reference elements and knowledge context; they do not own
+  canonical world-model objects.
+- Relations connect source and target endpoints permitted by their Relation
+  Type.
 - States belong to exactly one owning Entity or Relation.
-- Capabilities belong to their owning Entity.
+- Capabilities are explicitly associated with Entities; a reusable Capability
+  concept is not required to have one exclusive Entity owner.
 - Refinement links preserve ownership.
 
 Implicit ownership SHALL NOT exist.
@@ -169,13 +175,14 @@ boundary.
 
 The following invariants SHALL always hold:
 
-- Every first-class element has exactly one canonical identity.
+- Every first-class element is independently addressable according to its
+  kind-specific identity semantics.
 - Every reference resolves uniquely.
 - Every Statement is semantically valid.
 - Every State has exactly one owner.
-- Every Capability has exactly one Entity owner.
-- Every Relation has exactly one source Entity.
-- Every Relation has exactly one target Entity.
+- Every Capability association is explicit.
+- Every Relation has exactly one source and one target endpoint permitted by
+  its Relation Type.
 - Every refinement chain is acyclic.
 - Every CKM is internally consistent after successful validation.
 

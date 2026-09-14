@@ -15,8 +15,8 @@
 This chapter defines the normative handling of contradictions and truth
 maintenance within the Persiqa reasoning model.
 
-Its objective is to preserve semantic consistency while allowing
-knowledge to evolve over time.
+Its objective is to preserve traceable knowledge and declared semantic
+constraints while allowing knowledge to evolve over time.
 
 ------------------------------------------------------------------------
 
@@ -45,7 +45,8 @@ Valve state = Closed
 
 when both refer to the same point in time.
 
-A reasoning engine SHALL report contradictions explicitly.
+A reasoning engine SHALL report detected conflicts explicitly without deleting
+either asserted Statement merely because a conflict exists.
 
 ------------------------------------------------------------------------
 
@@ -134,5 +135,5 @@ A conforming reasoning engine SHALL:
 -   distinguish refinement from replacement,
 -   maintain derivation provenance,
 -   detect contradictions deterministically,
--   produce a semantically consistent Knowledge Closure after truth
-    maintenance.
+-   produce a semantically well-defined Knowledge Closure that preserves
+    conflicting Statements and their context.

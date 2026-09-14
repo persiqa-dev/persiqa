@@ -55,8 +55,8 @@ statement    → Statement
 ```
 
 Capability and Relation declarations introduce semantic identifiers. Concrete
-Capability and Relation CKM instances are materialized by semantically valid
-Statements and their applicable ownership/endpoint rules.
+Capability associations and Relation CKM instances are materialized by
+semantically valid Statements and their applicable association/endpoint rules.
 
 ---
 
@@ -98,8 +98,8 @@ introduces the semantic type:
 CapabilityType("Transport")
 ```
 
-A concrete Capability CKM object is established by a valid ownership
-Statement, for example:
+A concrete Capability association is established by a valid Statement, for
+example:
 
 ```text
 transport: HeatPump has Transport
@@ -108,15 +108,16 @@ transport: HeatPump has Transport
 which maps to:
 
 ```text
-Capability
-    type  = Transport
-    owner = HeatPump
+Capability association
+    entity     = HeatPump
+    capability = Transport
 ```
 
 The local reference `transport` is not part of the canonical Capability
 identity.
 
-A Capability SHALL have exactly one owning Entity.
+A Capability association SHALL be explicit; a reusable Capability concept MAY
+be associated with more than one Entity.
 
 ---
 
@@ -138,8 +139,8 @@ RelationType("connected_to")
 ```
 
 A concrete Relation CKM object is derived from a valid Statement whose
-predicate resolves to that Relation type and whose subject and object resolve
-to Entity objects.
+predicate resolves to that Relation Type and whose subject and object resolve
+to endpoint objects permitted by that type.
 
 Example:
 
@@ -161,11 +162,8 @@ Relation
     target = BufferTank
 ```
 
-The canonical Relation identity SHALL be derived from:
-
-```text
-(relation type, source Entity, target Entity)
-```
+Relation Type and endpoint values SHALL NOT by themselves determine canonical
+Relation identity.
 
 The local reference `connection` SHALL NOT contribute to canonical Relation
 identity.
@@ -197,17 +195,18 @@ directly or through an explicitly defined semantic derivation.
 
 A State SHALL belong to exactly one owner.
 
-State identity is not defined by its value. A new value updates the existing
-State identified by its owner and semantic predicate.
+State identity is not defined by its value. State is contextual to owner,
+semantic predicate, and applicable context; a new value MAY update a current
+State view or add a historical, observed, asserted, or derived State context.
 
 ---
 
 ### Statement Canonical Identity
 
-A Statement SHALL have a canonical identity determined by its subject,
-predicate, and object. The canonical identity is the tuple
-(subject, predicate, object). A DSL-local reference or authoring label SHALL
-NOT contribute to Statement canonical identity.
+A Statement SHALL have independent canonical identity. Its subject, predicate,
+object, provenance, time, and derivation context MAY distinguish equal-looking
+assertions; a DSL-local reference or authoring label SHALL NOT define that
+identity.
 
 # 7. Statement Mapping
 

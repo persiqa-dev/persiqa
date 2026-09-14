@@ -15,19 +15,21 @@
 This chapter defines the normative meta model for State within the
 Persiqa Canonical Knowledge Model (CKM).
 
-State represents mutable knowledge associated with canonical elements
-while preserving their identity.
+State represents a semantic condition associated with an Entity or Relation
+in context while preserving the owner's identity.
 
 ------------------------------------------------------------------------
 
 # 2. Definition
 
-State is a first-class concept representing the observable condition of
-an owning model element.
+State is a first-class CKM object representing the semantic condition of an
+owning model element.
 
 State SHALL be mutable.
 
-State SHALL NOT define an independent continuity identity. Within its owner context, State has a canonical identity determined by its semantic predicate. Changing the State value SHALL NOT create a new canonical State object.
+State SHALL NOT define an independent continuity identity. Its identity is
+contextual to owner, semantic predicate, and applicable context; a State value
+change SHALL NOT by itself create Entity-like continuity.
 
 ------------------------------------------------------------------------
 
@@ -48,7 +50,8 @@ Capability and Statement SHALL NOT own State.
 
 # 4. State Evolution
 
-State MAY change over time.
+State MAY change over time. Current, historical, planned, asserted, observed,
+and derived States MAY coexist when their contexts are distinguished.
 
 A State change:
 
@@ -72,7 +75,8 @@ Examples:
 -   Occupancy
 -   Fault
 
-Entity State describes the current condition of the Entity.
+Entity State describes a contextual condition of the Entity, including current,
+historical, planned, asserted, observed, or derived condition where declared.
 
 ------------------------------------------------------------------------
 
@@ -89,8 +93,8 @@ Examples:
 -   Pressure
 -   Packet Loss
 
-Relation State describes the current condition of the connection rather
-than either endpoint.
+Relation State describes a contextual condition of the connection rather than
+either endpoint.
 
 ------------------------------------------------------------------------
 

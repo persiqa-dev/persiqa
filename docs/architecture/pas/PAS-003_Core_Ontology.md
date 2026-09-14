@@ -77,7 +77,7 @@ has its own identity.
 An Entity:
 
 - SHALL have identity.
-- MAY own Capabilities.
+- MAY be explicitly associated with Capabilities.
 - MAY own States.
 - MAY participate in Relations.
 - MAY be refined.
@@ -118,7 +118,9 @@ They describe potential, not current behaviour.
 
 A Capability:
 
-- SHALL belong to exactly one Entity.
+- SHALL be explicitly associated with one or more Entities when a concrete
+  capability association is modeled; reusable capability concepts MAY be
+  associated with multiple Entities.
 - SHALL describe ability.
 - SHALL NOT describe current execution.
 - MAY be refined.
@@ -142,19 +144,19 @@ them.
 
 ## Definition
 
-A Relation describes a semantic relationship between Entities.
+A Relation describes a semantic relationship between endpoints permitted by
+its declared Relation Type.
 
 Relations are first-class model elements.
 
-A Relation has a defined source Entity and target Entity. The normative
-cardinality and representation of these endpoints are defined by the
-Persiqa Meta Model.
+A Relation has one defined source endpoint and one defined target endpoint.
+The Relation Type declares the permitted endpoint kinds and semantic rules.
 
 ## Characteristics
 
 A Relation:
 
-- SHALL connect Entities.
+- SHALL connect declared, valid endpoints.
 - SHALL have semantics.
 - MAY own State.
 - MAY be refined.
@@ -179,7 +181,7 @@ are not additional Core ontology concepts.
 
 ## Definition
 
-A State represents the current condition of an Entity or Relation.
+A State represents a contextual condition of an Entity or Relation.
 
 State is temporal.
 
@@ -188,7 +190,8 @@ State is temporal.
 A State:
 
 - MAY change over time.
-- SHALL NOT define an independent continuity identity. Within its owner context, State has a canonical identity determined by its semantic predicate.
+- SHALL NOT define an independent continuity identity. Its identity is
+  contextual to owner, semantic predicate, and applicable context.
 - SHALL NOT define Capability.
 - MAY belong to an Entity.
 - MAY belong to a Relation.
@@ -236,7 +239,7 @@ The Core concepts interact according to the following rules.
 
 ```text
 Entity
- ├── owns Capability
+ ├── associates with Capability
  ├── owns State
  └── participates in Relation
 
@@ -245,7 +248,7 @@ Relation
  └── may own State
 
 Capability
- └── belongs to Entity
+ └── is explicitly associated with Entity
 
 State
  └── belongs to Entity or Relation
@@ -267,11 +270,11 @@ Every Entity SHALL have identity.
 
 **OC-002**
 
-Every Capability SHALL belong to an Entity.
+Every concrete Capability association SHALL be explicit.
 
 **OC-003**
 
-Every Relation SHALL connect Entities.
+Every Relation SHALL connect endpoints permitted by its Relation Type.
 
 **OC-004**
 
@@ -324,4 +327,5 @@ healthcare, and building modelling.
 
 ### State Identity
 
-State SHALL NOT define an independent continuity identity. Within its owner context, State has a canonical identity determined by its semantic predicate. Changing the State value SHALL NOT create a new canonical State object.
+State SHALL NOT define an independent continuity identity. Its identity is
+contextual to owner, semantic predicate, and applicable context.

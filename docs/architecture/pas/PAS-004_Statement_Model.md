@@ -58,7 +58,8 @@ Subject Predicate Object
 
 Where:
 
-- Subject SHALL identify an Entity or Relation.
+- Subject SHALL identify an Entity, Capability, Relation, State, Statement,
+  concept, or another object permitted by the predicate semantics.
 - Predicate SHALL define the semantic meaning of the Statement.
 - Object SHALL represent either:
   - another Entity,
@@ -69,9 +70,8 @@ Where:
 The Subject MAY identify a Relation when the Statement describes the
 relationship itself.
 
-A Statement SHALL NOT implicitly promote a Capability or State into a
-Subject unless a future normative specification explicitly extends this
-rule.
+Capability, State, and Statement MAY be Statement subjects when permitted by
+the predicate semantics declared in PMS-008.
 
 ------------------------------------------------------------------------
 
@@ -186,7 +186,7 @@ These Statements are complementary rather than conflicting.
 
 A valid Statement SHALL satisfy all of the following:
 
-- The Subject SHALL reference an Entity or Relation.
+- The Subject SHALL reference an object permitted by the predicate semantics.
 - The Predicate SHALL be semantically defined.
 - The Object SHALL be valid for the Predicate.
 - The Statement SHALL comply with the Core Ontology.

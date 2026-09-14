@@ -179,8 +179,8 @@ relation connected_to
 A Relation declaration introduces a Relation semantic identifier.
 
 A concrete Relation instance is established by a semantically valid
-Statement whose predicate identifies the Relation semantics and whose subject
-and object identify the source and target Entities.
+Statement whose predicate identifies the Relation Type semantics and whose
+subject and object identify endpoints permitted by that Relation Type.
 
 Example:
 
@@ -189,7 +189,8 @@ connection: HeatPump connected_to BufferTank
 ```
 
 The resulting Relation SHALL conform to the binary Relation Model: exactly
-one source Entity and exactly one target Entity.
+one source endpoint and exactly one target endpoint permitted by its Relation
+Type.
 
 ---
 

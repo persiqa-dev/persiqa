@@ -44,7 +44,9 @@ Reasoning SHALL NOT modify the ontology.
 
 A Fact is a Statement explicitly present in the CKM.
 
-Facts are considered authoritative unless explicitly replaced.
+Facts are explicit Statements preserved with their provenance and context.
+They MAY be superseded, disputed, or conflict with other Statements; such
+conditions SHALL NOT silently erase the original assertion.
 
 Example:
 
@@ -73,7 +75,7 @@ An inference rule:
 
 -   consumes one or more Facts,
 -   produces zero or more Derived Facts,
--   SHALL preserve semantic consistency.
+-   SHALL preserve declared semantic constraints and provenance.
 
 Inference rules SHALL be implementation-independent.
 
@@ -111,7 +113,7 @@ Reasoning SHALL NOT:
 -   invent ontology,
 -   redefine Core concepts,
 -   violate refinement,
--   contradict validated Facts without an explicit replacement rule.
+-   silently discard or overwrite conflicting validated Facts.
 
 ------------------------------------------------------------------------
 

@@ -67,29 +67,32 @@ An Entity SHALL NOT own Statements.
 
 # 5. Capability
 
-A Capability represents a universal behaviour or domain-level ability.
+A Capability represents a model-relevant ability or function.
 
 Mandatory characteristics:
 
 - Canonical Identity
-- Exactly one owning Entity
+- Explicit association with zero or more Entities
 - Optional Refinement
 
 Capabilities SHALL be independent of implementation technology.
 
-Capabilities SHALL NOT own State.
+Capabilities SHALL NOT own State. A Capability association SHALL NOT imply
+that the ability is active, reachable, healthy, or in use.
 
 ------------------------------------------------------------------------
 
 # 6. Relation
 
-A Relation represents a directed semantic connection between two Entities.
+A Relation represents a directed semantic connection between two endpoints
+permitted by its declared Relation Type.
 
 Mandatory characteristics:
 
 - Canonical Identity
-- Exactly one Source Entity
-- Exactly one Target Entity
+- Exactly one Source endpoint
+- Exactly one Target endpoint
+- Declared Relation Type
 - Optional State
 - Optional Refinement
 
@@ -113,7 +116,9 @@ State SHALL belong to exactly one owner:
 
 State SHALL NOT exist independently.
 
-State SHALL NOT define an independent continuity identity. Within its owner context, State has a canonical identity determined by its semantic predicate. Changing the State value SHALL NOT create a new canonical State object.
+State SHALL NOT define an independent continuity identity. Its identity is
+contextual to owner, semantic predicate, and applicable context; a State value
+change SHALL NOT by itself create Entity-like continuity.
 
 ------------------------------------------------------------------------
 
@@ -127,7 +132,8 @@ A Statement SHALL contain:
 - Predicate
 - Object
 
-The Subject SHALL identify an Entity or Relation.
+The Subject MAY identify an Entity, Capability, Relation, State, Statement,
+concept, or other object permitted by the predicate semantics.
 
 Statements reference Core objects.
 
@@ -142,7 +148,7 @@ concept.
 
 ```text
 Entity
- ├── owns Capability
+ ├── associates with Capability
  ├── owns State
  └── participates in Relation
 
@@ -163,12 +169,13 @@ Ownership SHALL always be explicit.
 
 The following SHALL always hold:
 
-- Every first-class object has exactly one canonical identity.
-- Every Capability has exactly one owning Entity.
+- Every first-class object is independently addressable according to its
+  kind-specific identity semantics.
+- Every Capability association is explicit.
 - Every State has exactly one owner.
 - Every Statement is semantically valid.
-- Every Relation has exactly one source Entity.
-- Every Relation has exactly one target Entity.
+- Every Relation has exactly one source and one target endpoint permitted by
+  its Relation Type.
 - Every refinement chain is acyclic.
 
 ------------------------------------------------------------------------

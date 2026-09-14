@@ -23,7 +23,9 @@ Lifecycle determines *how that element evolves over time*.
 
 # 2. Identity
 
-Every first-class element SHALL possess exactly one canonical identity.
+Every first-class element SHALL be independently addressable. Its identity
+semantics SHALL follow PMS-008: Entity, Capability, Relation, State, and
+Statement do not all have the same continuity semantics.
 
 Identity SHALL:
 
@@ -33,13 +35,17 @@ Identity SHALL:
 -   be independent of implementation technology,
 -   survive refinement.
 
-Identity SHALL NOT be derived from State.
+Entity, Capability, Relation, and Statement identity SHALL NOT be derived
+from State. State has contextual identity and SHALL NOT be treated as having
+independent Entity-like continuity.
 
 ------------------------------------------------------------------------
 
 # 3. Immutable Identity
 
-Canonical identity is immutable.
+Canonical continuity identity is immutable where the object kind has such
+continuity. State values and their contextual interpretation evolve under the
+rules in PMS-008 and PMS-005.
 
 The following SHALL NOT change the identity of an element:
 

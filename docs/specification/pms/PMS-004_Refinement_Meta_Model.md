@@ -22,18 +22,21 @@ specialize existing universal Core concepts.
 
 # 2. Definition
 
-Refinement is a semantic relationship between two canonical elements.
+Refinement increases the resolution, structure, constraints, provenance, or
+detail of already represented knowledge while preserving its applicable
+meaning. It is not limited to a parent/child relationship between two
+canonical elements.
 
-The refined element provides a more precise interpretation while
-preserving the meaning of its parent.
-
-Refinement SHALL increase precision without changing identity.
+Refinement SHALL NOT invalidate earlier lower-resolution knowledge merely
+because more detail is available. It MAY introduce additional canonical
+elements where that detail is independently model-relevant.
 
 ------------------------------------------------------------------------
 
 # 3. Applicable Elements
 
-The following first-class elements MAY participate in refinement:
+The following first-class elements MAY participate in explicit refinement
+relationships when such a relationship is useful:
 
 - Entity
 - Capability
@@ -49,9 +52,8 @@ Statements reference refined elements but are not themselves refined.
 
 A refinement hierarchy forms a directed acyclic graph.
 
-Each refinement SHALL reference exactly one immediate parent.
-
-Multiple children MAY refine the same parent.
+An explicit refinement relationship SHALL be acyclic. It MAY reference one or
+more supporting elements as required by its declared semantics.
 
 ------------------------------------------------------------------------
 
@@ -68,7 +70,8 @@ replacement rule exists outside the refinement model.
 
 # 6. Identity Preservation
 
-Refinement SHALL preserve canonical identity.
+Refinement SHALL preserve the continuity and validity of knowledge it refines;
+it SHALL NOT by itself merge or replace distinct canonical identities.
 
 Refinement SHALL NOT:
 
@@ -84,10 +87,11 @@ Only semantic precision SHALL increase.
 
 The following invariants SHALL always hold:
 
-- No refinement cycles.
-- Every parent exists.
-- Every refinement chain terminates at a Core concept.
-- Identity is preserved across refinement.
+- No explicit refinement cycles.
+- Every referenced supporting element exists.
+- Earlier applicable meaning remains valid unless explicitly superseded,
+  disputed, or temporally limited.
+- Distinct canonical identities are not silently merged.
 - Semantic compatibility is maintained.
 
 Violation of any invariant SHALL invalidate the Canonical Knowledge

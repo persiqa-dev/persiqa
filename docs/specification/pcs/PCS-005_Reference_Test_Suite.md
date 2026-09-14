@@ -72,7 +72,8 @@ They SHALL include, at minimum:
 -   unresolved references,
 -   invalid refinement,
 -   CKM invariant violations,
--   reasoning contradictions,
+-   unreported reasoning contradictions where declared constraints identify a
+    conflict,
 -   invalid serialization.
 
 ------------------------------------------------------------------------

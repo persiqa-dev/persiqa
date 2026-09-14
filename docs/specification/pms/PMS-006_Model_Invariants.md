@@ -32,9 +32,12 @@ Violation of any SHALL invalidate the model.
 
 The following SHALL always hold:
 
--   Every first-class element has exactly one canonical identity.
--   Canonical identity is immutable.
--   No two first-class elements share the same canonical identity.
+-   Every first-class element is independently addressable according to its
+    kind-specific identity semantics.
+-   Entity, Capability, Relation, and Statement continuity identity is
+    immutable; State has contextual identity.
+-   No two elements of the same identity scope share the same canonical
+    identity.
 
 ------------------------------------------------------------------------
 
@@ -68,8 +71,7 @@ The following rules apply:
 Refinement hierarchies SHALL satisfy:
 
 -   acyclic structure,
--   exactly one immediate parent,
--   preserved identity,
+-   no implicit identity merge or replacement,
 -   preserved semantic compatibility,
 -   termination at a Core concept.
 
@@ -82,7 +84,8 @@ Every Statement SHALL:
 -   have exactly one Subject,
 -   have exactly one Predicate,
 -   have exactly one Object,
--   reference only valid canonical elements,
+-   reference only objects or typed values permitted by the predicate
+    semantics,
 -   remain semantically valid.
 
 ------------------------------------------------------------------------
@@ -106,7 +109,7 @@ After successful validation and reasoning:
 
 -   the CKM SHALL be internally consistent,
 -   all references SHALL resolve,
--   no unresolved contradictions SHALL remain,
+-   conflicting Statements SHALL remain preserved and distinguishable,
 -   knowledge closure SHALL satisfy the active reasoning rules.
 
 ------------------------------------------------------------------------

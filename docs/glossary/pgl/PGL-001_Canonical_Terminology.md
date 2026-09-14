@@ -78,7 +78,8 @@ PAS, PMS
 **Definition**
 
 A first-class CKM object representing a directed semantic connection between
-exactly one source Entity and exactly one target Entity.
+exactly one source endpoint and exactly one target endpoint permitted by its
+declared Relation Type.
 
 Relation is one of the four Core ontology concepts.
 
@@ -103,7 +104,8 @@ Entity or Relation.
 
 State is one of the four Core ontology concepts.
 
-State does not define an independent continuity identity. Within its owner context, State has a canonical identity determined by its semantic predicate.
+State does not define an independent continuity identity. Its identity is
+contextual to owner, semantic predicate, and applicable context.
 
 **Related Terms**
 
@@ -184,9 +186,10 @@ RAS, PRS
 
 **Definition**
 
-The immutable identity of a first-class CKM object within the CKM.
-
-Identity survives reasoning, refinement and serialization.
+The kind-specific mechanism that identifies a CKM object within the CKM.
+Entity, Capability, Relation, and Statement may have continuity identity;
+State has contextual identity. Applicable identity survives reasoning,
+refinement and serialization.
 
 **Normative Source**
 
@@ -349,4 +352,5 @@ definitions in PAS, PMS, PDS, PRS or PCS.
 
 ### State Identity
 
-State SHALL NOT define an independent continuity identity. Within its owner context, State has a canonical identity determined by its semantic predicate. Changing the State value SHALL NOT create a new canonical State object.
+State SHALL NOT define an independent continuity identity. Its identity is
+contextual to owner, semantic predicate, and applicable context.

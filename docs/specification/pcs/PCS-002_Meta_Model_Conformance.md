@@ -76,11 +76,11 @@ The implementation SHALL demonstrate that:
 
 The implementation SHALL verify:
 
-- every Capability has exactly one Entity owner,
+- every Capability association is explicit,
 - every State has exactly one owner,
 - Statements reference but do not own Core objects,
-- every Relation has exactly one source Entity,
-- every Relation has exactly one target Entity,
+- every Relation has exactly one source and one target endpoint permitted by
+  its Relation Type,
 - references resolve uniquely,
 - no dangling references exist in a valid CKM.
 
