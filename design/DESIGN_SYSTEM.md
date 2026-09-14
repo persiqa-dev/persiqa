@@ -1,333 +1,349 @@
-# Persiqa Visual Design System — v1.0
+# Persiqa Visual Design System
 
-**Status:** Canonical / fixed direction
+**Status:** Canonical  
+**Version:** 1.0  
+**Scope:** Brand and product visual design
 
-## 1. Brand Direction
+## 1. Design Principles
 
-Persiqa is a **modern, clean, geometric, precise, structured, and
-knowledge-driven** brand.
+Persiqa uses a modern, clean, geometric, precise, structured, and knowledge-driven visual language.
 
-The visual language communicates infrastructure, systems, structure,
-precision, connectivity, clarity, knowledge, and reliability.
+The visual system should communicate:
 
-> **Structure → Connection → Focus → Knowledge**
+- structure
+- relationships
+- progressive knowledge
+- technical precision
+- clarity
+- confidence
 
-The design should feel engineered rather than decorative.
+Visual complexity should come from the information and relationships being represented, not from decorative styling.
 
-**Important:** this is an established direction. Future work should
-refine and implement it rather than restart visual exploration.
+The design system is based on a small number of coherent primitives and should remain consistent across brand, product UI, documentation, and visualization.
 
-## 2. Logo — Canonical Geometry
+## 2. Brand Foundation
 
-The official logo geometry is the user-provided
-**`Monocrome design geometry reference.png`**.
+### 2.1 Logo
 
-It is a fixed brand asset and must be used without modification.
+The approved Persiqa logo is the finalized **v15 geometric mark**.
 
-Fixed properties:
+The logo geometry is canonical and must not be redesigned or structurally altered.
 
-- Primary geometry
-- P3 break
-- W4 stroke thickness
-- outer hexagonal contour
-- upper-right node and its exact relationship to the path
-- central cube
-- cube made of exactly three simple flat faces
-- evenly separated cube faces
+Its visual construction is based on:
 
-Never regenerate or reinterpret the logo geometry. If the canonical
-asset is unavailable, request it instead of inventing a replacement.
+- regular hexagonal outer geometry
+- central three-face flat cube
+- upper-right node
+- deliberate open segments
+- internal geometric masking
+- connection-oriented line structure
 
-The black-and-white version is an official alternative.
+The open portion of the outer geometry intentionally represents unexplored or not-yet-modeled parts of a system.
 
-## 3. Primary Brand Color
+The node represents a known or identified connection point.
 
-**Persiqa Amber — A03 / Rich & Sophisticated — `#C25F05`**
+### 2.2 Wordmark
 
-Character: deep amber, sophisticated, warm, technical, distinctive,
-restrained; not gold, brown, neon, or bright orange.
+The approved Persiqa wordmark is based on **Manrope SemiBold (600)**.
 
-Amber is used for meaningful emphasis:
+The `i` dot is replaced by a Persiqa node derived directly from the approved logo geometry.
 
-- active / selected state
-- important nodes
-- meaningful connections
-- key data points
-- focus elements
-- primary actions
+This creates a deliberate relationship between the logo and the wordmark: the node is not a decorative symbol but part of the Persiqa visual language.
 
-> **Amber carries meaning; neutrals carry the interface.**
+The canonical wordmark is maintained as vector artwork and does not require the Manrope font at runtime.
 
-Avoid gradients, neon orange, excessive orange surfaces, and decorative
-use of Amber.
+Canonical asset:
 
-## 4. Neutral Colors
+`brand/wordmark/persiqa_wordmark_v1.svg`
 
-Use a restrained environment of black / near-black, charcoal, graphite,
-white, warm off-white, and gray.
+## 3. Color
 
-Neutrals provide readability, hierarchy, whitespace, and visual calm.
+### 3.1 Primary Brand Color
 
-Semantic colors such as success/warning/critical may exist where
-functionally necessary, but remain secondary to the brand system.
+**Persiqa Amber**
 
-## 5. Typography
+```text
+HEX  #C25F05
+```
 
-**Primary typeface: Inter**
+Persiqa Amber is the primary accent and brand color.
 
-Use one primary family across product UI, documentation, dashboards,
-diagrams, and supporting brand content.
+Use it for:
 
-Weights:
+- primary brand marks
+- key interaction accents
+- selected states
+- nodes and connection highlights
+- important data points
+- visual emphasis
 
-- Regular — body
-- Medium — labels/navigation
-- Semibold — headings/emphasis
-- Bold — rare strong emphasis
+Amber should be used deliberately rather than as a default fill for large areas.
 
-Typography should be clear, restrained, and highly readable.
+### 3.2 Neutral Palette
+
+The visual environment is primarily neutral and supports the Amber accent.
+
+Core neutrals include:
+
+- Black
+- Near Black
+- Charcoal
+- Graphite
+- Gray
+- White
+- Warm White
+
+Neutral values should provide the majority of the visual surface area.
+
+### 3.3 Semantic Colors
+
+Product interfaces may introduce semantic colors for:
+
+- success
+- warning
+- error
+- information
+
+Semantic colors must remain secondary to the Persiqa brand palette and must not compete with Persiqa Amber.
+
+## 4. Typography
+
+**Manrope** is the primary Persiqa typeface.
+
+### 4.1 Primary Weights
+
+| Weight | Typical use |
+|---|---|
+| Regular 400 | body text, descriptions |
+| Medium 500 | labels, navigation, secondary hierarchy |
+| SemiBold 600 | headings, prominent labels, wordmark |
+| Bold 700 | strong emphasis and selected display use |
+
+Typography should use hierarchy through:
+
+- size
+- weight
+- spacing
+- alignment
+- contrast
+
+Avoid unnecessary typographic decoration.
+
+The Manrope source package and licensing information are maintained under:
+
+`brand/typography/manrope/`
+
+## 5. Geometry
+
+Persiqa uses a geometric vocabulary derived from the logo and its structural meaning.
+
+Primary geometric primitives:
+
+- HEXAGON
+- CUBE
+- NODE
+- CONNECTION
+- GRID
+
+These primitives should be used consistently across visual assets.
+
+The logo geometry is the reference for the proportions and visual character of this system, but the primitives should not be mechanically copied into every design.
 
 ## 6. Iconography
 
-Style:
+Persiqa iconography is:
 
 - geometric
 - minimal
 - precise
 - consistent
-- scalable
+- based on a 24×24 base grid
 
-Base construction: **24 × 24 grid**.
+Icons should favor simple construction and clear silhouettes.
 
-Use consistent stroke weight, rounded caps/joins, and minimal internal
-detail.
+Avoid:
 
-Default icons are neutral. Amber is reserved for semantic emphasis.
+- excessive detail
+- ornamental styling
+- inconsistent corner treatment
+- unrelated icon families
+- visual effects that obscure structure
 
-Do not force the Persiqa hexagon or cube into every icon. The logo
-geometry is a source of visual language, not a template.
+Icons should feel like part of the same system as the logo rather than an unrelated UI icon library.
 
-Core concepts include Dashboard, Infrastructure, Data, Analytics,
-Monitoring, Security, Automation, Integration, Reports, Alerts,
-Settings, and Users.
+## 7. Graphic Language
 
-## 7. Graphic Vocabulary
+The Persiqa graphic language extends the core geometry into compositional elements.
 
-The five core visual elements are:
+### Core vocabulary
 
-1.  **HEXAGON** — structure, stability, organization, modularity
-2.  **CUBE** — system, component, infrastructure object, building block
-3.  **NODE** — information, data point, focus
-4.  **CONNECTION** — relationship, dependency, flow, connectivity
-5.  **GRID** — order, alignment, structure, scalability
+**HEXAGON**  
+Represents structure, enclosure, and system boundaries.
 
-These form Persiqa’s visual vocabulary.
+**CUBE**  
+Represents modeled objects, structure, and multidimensional infrastructure.
 
-## 8. Graphic Language Principles
+**NODE**  
+Represents a known point, object, endpoint, or connection point.
 
-The graphic language is:
+**CONNECTION**  
+Represents relationships, dependencies, and flow.
 
-- Structured
-- Connected
-- Focused
-- Minimal
-- Precise
-- Spacious
+**GRID**  
+Represents organization, topology, spatial structure, and system context.
 
-Use strong alignment and negative space.
+### Usage principle
 
-The visual system should communicate structure and relationships without
-becoming decorative.
+Graphic elements should reinforce meaning.
 
-## 9. Patterns and Backgrounds
+Do not use geometric motifs merely as decoration when they do not contribute to the represented concept.
 
-Allowed motifs:
+## 8. Layout
 
-- subtle hexagon grids
-- sparse node networks
-- simple connection diagrams
-- restrained grids
-- sparse data points
-- subtle geometric textures
+Persiqa layouts should be structured, balanced, and information-oriented.
 
-Patterns must remain secondary and low contrast.
+A consistent spacing scale should be used across product and brand applications.
 
-Avoid dense futuristic networks, glowing data clouds, decorative
-isometric cube fields, visual noise, and generic sci-fi / AI effects.
+Recommended base spacing scale:
 
-## 10. Layout and Spacing
+```text
+4
+8
+12
+16
+24
+32
+48
+64
+```
 
-Use a strong grid, clear alignment, generous whitespace, predictable
-spacing, consistent panels/cards, and clear hierarchy.
+Layouts should favor:
 
-> **Complexity should exist in the information, not in the visual
-> presentation.**
+- clear alignment
+- predictable spacing
+- strong grouping
+- generous whitespace where appropriate
+- dense information presentation where the domain requires it
 
-## 11. UI
+The visual system should support both high-density technical views and calm explanatory views.
 
-Light theme: white/warm off-white backgrounds, restrained surfaces and
-borders, subtle elevation.
+## 9. Product UI
 
-Dark theme: near-black/charcoal backgrounds, slightly lighter surfaces,
-restrained borders, Amber for meaningful emphasis.
+Persiqa product interfaces should prioritize understanding relationships and system structure.
 
-Buttons, cards, inputs, tables, and navigation should be clean and
-information-focused.
+UI should feel:
 
-Avoid dashboard decoration.
+- technical without being sterile
+- structured without being rigid
+- information-dense without being cluttered
+- modern without being trend-driven
 
-## 12. Data Visualization
+The graph and underlying model should remain visually central where relevant.
 
-Default to neutral data with Amber for the primary or important series.
+Views and projections should share a common visual language rather than appearing as unrelated screens.
 
-Amber may highlight:
+## 10. Data Visualization
 
-- current value
-- selected series
-- important trend
-- anomaly
-- key node
-- meaningful data point
+Data visualization should emphasize relationships, structure, and explainability.
 
-Avoid rainbow charts, decorative gradients, excessive colors, 3D charts,
-and effects that reduce readability.
+Prefer:
 
-## 13. Architecture Diagrams
+- clear topology
+- explicit connections
+- restrained color use
+- meaningful visual hierarchy
+- direct labeling
+- consistent node and edge semantics
 
-Use simple nodes, geometric containers, clear connections, consistent
-line weights, restrained Amber highlighting, and explicit hierarchy.
+Persiqa Amber should be reserved for important emphasis rather than applied indiscriminately.
 
-The architecture must communicate first; branding is secondary.
+Visualization should remain legible in both light and dark environments.
 
-Amber can highlight a selected component, primary processing path,
-important dependency, or meaningful state.
+## 11. Imagery
 
-## 14. Documentation
+Persiqa imagery should support an architectural and infrastructure-oriented character.
 
-Documentation is an extension of the product.
-
-Use Inter, strong hierarchy, generous whitespace, restrained Amber,
-geometric diagrams, consistent iconography, and clear architecture
-visualizations.
-
-## 15. Dark Mode
-
-Dark mode is the same design system adapted to dark surfaces, not a
-separate identity.
-
-Keep the same geometry, typography, iconography, spacing, and Amber.
-
-## 16. Imagery
-
-Preferred subjects:
+Preferred imagery themes include:
 
 - infrastructure
 - architecture
+- technical details
 - systems
-- engineering
-- technical detail
+- materials
 - structured environments
-- connected systems
+- abstract geometric compositions
 
-Use clean composition, strong geometry, controlled lighting, technical
-precision, restrained color, and meaningful structure.
+Avoid generic SaaS, generic AI, or overly decorative stock imagery.
 
-Avoid generic futuristic/AI imagery.
+## 12. Light and Dark Environments
 
-## 17. Do
+The visual system supports both light and dark presentation.
 
-- preserve the official logo geometry
-- use Amber intentionally
-- maintain alignment and whitespace
-- use consistent geometry
-- keep icons minimal
-- use the five graphic vocabulary elements consistently
-- prioritize information hierarchy
-- make complex systems understandable
+### Light
 
-## 18. Don’t
+Use:
 
-- modify the official logo
-- detach/reposition the logo node
-- change P3
-- change W4
-- modify the cube geometry
-- introduce unnecessary gradients
-- overuse Amber
-- use excessive colors
-- create generic futuristic effects
-- overload compositions with patterns
-- add unnecessary 3D effects
-- sacrifice readability for visual impact
+- white or warm-white surfaces
+- charcoal text
+- restrained neutrals
+- Persiqa Amber for emphasis
 
-## 19. Brand Character
+### Dark
 
-**Should feel:** modern, clean, geometric, precise, structured,
-engineering-driven, knowledge-driven, reliable, purposeful.
+Use:
 
-**Should not feel:** flashy, futuristic for its own sake, overly
-corporate, generic SaaS, playful, decorative, neon-tech, or
-luxury-fashion.
+- near-black or charcoal surfaces
+- light neutral text
+- graphite layers
+- Persiqa Amber for emphasis
 
-## 20. Design Precedence
+The logo's internal cube masking must invert with the background in negative applications.
 
-When designing any new Persiqa visual, apply these in order:
+## 13. Effects
 
-1.  Official logo geometry
-2.  Persiqa Amber `#C25F05`
-3.  Neutral color environment
-4.  Inter typography
-5.  Minimal 24×24 iconography
-6.  HEXAGON / CUBE / NODE / CONNECTION / GRID vocabulary
-7.  Grid and spacing
-8.  Information hierarchy
-9.  Purposeful imagery/patterns
+Effects are secondary to geometry and typography.
 
-Higher-level rules always win over lower-level decoration.
+The canonical identity should work without effects.
 
-## 21. One-Sentence Handoff
+Blur, shadow, depth, gradients, or other treatments may be used only when they improve a specific application context and do not alter the underlying brand geometry.
 
-> Persiqa is a modern, precise, geometric and knowledge-driven
-> infrastructure brand built around a fixed hexagonal/cube logo
-> geometry, Persiqa Amber `#C25F05`, Inter typography, minimal 24×24
-> iconography, and a restrained graphic vocabulary of hexagons, cubes,
-> nodes, connections and grids; the system prioritizes structure,
-> clarity, meaningful emphasis and whitespace over decoration or
-> futuristic effects.
+The primary brand assets remain flat, clean, and vector-based.
 
-## 22. Fixed vs. Open
+## 14. Canonical Assets
 
-### Fixed
+The canonical visual system is maintained under:
 
-- overall visual direction
-- official logo geometry
-- P3 break
-- W4 geometry
-- central three-flat-face cube
-- monochrome logo alternative
-- Persiqa Amber A03 / `#C25F05`
-- Inter typography direction
-- minimal geometric iconography
-- 24×24 icon grid
-- graphic vocabulary
-- layout philosophy
-- data visualization philosophy
-- dark/light relationship
-- documentation direction
-- architecture-diagram direction
+```text
+design/
+├── DESIGN_SYSTEM.md
+└── brand/
+    ├── logo/
+    │   └── geometry-reference.png
+    ├── wordmark/
+    │   ├── persiqa_wordmark_v1.svg
+    │   └── README.md
+    ├── color/
+    │   └── palette.md
+    └── typography/
+        ├── typography.md
+        └── manrope/
+            ├── README.md
+            └── upstream/
+```
 
-### Open implementation details
+Canonical brand assets should be reused rather than recreated.
 
-These are implementation tasks, not new visual exploration:
+## 15. Non-Goals
 
-- exact neutral color tokens
-- exact typography sizes and line heights
-- exact spacing scale
-- exact border radii
-- elevation/shadow rules
-- semantic UI colors
-- chart color rules
-- component-level design tokens
-- final brand guideline
-- production SVG/logo asset
-- production icon library
+The Persiqa visual system should not evolve toward:
+
+- generic SaaS aesthetics
+- excessive futuristic styling
+- decorative geometric overload
+- unnecessary gradients or effects
+- inconsistent illustration styles
+- visual complexity without semantic purpose
+
+The goal is not to make every surface visually distinctive.
+
+The goal is to make the system itself recognizable and coherent.
