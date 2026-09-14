@@ -57,6 +57,9 @@ The normative corpus SHALL be derived from:
 -   PEX example collection,
 -   REF reference models.
 
+PCS-006 defines the CKM v0.1 electrical and Kubernetes corpus and its
+mandatory expected semantic results.
+
 Equivalent implementations SHALL produce equivalent observable results.
 
 ------------------------------------------------------------------------

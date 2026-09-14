@@ -77,4 +77,6 @@ For a new contributor or reader:
      for Relation Type contracts and validation behavior.
 5. DSL and semantic specifications
 6. Validation and conformance specifications
+   - Use `specification/pcs/PCS-006_CKM_v0.1_Conformance_Corpus.md` for the
+     CKM v0.1 electrical and Kubernetes semantic corpus.
 7. Examples and reference material
