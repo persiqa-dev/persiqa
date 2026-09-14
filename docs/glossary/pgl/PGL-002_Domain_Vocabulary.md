@@ -46,7 +46,8 @@ Examples include:
 
 These concepts are not Core concepts.
 
-They SHALL be introduced through Refinement.
+They SHALL be introduced through Refinement, declared Relation Types, or
+other extension mechanisms defined by the normative CKM specifications.
 
 ------------------------------------------------------------------------
 
@@ -106,6 +107,9 @@ A domain ontology MAY introduce:
 -   refined Capabilities,
 -   refined Relations.
 
+A domain registry MAY introduce declared Relation Types with endpoint and
+inference contracts as defined by PMS-009.
+
 It SHALL NOT introduce new first-class concepts.
 
 ------------------------------------------------------------------------
@@ -131,8 +135,8 @@ engineering disciplines.
 
 # 10. Conformance
 
-A conforming Persiqa domain model SHALL extend the Core exclusively
-through Refinement.
+A conforming Persiqa domain model SHALL extend the Core through the declared
+extension mechanisms, including Refinement and registered Relation Types.
 
 The universal Core remains authoritative.
 

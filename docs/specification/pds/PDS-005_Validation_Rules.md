@@ -141,6 +141,8 @@ Semantic validation SHALL verify:
 - Capability associations conform to the Capability Model.
 - Relation endpoints conform to the declared Relation Type and binary
   Relation Model.
+- Every Relation Type resolves to an effective registry contract as defined by
+  PMS-009.
 - State ownership conforms to the State Model.
 - Semantic derivations used for references are explicitly defined.
 

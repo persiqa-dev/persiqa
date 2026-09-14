@@ -88,6 +88,9 @@ The normative CKM v0.1 semantic baseline is
 It consolidates identity, endpoint, knowledge-context, refinement, and
 representation semantics for the four-concept Core.
 
+The normative Relation Type Registry v0.1 is
+[`PMS-009_Relation_Type_Registry.md`](docs/specification/pms/PMS-009_Relation_Type_Registry.md).
+
 ## Design Principles
 
 Persiqa is designed around the following principles:

@@ -48,6 +48,9 @@ The PMS specifies:
 -   model invariants,
 -   implementation independence.
 
+PMS-009 defines the Relation Type Registry used to validate the semantic
+contracts of Relations and their inference behaviour.
+
 It does not prescribe class hierarchies, APIs or persistence mechanisms.
 
 PMS-008 defines the consolidated CKM v0.1 semantic baseline. Where an

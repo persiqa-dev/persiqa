@@ -120,6 +120,7 @@ A conforming implementation SHALL pass tests covering:
 - identity preservation,
 - ownership validation,
 - Relation endpoint validation,
+- Relation Type registry resolution and contract validation,
 - refinement validation,
 - invariant enforcement,
 - persistence independence.

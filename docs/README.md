@@ -73,6 +73,8 @@ For a new contributor or reader:
 4. Core model specifications
    - Start with `specification/pms/PMS-008_CKM_v0.1_Semantic_Baseline.md`
      for the consolidated CKM v0.1 semantics.
+   - Continue with `specification/pms/PMS-009_Relation_Type_Registry.md`
+     for Relation Type contracts and validation behavior.
 5. DSL and semantic specifications
 6. Validation and conformance specifications
 7. Examples and reference material
