@@ -71,6 +71,8 @@ For a new contributor or reader:
 2. Architecture and ADRs
 3. Glossary
 4. Core model specifications
+   - Start with `specification/pms/PMS-008_CKM_v0.1_Semantic_Baseline.md`
+     for the consolidated CKM v0.1 semantics.
 5. DSL and semantic specifications
 6. Validation and conformance specifications
 7. Examples and reference material

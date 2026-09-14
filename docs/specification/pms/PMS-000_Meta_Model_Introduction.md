@@ -50,6 +50,10 @@ The PMS specifies:
 
 It does not prescribe class hierarchies, APIs or persistence mechanisms.
 
+PMS-008 defines the consolidated CKM v0.1 semantic baseline. Where an
+earlier PMS chapter conflicts with PMS-008 on CKM semantics, PMS-008 takes
+precedence.
+
 ------------------------------------------------------------------------
 
 # 4. Design Principles

@@ -18,6 +18,11 @@ abstract representation of every Persiqa model.
 The CKM is the authoritative semantic representation for parsing,
 reasoning, validation and serialization.
 
+PMS-008 defines the consolidated CKM v0.1 semantics and takes precedence
+over conflicting provisions in this chapter. In particular, it defines the
+general Relation endpoint space, capability association, State contextual
+identity, Statement scope, knowledge context, and conflict preservation.
+
 ------------------------------------------------------------------------
 
 # 2. Definition

@@ -83,6 +83,11 @@ Statement
 Statement is the fundamental unit of expressed knowledge. It is a first-class
 CKM object, but it is not a fifth Core ontology concept.
 
+The normative CKM v0.1 semantic baseline is
+[`PMS-008_CKM_v0.1_Semantic_Baseline.md`](docs/specification/pms/PMS-008_CKM_v0.1_Semantic_Baseline.md).
+It consolidates identity, endpoint, knowledge-context, refinement, and
+representation semantics for the four-concept Core.
+
 ## Design Principles
 
 Persiqa is designed around the following principles:
