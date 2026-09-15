@@ -123,6 +123,15 @@ public class JpaCanonicalStore implements CanonicalStore {
         .map(entity -> new ModelScope(entity.id(), entity.name(), entity.ownerSubject()));
   }
 
+  /** Returns scopes owned by one subject in stable display order. */
+  @Override
+  @Transactional(readOnly = true)
+  public List<ModelScope> findScopesByOwner(String ownerSubject) {
+    return scopes.findByOwnerSubjectOrderByNameAscIdAsc(ownerSubject).stream()
+        .map(entity -> new ModelScope(entity.id(), entity.name(), entity.ownerSubject()))
+        .toList();
+  }
+
   /** Reconstructs a standalone canonical Node, or returns {@code null} when it is unknown. */
   @Override
   @Transactional(readOnly = true)

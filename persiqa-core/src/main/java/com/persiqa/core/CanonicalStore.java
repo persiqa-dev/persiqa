@@ -24,6 +24,9 @@ public interface CanonicalStore {
   /** Returns the scope metadata when present. */
   Optional<ModelScope> findScope(UUID scopeId);
 
+  /** Returns scopes owned by one subject in stable display order. */
+  List<ModelScope> findScopesByOwner(String ownerSubject);
+
   /** Persists a Node without changing its CKM identity. */
   UUID save(UUID scopeId, Node node);
 

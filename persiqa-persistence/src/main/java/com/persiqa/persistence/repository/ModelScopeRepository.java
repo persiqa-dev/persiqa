@@ -1,8 +1,11 @@
 package com.persiqa.persistence.repository;
 
 import com.persiqa.persistence.entity.ModelScopeEntity;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 /** Standard persistence operations for model scopes. */
-public interface ModelScopeRepository extends JpaRepository<ModelScopeEntity, UUID> {}
+public interface ModelScopeRepository extends JpaRepository<ModelScopeEntity, UUID> {
+  List<ModelScopeEntity> findByOwnerSubjectOrderByNameAscIdAsc(String ownerSubject);
+}

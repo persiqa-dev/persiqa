@@ -272,6 +272,34 @@ class ScopeKnowledgeControllerIntegrationTest {
   }
 
   @Test
+  void lists_and_reads_only_scopes_owned_by_the_authenticated_subject() throws Exception {
+    var alpha = UUID.randomUUID();
+    var beta = UUID.randomUUID();
+    var bobScope = UUID.randomUUID();
+    knowledge.createScope(beta, "Beta", "alice");
+    knowledge.createScope(alpha, "Alpha", "alice");
+    knowledge.createScope(bobScope, "Bob scope", "bob");
+
+    var response =
+        http.perform(MockMvcRequestBuilders.get("/api/scopes").with(ALICE))
+            .andExpect(status().isOk())
+            .andReturn();
+    var scopeIds = new java.util.HashSet<String>();
+    var responseBody = response.getResponse().getContentAsString(StandardCharsets.UTF_8);
+    for (var scope : json.readTree(responseBody)) {
+      scopeIds.add(scope.get("id").stringValue());
+    }
+    Assertions.assertTrue(scopeIds.contains(alpha.toString()));
+    Assertions.assertTrue(scopeIds.contains(beta.toString()));
+    Assertions.assertFalse(scopeIds.contains(bobScope.toString()));
+    http.perform(MockMvcRequestBuilders.get("/api/scopes/{scopeId}", alpha).with(ALICE))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.name").value("Alpha"));
+    http.perform(MockMvcRequestBuilders.get("/api/scopes/{scopeId}", alpha).with(BOB))
+        .andExpect(status().isForbidden());
+  }
+
+  @Test
   void rejects_unauthenticated_api_calls() throws Exception {
     http.perform(MockMvcRequestBuilders.get("/api/scopes/{scopeId}/relations", UUID.randomUUID()))
         .andExpect(status().isUnauthorized());

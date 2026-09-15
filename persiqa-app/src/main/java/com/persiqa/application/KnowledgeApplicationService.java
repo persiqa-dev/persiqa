@@ -46,6 +46,12 @@ public class KnowledgeApplicationService {
     return store.findScope(scopeId).orElse(null);
   }
 
+  /** Returns the scopes owned by the subject in stable display order. */
+  @Transactional(readOnly = true)
+  public List<ModelScope> findScopesOwnedBy(String subject) {
+    return store.findScopesByOwner(subject);
+  }
+
   /** Persists a standalone canonical Node without requiring a Relation assertion. */
   @Transactional
   public void saveNode(UUID scopeId, String subject, Node node) {
