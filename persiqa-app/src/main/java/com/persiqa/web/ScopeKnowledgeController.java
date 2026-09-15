@@ -6,6 +6,7 @@ import com.persiqa.model.Ckm.Kind;
 import com.persiqa.web.dto.KnowledgeDtos.NodeResponse;
 import com.persiqa.web.dto.KnowledgeDtos.ObservationResponse;
 import com.persiqa.web.dto.KnowledgeDtos.RelationResponse;
+import com.persiqa.web.dto.KnowledgeDtos.ScopeKnowledgeResponse;
 import com.persiqa.web.dto.KnowledgeDtos.StatementResponse;
 import com.persiqa.web.dto.KnowledgeMapper;
 import java.util.List;
@@ -51,6 +52,19 @@ public class ScopeKnowledgeController {
     var subject = currentSubject.require();
     requireScopeAccess(scopeId, subject);
     return knowledge.findNodes(scopeId, subject).stream().map(mapper::toNode).toList();
+  }
+
+  /** Returns one client-loading projection of the scope's canonical graph. */
+  @GetMapping("/knowledge")
+  public ScopeKnowledgeResponse findKnowledgeSnapshot(@PathVariable("scopeId") UUID scopeId) {
+    var subject = currentSubject.require();
+    requireScopeAccess(scopeId, subject);
+    var snapshot = knowledge.findKnowledgeSnapshot(scopeId, subject);
+    return new ScopeKnowledgeResponse(
+        mapper.toScope(snapshot.scope()),
+        snapshot.nodes().stream().map(mapper::toNode).toList(),
+        mapper.toRelations(snapshot.relations()),
+        mapper.toStatements(snapshot.statements()));
   }
 
   /** Lists the Statements in one scope. */

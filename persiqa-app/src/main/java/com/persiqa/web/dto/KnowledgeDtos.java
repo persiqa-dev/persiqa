@@ -26,6 +26,13 @@ public final class KnowledgeDtos {
   public record RelationResponse(
       String id, RelationTypeResponse type, NodeResponse source, NodeResponse target) {}
 
+  /** A client-loading projection of one scope's canonical graph, not a saved Representation. */
+  public record ScopeKnowledgeResponse(
+      ScopeResponse scope,
+      java.util.List<NodeResponse> nodes,
+      java.util.List<RelationResponse> relations,
+      java.util.List<StatementResponse> statements) {}
+
   /**
    * Statement assertion including its original knowledge context.
    *

@@ -65,6 +65,12 @@ class ScopeKnowledgeControllerIntegrationTest {
         .andExpect(jsonPath("$[0].id").value("supply-observation"))
         .andExpect(jsonPath("$[0].knowledgeKind").value("EXPLICIT"))
         .andExpect(jsonPath("$[0].context.provenance").value("inspection"));
+    http.perform(MockMvcRequestBuilders.get("/api/scopes/{scopeId}/knowledge", scope).with(ALICE))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.scope.name").value("http-read-test"))
+        .andExpect(jsonPath("$.nodes[?(@.id == 'MCB-01')].kind").value("ENTITY"))
+        .andExpect(jsonPath("$.relations[0].id").value("supply-mcb-lamp"))
+        .andExpect(jsonPath("$.statements[0].id").value("supply-observation"));
   }
 
   @Test

@@ -52,6 +52,17 @@ public class KnowledgeApplicationService {
     return store.findScopesByOwner(subject);
   }
 
+  /** Returns the canonical graph elements held by one scope. */
+  @Transactional(readOnly = true)
+  public ScopeKnowledgeSnapshot findKnowledgeSnapshot(UUID scopeId, String subject) {
+    var scope = requireOwner(scopeId, subject);
+    return new ScopeKnowledgeSnapshot(
+        scope,
+        store.findNodes(scopeId),
+        store.findRelations(scopeId),
+        store.findStatements(scopeId));
+  }
+
   /** Persists a standalone canonical Node without requiring a Relation assertion. */
   @Transactional
   public void saveNode(UUID scopeId, String subject, Node node) {
@@ -174,7 +185,7 @@ public class KnowledgeApplicationService {
     return new RelationRecord(prepared.statement(), prepared.relation());
   }
 
-  private void requireOwner(UUID scopeId, String subject) {
+  private ModelScope requireOwner(UUID scopeId, String subject) {
     var scope =
         store
             .findScope(scopeId)
@@ -182,7 +193,12 @@ public class KnowledgeApplicationService {
     if (!scope.ownerSubject().equals(subject)) {
       throw new ScopeAccessDeniedException("subject is not the owner of scope " + scopeId);
     }
+    return scope;
   }
+
+  /** Canonical graph elements available to an authorized reader of one scope. */
+  public record ScopeKnowledgeSnapshot(
+      ModelScope scope, List<Node> nodes, List<Relation> relations, List<Statement> statements) {}
 
   /** Result of a statement-first relation recording use case. */
   public record RelationRecord(Statement statement, Relation relation) {}
