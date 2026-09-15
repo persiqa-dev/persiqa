@@ -47,11 +47,12 @@ Every addressable CKM object SHALL have one CanonicalObject record:
     canonical_object
       object_id
       model_scope_id
+      identity_key
       kind
       created_at
       retired_at (optional)
 
-The record supplies stable storage addressability only. It SHALL NOT encode domain type, display label, lifecycle State, or source-system identifier as a replacement for CKM semantics.
+`object_id` is the persistence ID. `identity_key` is the scope-local serialized CKM identity used to recover the canonical object across storage sessions. The record SHALL NOT encode domain type, display label, lifecycle State, or source-system identifier as a replacement for CKM semantics.
 
 Entity, Capability, Relation, State, and Statement records reference this common object identity where applicable.
 

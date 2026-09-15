@@ -14,7 +14,14 @@ public final class KnowledgeBase {
     if (!upstream.target().equals(downstream.source())) {
       throw new IllegalArgumentException("supply path endpoints do not compose");
     }
-    var result = new Relation(id + ":relation", upstream.type(), upstream.source(), downstream.target());
-    return new Statement(id, KnowledgeKind.DERIVED, "supplies", result, result, Set.of(upstream.id(), downstream.id()));
+    var result =
+        new Relation(id + ":relation", upstream.type(), upstream.source(), downstream.target());
+    return new Statement(
+        id,
+        KnowledgeKind.DERIVED,
+        "supplies",
+        result,
+        result,
+        Set.of(upstream.id(), downstream.id()));
   }
 }

@@ -7,10 +7,12 @@ CREATE TABLE model_scope (
 CREATE TABLE canonical_object (
   object_id UUID PRIMARY KEY,
   scope_id UUID NOT NULL REFERENCES model_scope(scope_id),
+  identity_key VARCHAR NOT NULL,
   kind VARCHAR NOT NULL CHECK (kind IN ('ENTITY','CAPABILITY','RELATION','STATE','STATEMENT','CONCEPT','TYPED_VALUE')),
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
   retired_at TIMESTAMP WITH TIME ZONE
 );
+CREATE UNIQUE INDEX canonical_object_scope_identity_idx ON canonical_object(scope_id, identity_key);
 CREATE INDEX canonical_object_scope_kind_idx ON canonical_object(scope_id, kind);
 
 CREATE TABLE relation_type (
