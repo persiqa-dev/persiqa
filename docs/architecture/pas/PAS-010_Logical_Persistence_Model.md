@@ -64,7 +64,7 @@ Entity, Capability, Relation, State, and Statement records reference this common
       source_profile
       target_profile
       inverse_identifier
-      symmetric
+      is_symmetric
       inference_policy
       cardinality_policy
       conflict_policy
@@ -152,11 +152,15 @@ A physical implementation SHALL enforce or validate:
 - canonicalization and conflict links resolve;
 - representation records do not mutate canonical semantics.
 
-# 11. PostgreSQL/Flyway readiness
+# 11. Physical implementation and test boundary
 
 The first PostgreSQL/Flyway implementation SHOULD use UUID primary keys, immutable Statement rows, append-only StatementContext/Derivation rows, foreign keys for structural integrity, and indexes for relation endpoint traversal, Statement subject/predicate lookup, and context-time queries.
 
 It SHALL not introduce a single generic type column that collapses instance, classification, role, capability, and State semantics.
+
+The default automated persistence tests SHALL run against an isolated H2 in-memory database. They SHALL use an H2-specific migration set that preserves the logical tables, keys, constraints, and testable invariants of this chapter. H2 is a test execution environment; it SHALL NOT be treated as the production physical schema authority.
+
+Production deployments SHALL run the PostgreSQL/Flyway migration set against an externally managed PostgreSQL database. PostgreSQL-specific capabilities, including `JSONB`, MAY remain in that production migration set. Any production-only constraint or index SHALL receive a PostgreSQL integration test before it is relied upon for CKM correctness.
 
 # 12. Open physical-design decisions
 
@@ -167,4 +171,3 @@ It SHALL not introduce a single generic type column that collapses instance, cla
 5. transaction boundaries for canonicalization;
 6. retention and archival policy; and
 7. multi-scope federation and import identity resolution.
-
