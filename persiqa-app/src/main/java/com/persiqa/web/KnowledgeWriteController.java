@@ -26,6 +26,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.util.UriComponentsBuilder;
 
 /** HTTP commands for recording statement-first CKM knowledge. */
 @RestController
@@ -45,6 +46,20 @@ public class KnowledgeWriteController {
     knowledge.createScope(scopeId, request.name());
     return ResponseEntity.created(URI.create("/api/scopes/" + scopeId))
         .body(new ScopeResponse(scopeId, request.name()));
+  }
+
+  /** Creates a standalone Entity, Capability, or Concept with no invented surrounding knowledge. */
+  @PostMapping("/scopes/{scopeId}/nodes")
+  public ResponseEntity<Node> createNode(
+      @PathVariable("scopeId") UUID scopeId, @RequestBody CreateNodeRequest request) {
+    requireScope(scopeId);
+    var node = request.toNode();
+    knowledge.saveNode(scopeId, node);
+    var location =
+        UriComponentsBuilder.fromPath("/api/scopes/{scopeId}/nodes/{kind}/{nodeId}")
+            .buildAndExpand(scopeId, node.kind(), node.id())
+            .toUri();
+    return ResponseEntity.created(location).body(node);
   }
 
   /** Records one explicit or derived Relation assertion and its canonical Relation. */
@@ -126,6 +141,28 @@ public class KnowledgeWriteController {
 
   /** Scope identity returned after creation. */
   public record ScopeResponse(UUID id, String name) {}
+
+  /** Request body for a standalone canonical Node. */
+  public record CreateNodeRequest(String id, Kind kind) {
+    public CreateNodeRequest {
+      if (id == null || id.isBlank()) {
+        throw new IllegalArgumentException("node id must not be blank");
+      }
+      if (kind != Kind.ENTITY && kind != Kind.CAPABILITY && kind != Kind.CONCEPT) {
+        throw new IllegalArgumentException(
+            "standalone node kind must be ENTITY, CAPABILITY, or CONCEPT");
+      }
+    }
+
+    private Node toNode() {
+      return switch (kind) {
+        case ENTITY -> new Entity(id);
+        case CAPABILITY -> new Capability(id);
+        case CONCEPT -> new Concept(id);
+        case RELATION, STATE, STATEMENT, TYPED_VALUE -> throw new IllegalStateException();
+      };
+    }
+  }
 
   /** Request body for one explicit or derived relation assertion. */
   public record RecordRelationRequest(

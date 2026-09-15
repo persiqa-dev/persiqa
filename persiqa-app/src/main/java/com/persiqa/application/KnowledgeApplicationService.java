@@ -36,6 +36,18 @@ public class KnowledgeApplicationService {
     return store.scopeExists(scopeId);
   }
 
+  /** Persists a standalone canonical Node without requiring a Relation assertion. */
+  @Transactional
+  public void saveNode(UUID scopeId, Node node) {
+    store.save(scopeId, node);
+  }
+
+  /** Returns a standalone canonical Node, or {@code null} when the identity is unknown. */
+  @Transactional(readOnly = true)
+  public Node findNode(UUID scopeId, String nodeId) {
+    return store.findNode(scopeId, nodeId);
+  }
+
   /** Records an explicit assertion and its separately addressable canonical Relation. */
   @Transactional
   public RelationRecord assertRelation(

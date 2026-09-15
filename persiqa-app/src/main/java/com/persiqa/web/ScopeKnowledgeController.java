@@ -2,6 +2,8 @@ package com.persiqa.web;
 
 import com.persiqa.application.KnowledgeApplicationService;
 import com.persiqa.model.Ckm.Context;
+import com.persiqa.model.Ckm.Kind;
+import com.persiqa.model.Ckm.Node;
 import com.persiqa.model.Ckm.Relation;
 import com.persiqa.model.Ckm.Statement;
 import java.util.List;
@@ -36,6 +38,20 @@ public class ScopeKnowledgeController {
   public List<Statement> findStatements(@PathVariable("scopeId") UUID scopeId) {
     requireScope(scopeId);
     return knowledge.findStatements(scopeId);
+  }
+
+  /** Returns a standalone canonical Node by its stable identity and kind. */
+  @GetMapping("/nodes/{kind}/{nodeId}")
+  public ResponseEntity<Node> findNode(
+      @PathVariable("scopeId") UUID scopeId,
+      @PathVariable("kind") Kind kind,
+      @PathVariable("nodeId") String nodeId) {
+    requireScope(scopeId);
+    var node = knowledge.findNode(scopeId, nodeId);
+    if (node == null || node.kind() != kind) {
+      return ResponseEntity.notFound().build();
+    }
+    return ResponseEntity.ok(node);
   }
 
   /** Returns one Statement by its stable identity. */

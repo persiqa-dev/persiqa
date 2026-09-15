@@ -107,6 +107,19 @@ public class JpaCanonicalStore {
     return scopes.existsById(scopeId);
   }
 
+  /** Reconstructs a standalone canonical Node, or returns {@code null} when it is unknown. */
+  @Transactional(readOnly = true)
+  public Node findNode(UUID scopeId, String identityKey) {
+    var object = object(scopeId, identityKey);
+    if (object == null
+        || Kind.valueOf(object.kind()) == Kind.RELATION
+        || Kind.valueOf(object.kind()) == Kind.STATEMENT
+        || Kind.valueOf(object.kind()) == Kind.TYPED_VALUE) {
+      return null;
+    }
+    return node(scopeId, object.id());
+  }
+
   /** Persists a Node and returns its storage identifier without changing its CKM identity. */
   @Transactional
   public UUID save(UUID scopeId, Node node) {

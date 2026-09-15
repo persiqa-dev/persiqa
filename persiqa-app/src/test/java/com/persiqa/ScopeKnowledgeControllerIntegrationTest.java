@@ -11,6 +11,7 @@ import com.persiqa.model.Ckm.Entity;
 import com.persiqa.model.Ckm.Kind;
 import com.persiqa.model.Ckm.KnowledgeKind;
 import com.persiqa.model.Ckm.RelationType;
+import com.persiqa.web.KnowledgeWriteController.CreateNodeRequest;
 import com.persiqa.web.KnowledgeWriteController.CreateScopeRequest;
 import com.persiqa.web.KnowledgeWriteController.NodeReference;
 import com.persiqa.web.KnowledgeWriteController.RecordRelationRequest;
@@ -184,6 +185,27 @@ class ScopeKnowledgeControllerIntegrationTest {
                             Context.unspecified()))))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.detail").value("invalid endpoints for hasState"));
+  }
+
+  @Test
+  void records_an_entity_without_inventing_additional_knowledge() throws Exception {
+    var scope = UUID.randomUUID();
+    knowledge.createScope(scope, "progressive-knowledge-test");
+
+    http.perform(
+            post("/api/scopes/{scopeId}/nodes", scope)
+                .contentType("application/json")
+                .content(json.writeValueAsString(new CreateNodeRequest("Outlet-01", Kind.ENTITY))))
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.id").value("Outlet-01"));
+    http.perform(get("/api/scopes/{scopeId}/nodes/{kind}/{nodeId}", scope, "ENTITY", "Outlet-01"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.id").value("Outlet-01"));
+    http.perform(
+            post("/api/scopes/{scopeId}/nodes", scope)
+                .contentType("application/json")
+                .content("{\"id\":\"Open\",\"kind\":\"STATE\"}"))
+        .andExpect(status().isBadRequest());
   }
 
   @Test
