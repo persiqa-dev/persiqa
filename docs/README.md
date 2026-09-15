@@ -75,6 +75,8 @@ For a new contributor or reader:
      for the consolidated CKM v0.1 semantics.
    - Continue with `specification/pms/PMS-009_Relation_Type_Registry.md`
      for Relation Type contracts and validation behavior.
+   - Use `architecture/pas/PAS-010_Logical_Persistence_Model.md` for the
+     logical mapping from CKM semantics to durable storage.
 5. DSL and semantic specifications
    - Use `specification/pds/PDS-007_Relation_Type_and_Knowledge_Context_Syntax.md`
      for the CKM v0.1 fixture syntax profile.
