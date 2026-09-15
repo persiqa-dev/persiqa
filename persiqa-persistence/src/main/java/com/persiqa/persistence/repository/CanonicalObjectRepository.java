@@ -10,5 +10,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface CanonicalObjectRepository extends JpaRepository<CanonicalObjectEntity, UUID> {
   Optional<CanonicalObjectEntity> findByScopeIdAndIdentityKey(UUID scopeId, String identityKey);
 
+  List<CanonicalObjectEntity> findByScopeIdOrderByIdentityKey(UUID scopeId);
+
   List<CanonicalObjectEntity> findByScopeIdAndKindOrderByIdentityKey(UUID scopeId, String kind);
 }

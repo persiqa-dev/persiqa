@@ -45,6 +45,14 @@ public class ScopeKnowledgeController {
     return mapper.toRelations(knowledge.findRelations(scopeId, subject));
   }
 
+  /** Lists standalone canonical Nodes in one scope. */
+  @GetMapping("/nodes")
+  public List<NodeResponse> findNodes(@PathVariable("scopeId") UUID scopeId) {
+    var subject = currentSubject.require();
+    requireScopeAccess(scopeId, subject);
+    return knowledge.findNodes(scopeId, subject).stream().map(mapper::toNode).toList();
+  }
+
   /** Lists the Statements in one scope. */
   @GetMapping("/statements")
   public List<StatementResponse> findStatements(@PathVariable("scopeId") UUID scopeId) {

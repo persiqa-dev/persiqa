@@ -146,6 +146,16 @@ public class JpaCanonicalStore implements CanonicalStore {
     return node(scopeId, object.id());
   }
 
+  /** Returns standalone canonical Nodes in one scope in stable identity order. */
+  @Override
+  @Transactional(readOnly = true)
+  public List<Node> findNodes(UUID scopeId) {
+    return objects.findByScopeIdOrderByIdentityKey(scopeId).stream()
+        .filter(JpaCanonicalStore::isStandaloneNode)
+        .map(object -> node(scopeId, object.id()))
+        .toList();
+  }
+
   /** Persists a Node and returns its storage identifier without changing its CKM identity. */
   @Override
   @Transactional
@@ -517,6 +527,11 @@ public class JpaCanonicalStore implements CanonicalStore {
 
   private CanonicalObjectEntity object(UUID scopeId, String identityKey) {
     return objects.findByScopeIdAndIdentityKey(scopeId, identityKey).orElse(null);
+  }
+
+  private static boolean isStandaloneNode(CanonicalObjectEntity object) {
+    var kind = Kind.valueOf(object.kind());
+    return kind != Kind.RELATION && kind != Kind.STATEMENT && kind != Kind.TYPED_VALUE;
   }
 
   private String objectIdentity(UUID scopeId, UUID objectId) {

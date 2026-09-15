@@ -47,6 +47,9 @@ public interface CanonicalStore {
   /** Reconstructs a standalone Node, or {@code null} when unknown. */
   Node findNode(UUID scopeId, String identityKey);
 
+  /** Returns standalone canonical Nodes in one scope in stable identity order. */
+  List<Node> findNodes(UUID scopeId);
+
   /** Reconstructs a Relation, or {@code null} when unknown. */
   Relation findRelation(UUID scopeId, String identityKey);
 

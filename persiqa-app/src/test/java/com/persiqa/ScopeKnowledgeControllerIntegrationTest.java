@@ -228,6 +228,9 @@ class ScopeKnowledgeControllerIntegrationTest {
                 .with(ALICE))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.id").value("Outlet-01"));
+    http.perform(MockMvcRequestBuilders.get("/api/scopes/{scopeId}/nodes", scope).with(ALICE))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$[?(@.id == 'Outlet-01')].kind").value("ENTITY"));
     http.perform(
             MockMvcRequestBuilders.post("/api/scopes/{scopeId}/nodes", scope)
                 .with(ALICE)

@@ -66,6 +66,13 @@ public class KnowledgeApplicationService {
     return store.findNode(scopeId, nodeId);
   }
 
+  /** Returns standalone canonical Nodes in one scope in stable identity order. */
+  @Transactional(readOnly = true)
+  public List<Node> findNodes(UUID scopeId, String subject) {
+    requireOwner(scopeId, subject);
+    return store.findNodes(scopeId);
+  }
+
   /** Records an explicit assertion and its separately addressable canonical Relation. */
   @Transactional
   public RelationRecord assertRelation(
