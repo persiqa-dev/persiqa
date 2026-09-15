@@ -321,6 +321,15 @@ class ScopeKnowledgeControllerIntegrationTest {
   }
 
   @Test
+  void exposes_the_authenticated_api_contract_through_openapi() throws Exception {
+    http.perform(MockMvcRequestBuilders.get("/v3/api-docs"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.info.title").value("Persiqa API"))
+        .andExpect(jsonPath("$.paths['/api/scopes']").exists())
+        .andExpect(jsonPath("$.components.securitySchemes.basicAuth.scheme").value("basic"));
+  }
+
+  @Test
   void rejects_unauthenticated_api_calls() throws Exception {
     http.perform(MockMvcRequestBuilders.get("/api/scopes/{scopeId}/relations", UUID.randomUUID()))
         .andExpect(status().isUnauthorized());

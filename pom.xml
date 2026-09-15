@@ -23,6 +23,7 @@
     <h2.version>2.3.232</h2.version>
     <maven.pmd.version>3.28.0</maven.pmd.version>
     <mapstruct.version>1.6.3</mapstruct.version>
+    <springdoc.version>3.1.1</springdoc.version>
   </properties>
 
   <dependencyManagement>
