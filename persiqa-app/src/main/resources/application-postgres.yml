@@ -1,0 +1,7 @@
+spring:
+  datasource:
+    url: ${PERSIQA_DATABASE_URL}
+    username: ${PERSIQA_DATABASE_USERNAME}
+    password: ${PERSIQA_DATABASE_PASSWORD}
+  flyway:
+    locations: classpath:db/migration

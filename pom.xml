@@ -3,7 +3,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
-  <groupId>io.persiqa</groupId>
+  <groupId>com.persiqa</groupId>
   <artifactId>persiqa</artifactId>
   <version>0.1.0-SNAPSHOT</version>
   <packaging>pom</packaging>
@@ -12,6 +12,7 @@
     <module>persiqa-model</module>
     <module>persiqa-core</module>
     <module>persiqa-persistence</module>
+    <module>persiqa-app</module>
     <module>persiqa-testkit</module>
   </modules>
 
