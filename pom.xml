@@ -21,6 +21,7 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <spring-boot.version>4.0.3</spring-boot.version>
     <h2.version>2.3.232</h2.version>
+    <maven.pmd.version>3.28.0</maven.pmd.version>
   </properties>
 
   <dependencyManagement>
@@ -55,6 +56,11 @@
           <version>3.6.0</version>
         </plugin>
         <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-pmd-plugin</artifactId>
+          <version>${maven.pmd.version}</version>
+        </plugin>
+        <plugin>
           <groupId>org.springframework.boot</groupId>
           <artifactId>spring-boot-maven-plugin</artifactId>
           <version>${spring-boot.version}</version>
@@ -77,6 +83,28 @@
           <execution>
             <id>checkstyle</id>
             <phase>validate</phase>
+            <goals>
+              <goal>check</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-pmd-plugin</artifactId>
+        <configuration>
+          <includeTests>true</includeTests>
+          <targetJdk>${maven.compiler.release}</targetJdk>
+          <linkXRef>false</linkXRef>
+          <failOnViolation>true</failOnViolation>
+          <failurePriority>5</failurePriority>
+          <maxAllowedViolations>0</maxAllowedViolations>
+          <printFailingErrors>true</printFailingErrors>
+        </configuration>
+        <executions>
+          <execution>
+            <id>pmd</id>
+            <phase>test</phase>
             <goals>
               <goal>check</goal>
             </goals>
