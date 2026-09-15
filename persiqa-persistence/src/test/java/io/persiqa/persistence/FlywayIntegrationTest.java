@@ -1,6 +1,6 @@
 package io.persiqa.persistence;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.sql.DriverManager;
 import java.util.UUID;
@@ -10,7 +10,8 @@ import org.junit.jupiter.api.Test;
 class FlywayIntegrationTest {
   @Test
   void migration_creates_statement_first_schema_and_allows_parallel_relations() throws Exception {
-    var database = "jdbc:h2:mem:ckm_" + UUID.randomUUID() + ";MODE=PostgreSQL;DB_CLOSE_DELAY=-1";
+    var database =
+        "jdbc:h2:mem:ckm_" + UUID.randomUUID() + ";MODE=PostgreSQL;DB_CLOSE_DELAY=-1";
     Flyway.configure()
         .dataSource(database, "sa", "")
         .locations("classpath:db/h2/migration")
@@ -53,7 +54,8 @@ class FlywayIntegrationTest {
       try (var insertType =
           connection.prepareStatement(
               "insert into"
-                  + " relation_type(relation_type_id,semantic_identifier,semantic_version,source_profile,target_profile)"
+                  + " relation_type(relation_type_id,semantic_identifier,semantic_version,"
+                  + "source_profile,target_profile)"
                   + " values (?,?,?,?,?)")) {
         insertType.setObject(1, type);
         insertType.setString(2, "connectedTo");

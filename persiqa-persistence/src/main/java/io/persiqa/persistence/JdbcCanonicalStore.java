@@ -64,7 +64,9 @@ select r.source_object_id, r.target_object_id, t.semantic_identifier, t.source_p
       query.setObject(1, scopeId);
       query.setString(2, identityKey);
       try (var result = query.executeQuery()) {
-        if (!result.next()) return null;
+        if (!result.next()) {
+          return null;
+        }
         var type =
             new RelationType(
                 result.getString(3),
@@ -109,7 +111,9 @@ select r.source_object_id, r.target_object_id, t.semantic_identifier, t.source_p
     if (node instanceof Entity
         || node instanceof Capability
         || node instanceof State
-        || node instanceof Concept) return saveObject(connection, node);
+        || node instanceof Concept) {
+      return saveObject(connection, node);
+    }
     throw new IllegalArgumentException(
         "unsupported canonical object at this persistence boundary: " + node.kind());
   }
@@ -121,7 +125,9 @@ select r.source_object_id, r.target_object_id, t.semantic_identifier, t.source_p
             "select object_id from canonical_object where scope_id = ? and identity_key = ?",
             scopeId,
             node.id());
-    if (existing != null) return existing;
+    if (existing != null) {
+      return existing;
+    }
     var id = UUID.randomUUID();
     try (var insert =
         connection.prepareStatement(
@@ -144,12 +150,15 @@ select r.source_object_id, r.target_object_id, t.semantic_identifier, t.source_p
                 + " semantic_version = ?",
             type.id(),
             VERSION);
-    if (existing != null) return existing;
+    if (existing != null) {
+      return existing;
+    }
     var id = UUID.randomUUID();
     try (var insert =
         connection.prepareStatement(
             "insert into"
-                + " relation_type(relation_type_id,semantic_identifier,semantic_version,source_profile,target_profile,inverse_identifier,is_symmetric,inference_policy)"
+                + " relation_type(relation_type_id,semantic_identifier,semantic_version,"
+                + "source_profile,target_profile,inverse_identifier,is_symmetric,inference_policy)"
                 + " values (?,?,?,?,?,?,?,?)")) {
       insert.setObject(1, id);
       insert.setString(2, type.id());
@@ -172,9 +181,10 @@ select r.source_object_id, r.target_object_id, t.semantic_identifier, t.source_p
       query.setObject(1, objectId);
       query.setObject(2, scopeId);
       try (var result = query.executeQuery()) {
-        if (!result.next())
+        if (!result.next()) {
           throw new PersistenceException(
               "referenced canonical object is outside the current scope");
+        }
         var identity = result.getString(1);
         return switch (Kind.valueOf(result.getString(2))) {
           case ENTITY -> new Entity(identity);
@@ -214,7 +224,9 @@ select r.source_object_id, r.target_object_id, t.semantic_identifier, t.source_p
             .replace("\"", "")
             .replace("\\", "")
             .replaceAll("\\s", "");
-    if (values.isEmpty()) return Set.of();
+    if (values.isEmpty()) {
+      return Set.of();
+    }
     return Arrays.stream(values.split(","))
         .map(Kind::valueOf)
         .collect(java.util.stream.Collectors.toCollection(LinkedHashSet::new));

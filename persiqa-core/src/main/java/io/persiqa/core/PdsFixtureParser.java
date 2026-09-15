@@ -12,7 +12,9 @@ public final class PdsFixtureParser {
     int relation = 0;
     for (var raw : text.lines().toList()) {
       var line = raw.trim();
-      if (line.isEmpty() || line.startsWith("#")) continue;
+      if (line.isEmpty() || line.startsWith("#")) {
+        continue;
+      }
       var p = line.split("\\s+");
       if (p.length == 2 && p[0].equals("entity")) {
         var e = new Entity(p[1]);
@@ -22,7 +24,9 @@ public final class PdsFixtureParser {
         var source = entities.computeIfAbsent(p[0], Entity::new);
         var target = entities.computeIfAbsent(p[2], Entity::new);
         model.add(registry.create("r" + (++relation), p[1], source, target));
-      } else throw new IllegalArgumentException("unsupported fixture line: " + line);
+      } else {
+        throw new IllegalArgumentException("unsupported fixture line: " + line);
+      }
     }
     return model;
   }

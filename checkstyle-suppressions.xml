@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<!DOCTYPE suppressions PUBLIC
+    "-//Checkstyle//DTD SuppressionFilter Configuration 1.2//EN"
+    "https://checkstyle.org/dtds/suppressions_1_2.dtd">
+
+<suppressions>
+  <!-- Public API documentation is added with the API-stabilization milestone. -->
+  <suppress checks="MissingJavadocType"/>
+  <suppress checks="MissingJavadocMethod"/>
+  <suppress checks="OverloadMethodsDeclarationOrder"/>
+  <suppress checks="AvoidStarImport" files=".*/src/test/.*"/>
+</suppressions>

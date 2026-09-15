@@ -3,7 +3,10 @@ package io.persiqa.core;
 import io.persiqa.model.Ckm.Node;
 import io.persiqa.model.Ckm.Relation;
 import io.persiqa.model.Ckm.Statement;
-import java.util.*;
+import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.function.Predicate;
 
 /** Canonical in-memory store. Views are projections and never duplicate model objects. */
@@ -47,8 +50,9 @@ public final class CanonicalKnowledgeModel {
   }
 
   private static <T> void put(Map<String, T> map, String id, T value) {
-    if (map.putIfAbsent(id, value) != null)
+    if (map.putIfAbsent(id, value) != null) {
       throw new IllegalArgumentException("duplicate canonical id: " + id);
+    }
   }
 
   private void ensure(Node node) {

@@ -1,6 +1,10 @@
 package io.persiqa.core;
 
-import io.persiqa.model.Ckm.*;
+import io.persiqa.model.Ckm.Context;
+import io.persiqa.model.Ckm.KnowledgeKind;
+import io.persiqa.model.Ckm.Node;
+import io.persiqa.model.Ckm.Relation;
+import io.persiqa.model.Ckm.Statement;
 import java.util.Set;
 
 /**

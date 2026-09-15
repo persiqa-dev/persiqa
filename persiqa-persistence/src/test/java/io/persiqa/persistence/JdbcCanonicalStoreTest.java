@@ -1,6 +1,7 @@
 package io.persiqa.persistence;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 import io.persiqa.model.Ckm.Entity;
 import io.persiqa.model.Ckm.Kind;

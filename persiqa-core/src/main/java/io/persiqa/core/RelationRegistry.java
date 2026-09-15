@@ -1,7 +1,13 @@
 package io.persiqa.core;
 
-import io.persiqa.model.Ckm.*;
-import java.util.*;
+import io.persiqa.model.Ckm.Kind;
+import io.persiqa.model.Ckm.Node;
+import io.persiqa.model.Ckm.Relation;
+import io.persiqa.model.Ckm.RelationType;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 
 public final class RelationRegistry {
   private final Map<String, RelationType> types = new HashMap<>();
@@ -57,8 +63,9 @@ public final class RelationRegistry {
     var r =
         Optional.ofNullable(types.get(type))
             .orElseThrow(() -> new IllegalArgumentException("unknown relation type: " + type));
-    if (!r.sources().contains(s.kind()) || !r.targets().contains(t.kind()))
+    if (!r.sources().contains(s.kind()) || !r.targets().contains(t.kind())) {
       throw new IllegalArgumentException("invalid endpoints for " + type);
+    }
     return new Relation(id, r, s, t);
   }
 }
