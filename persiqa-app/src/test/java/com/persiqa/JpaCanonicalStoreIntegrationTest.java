@@ -18,7 +18,9 @@ import com.persiqa.persistence.repository.DerivationRepository;
 import com.persiqa.persistence.repository.RepresentationRepository;
 import com.persiqa.persistence.repository.StateRepository;
 import com.persiqa.persistence.repository.StatementContextRepository;
+import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -56,7 +58,7 @@ class JpaCanonicalStoreIntegrationTest {
     var context =
         new Context(
             "inspection-42",
-            0.9,
+            new BigDecimal("0.9"),
             Instant.parse("2026-01-01T10:00:00Z"),
             Instant.parse("2026-01-01T00:00:00Z"),
             Instant.parse("2026-01-02T00:00:00Z"),
@@ -65,7 +67,8 @@ class JpaCanonicalStoreIntegrationTest {
         new Statement(
             "assertion-a", KnowledgeKind.EXPLICIT, "supplies", breaker, outlet, Set.of(), context);
     store.save(scope, asserted);
-    store.appendContext(scope, "assertion-a", new Context("reinspection", 0.8, "as-maintained"));
+    store.appendContext(
+        scope, "assertion-a", new Context("reinspection", new BigDecimal("0.8"), "as-maintained"));
     store.canonicalize(scope, asserted, first, "SUPPORTS", "statement-first-v0.1");
 
     var derived =
@@ -118,7 +121,7 @@ class JpaCanonicalStoreIntegrationTest {
     var scope = UUID.randomUUID();
     store.createScope(scope, "representation-test");
     store.saveRepresentation(
-        scope, UUID.randomUUID(), "Electrical view", "{}", "{\"layout\":\"grid\"}");
+        scope, UUID.randomUUID(), "Electrical view", Map.of(), Map.of("layout", "grid"));
     assertEquals(1, representations.count());
   }
 }

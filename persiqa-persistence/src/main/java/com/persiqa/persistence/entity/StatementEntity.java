@@ -30,7 +30,7 @@ public class StatementEntity {
 
   @JdbcTypeCode(SqlTypes.JSON)
   @Column(name = "typed_value")
-  private String typedValue;
+  private Object typedValue;
 
   protected StatementEntity() {}
 
@@ -40,7 +40,7 @@ public class StatementEntity {
       String predicate,
       UUID subjectObjectId,
       UUID objectObjectId,
-      String typedValue) {
+      Object typedValue) {
     this.id = id;
     this.knowledgeKind = knowledgeKind;
     this.predicate = predicate;
@@ -69,7 +69,7 @@ public class StatementEntity {
     return objectObjectId;
   }
 
-  public String typedValue() {
+  public Object typedValue() {
     return typedValue;
   }
 }

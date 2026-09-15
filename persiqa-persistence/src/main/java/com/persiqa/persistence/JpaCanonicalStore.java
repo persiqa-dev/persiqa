@@ -20,6 +20,8 @@ import com.persiqa.persistence.entity.RepresentationEntity;
 import com.persiqa.persistence.entity.StateEntity;
 import com.persiqa.persistence.entity.StatementContextEntity;
 import com.persiqa.persistence.entity.StatementEntity;
+import com.persiqa.persistence.json.InferencePolicy;
+import com.persiqa.persistence.json.TypedJsonValue;
 import com.persiqa.persistence.repository.CanonicalObjectRepository;
 import com.persiqa.persistence.repository.CanonicalizationRepository;
 import com.persiqa.persistence.repository.DerivationRepository;
@@ -30,8 +32,9 @@ import com.persiqa.persistence.repository.RepresentationRepository;
 import com.persiqa.persistence.repository.StateRepository;
 import com.persiqa.persistence.repository.StatementContextRepository;
 import com.persiqa.persistence.repository.StatementRepository;
-import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -149,8 +152,8 @@ public class JpaCanonicalStore {
       UUID scopeId,
       UUID representationId,
       String name,
-      String selectionDefinition,
-      String layoutMetadata) {
+      Map<String, Object> selectionDefinition,
+      Map<String, Object> layoutMetadata) {
     requireScope(scopeId);
     representations
         .findById(representationId)
@@ -195,7 +198,7 @@ public class JpaCanonicalStore {
             .collect(Collectors.toUnmodifiableSet());
     Object statementObject =
         statement.objectObjectId() == null
-            ? decodeValue(statement.typedValue())
+            ? TypedJsonValue.read(statement.typedValue())
             : node(scopeId, statement.objectObjectId());
     return new Statement(
         identityKey,
@@ -236,7 +239,8 @@ public class JpaCanonicalStore {
           .orElseGet(
               () ->
                   states.save(
-                      new StateEntity(targetId, sourceId, "hasState", quote(state.id()), "{}")));
+                      new StateEntity(
+                          targetId, sourceId, "hasState", state.id(), Map.of())));
     }
     return relationId;
   }
@@ -245,7 +249,7 @@ public class JpaCanonicalStore {
     var statementId = objectId(scopeId, statement);
     var subjectId = saveNode(scopeId, statement.subject());
     UUID objectId = statement.object() instanceof Node node ? saveNode(scopeId, node) : null;
-    String typedValue = objectId == null ? encodeValue(statement.object()) : null;
+    Object typedValue = objectId == null ? TypedJsonValue.write(statement.object()) : null;
     statements
         .findById(statementId)
         .ifPresentOrElse(
@@ -309,20 +313,20 @@ public class JpaCanonicalStore {
                             UUID.randomUUID(),
                             type.id(),
                             RELATION_TYPE_VERSION,
-                            kinds(type.sources()),
-                            kinds(type.targets()),
+                            type.sources(),
+                            type.targets(),
                             type.inverse(),
                             type.symmetric(),
-                            "{\"composable\":" + type.composable() + "}"))
+                            new InferencePolicy(type.composable())))
                     .id());
   }
 
   private UUID verifyRelationType(RelationTypeEntity existing, RelationType requested) {
-    if (!existing.sourceProfile().equals(kinds(requested.sources()))
-        || !existing.targetProfile().equals(kinds(requested.targets()))
-        || !java.util.Objects.equals(existing.inverseIdentifier(), requested.inverse())
+    if (!existing.sourceProfile().equals(requested.sources())
+        || !existing.targetProfile().equals(requested.targets())
+        || !Objects.equals(existing.inverseIdentifier(), requested.inverse())
         || existing.symmetric() != requested.symmetric()
-        || !existing.inferencePolicy().equals("{\"composable\":" + requested.composable() + "}")) {
+        || !existing.inferencePolicy().equals(new InferencePolicy(requested.composable()))) {
       throw new IllegalArgumentException(
           "Relation Type contract cannot be silently redefined: " + requested.id());
     }
@@ -332,30 +336,11 @@ public class JpaCanonicalStore {
   private static RelationType relationType(RelationTypeEntity entity) {
     return new RelationType(
         entity.identifier(),
-        parseKinds(entity.sourceProfile()),
-        parseKinds(entity.targetProfile()),
+        Set.copyOf(entity.sourceProfile()),
+        Set.copyOf(entity.targetProfile()),
         entity.symmetric(),
         entity.inverseIdentifier(),
-        entity.inferencePolicy().contains("\"composable\":true"));
-  }
-
-  private static Set<Kind> parseKinds(String json) {
-    if (json.length() < 3) {
-      return Set.of();
-    }
-    return Arrays.stream(json.substring(1, json.length() - 1).split(","))
-        .filter(value -> !value.isBlank())
-        .map(value -> value.replace("\"", ""))
-        .map(Kind::valueOf)
-        .collect(Collectors.toUnmodifiableSet());
-  }
-
-  private static String kinds(Set<Kind> kinds) {
-    return kinds.stream()
-        .map(Kind::name)
-        .sorted()
-        .map(JpaCanonicalStore::quote)
-        .collect(Collectors.joining(",", "[", "]"));
+        entity.inferencePolicy().composable());
   }
 
   private static StatementContextEntity contextEntity(UUID statementId, Context context) {
@@ -363,7 +348,7 @@ public class JpaCanonicalStore {
         UUID.randomUUID(),
         statementId,
         context.provenance(),
-        context.confidence() == null ? null : java.math.BigDecimal.valueOf(context.confidence()),
+        context.confidence(),
         context.observedAt(),
         context.validFrom(),
         context.validTo(),
@@ -373,7 +358,7 @@ public class JpaCanonicalStore {
   private static Context context(StatementContextEntity entity) {
     return new Context(
         entity.provenanceReference(),
-        entity.confidence() == null ? null : entity.confidence().doubleValue(),
+        entity.confidence(),
         entity.observedAt(),
         entity.validFrom(),
         entity.validTo(),
@@ -428,37 +413,14 @@ public class JpaCanonicalStore {
       Statement requested,
       UUID subjectId,
       UUID objectId,
-      String typedValue) {
+      Object typedValue) {
     if (!existing.knowledgeKind().equals(requested.knowledgeKind().name())
         || !existing.predicate().equals(requested.predicate())
         || !existing.subjectObjectId().equals(subjectId)
-        || !java.util.Objects.equals(existing.objectObjectId(), objectId)
-        || !java.util.Objects.equals(existing.typedValue(), typedValue)) {
+        || !Objects.equals(existing.objectObjectId(), objectId)
+        || !Objects.equals(
+            TypedJsonValue.read(existing.typedValue()), TypedJsonValue.read(typedValue))) {
       throw new IllegalArgumentException("Statement identity cannot be overwritten");
     }
-  }
-
-  private static String encodeValue(Object value) {
-    if (value instanceof String string) {
-      return quote(string);
-    }
-    if (value instanceof Number || value instanceof Boolean) {
-      return value.toString();
-    }
-    throw new IllegalArgumentException("typed Statement values must be String, Number, or Boolean");
-  }
-
-  private static Object decodeValue(String json) {
-    if (json.startsWith("\"") && json.endsWith("\"")) {
-      return json.substring(1, json.length() - 1).replace("\\\"", "\"").replace("\\\\", "\\");
-    }
-    if ("true".equals(json) || "false".equals(json)) {
-      return Boolean.valueOf(json);
-    }
-    return new java.math.BigDecimal(json);
-  }
-
-  private static String quote(String value) {
-    return "\"" + value.replace("\\", "\\\\").replace("\"", "\\\"") + "\"";
   }
 }

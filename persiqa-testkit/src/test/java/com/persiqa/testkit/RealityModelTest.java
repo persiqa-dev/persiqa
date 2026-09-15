@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import com.persiqa.core.*;
 import com.persiqa.model.Ckm.*;
+import java.math.BigDecimal;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 
@@ -72,7 +73,11 @@ class RealityModelTest {
     var target = new Entity("Outlet-01");
     var result =
         writer.assertRelation(
-            "inspection-42", "supplies", source, target, new Context("inspection", .9, "T1"));
+            "inspection-42",
+            "supplies",
+            source,
+            target,
+            new Context("inspection", new BigDecimal("0.9"), "T1"));
     assertEquals(KnowledgeKind.EXPLICIT, result.statement().knowledgeKind());
     assertEquals("inspection", result.statement().context().provenance());
     assertEquals("relation:inspection-42", result.relation().id());

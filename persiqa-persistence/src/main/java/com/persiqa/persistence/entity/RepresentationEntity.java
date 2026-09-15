@@ -4,6 +4,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import java.util.Map;
 import java.util.UUID;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
@@ -24,20 +25,24 @@ public class RepresentationEntity {
 
   @JdbcTypeCode(SqlTypes.JSON)
   @Column(name = "selection_definition", nullable = false)
-  private String selectionDefinition;
+  private Map<String, Object> selectionDefinition;
 
   @JdbcTypeCode(SqlTypes.JSON)
   @Column(name = "layout_metadata", nullable = false)
-  private String layoutMetadata;
+  private Map<String, Object> layoutMetadata;
 
   protected RepresentationEntity() {}
 
   public RepresentationEntity(
-      UUID id, UUID scopeId, String name, String selectionDefinition, String layoutMetadata) {
+      UUID id,
+      UUID scopeId,
+      String name,
+      Map<String, Object> selectionDefinition,
+      Map<String, Object> layoutMetadata) {
     this.id = id;
     this.scopeId = scopeId;
     this.name = name;
-    this.selectionDefinition = selectionDefinition;
-    this.layoutMetadata = layoutMetadata;
+    this.selectionDefinition = Map.copyOf(selectionDefinition);
+    this.layoutMetadata = Map.copyOf(layoutMetadata);
   }
 }

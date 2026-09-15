@@ -1,5 +1,6 @@
 package com.persiqa.model;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Objects;
 import java.util.Set;
@@ -80,7 +81,7 @@ public final class Ckm {
   /** Provenance, confidence, and temporal/scenario context carried by a Statement. */
   public record Context(
       String provenance,
-      Double confidence,
+      BigDecimal confidence,
       Instant observedAt,
       Instant validFrom,
       Instant validTo,
@@ -92,13 +93,15 @@ public final class Ckm {
      * @param confidence the optional confidence in the range zero through one
      * @param scenario the scenario or legacy validity-context key
      */
-    public Context(String provenance, Double confidence, String scenario) {
+    public Context(String provenance, BigDecimal confidence, String scenario) {
       this(provenance, confidence, null, null, null, scenario);
     }
 
     /** Validates context invariants independently from any persistence representation. */
     public Context {
-      if (confidence != null && (confidence < 0 || confidence > 1)) {
+      if (confidence != null
+          && (confidence.compareTo(BigDecimal.ZERO) < 0
+              || confidence.compareTo(BigDecimal.ONE) > 0)) {
         throw new IllegalArgumentException("confidence must be between zero and one");
       }
       if (validFrom != null && validTo != null && validFrom.isAfter(validTo)) {

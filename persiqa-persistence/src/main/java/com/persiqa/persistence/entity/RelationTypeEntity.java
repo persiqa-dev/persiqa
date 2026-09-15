@@ -1,9 +1,12 @@
 package com.persiqa.persistence.entity;
 
+import com.persiqa.model.Ckm.Kind;
+import com.persiqa.persistence.json.InferencePolicy;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import java.util.Set;
 import java.util.UUID;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
@@ -24,11 +27,11 @@ public class RelationTypeEntity {
 
   @JdbcTypeCode(SqlTypes.JSON)
   @Column(name = "source_profile", nullable = false)
-  private String sourceProfile;
+  private Set<Kind> sourceProfile;
 
   @JdbcTypeCode(SqlTypes.JSON)
   @Column(name = "target_profile", nullable = false)
-  private String targetProfile;
+  private Set<Kind> targetProfile;
 
   @Column(name = "inverse_identifier")
   private String inverseIdentifier;
@@ -38,7 +41,7 @@ public class RelationTypeEntity {
 
   @JdbcTypeCode(SqlTypes.JSON)
   @Column(name = "inference_policy", nullable = false)
-  private String inferencePolicy;
+  private InferencePolicy inferencePolicy;
 
   protected RelationTypeEntity() {}
 
@@ -46,16 +49,16 @@ public class RelationTypeEntity {
       UUID id,
       String identifier,
       String version,
-      String sourceProfile,
-      String targetProfile,
+      Set<Kind> sourceProfile,
+      Set<Kind> targetProfile,
       String inverseIdentifier,
       boolean symmetric,
-      String inferencePolicy) {
+      InferencePolicy inferencePolicy) {
     this.id = id;
     this.identifier = identifier;
     this.version = version;
-    this.sourceProfile = sourceProfile;
-    this.targetProfile = targetProfile;
+    this.sourceProfile = Set.copyOf(sourceProfile);
+    this.targetProfile = Set.copyOf(targetProfile);
     this.inverseIdentifier = inverseIdentifier;
     this.symmetric = symmetric;
     this.inferencePolicy = inferencePolicy;
@@ -73,11 +76,11 @@ public class RelationTypeEntity {
     return version;
   }
 
-  public String sourceProfile() {
+  public Set<Kind> sourceProfile() {
     return sourceProfile;
   }
 
-  public String targetProfile() {
+  public Set<Kind> targetProfile() {
     return targetProfile;
   }
 
@@ -89,7 +92,7 @@ public class RelationTypeEntity {
     return symmetric;
   }
 
-  public String inferencePolicy() {
+  public InferencePolicy inferencePolicy() {
     return inferencePolicy;
   }
 }
