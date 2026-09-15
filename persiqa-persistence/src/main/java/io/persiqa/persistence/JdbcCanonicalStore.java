@@ -8,6 +8,7 @@ import io.persiqa.model.Ckm.Node;
 import io.persiqa.model.Ckm.Relation;
 import io.persiqa.model.Ckm.RelationType;
 import io.persiqa.model.Ckm.State;
+import io.persiqa.model.Ckm.Statement;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Arrays;
@@ -87,6 +88,9 @@ select r.source_object_id, r.target_object_id, t.semantic_identifier, t.source_p
   }
 
   private UUID save(Connection connection, Node node) throws SQLException {
+    if (node instanceof Statement statement) {
+      return saveStatement(connection, statement);
+    }
     if (node instanceof Relation relation) {
       var source = save(connection, relation.source());
       var target = save(connection, relation.target());
@@ -116,6 +120,72 @@ select r.source_object_id, r.target_object_id, t.semantic_identifier, t.source_p
     }
     throw new IllegalArgumentException(
         "unsupported canonical object at this persistence boundary: " + node.kind());
+  }
+
+  private UUID saveStatement(Connection connection, Statement statement) throws SQLException {
+    var statementId = saveObject(connection, statement);
+    if (objectId(
+            connection, "select statement_id from statement where statement_id = ?", statementId)
+        != null) {
+      return statementId;
+    }
+    var subjectId = save(connection, statement.subject());
+    UUID objectId = statement.object() instanceof Node node ? save(connection, node) : null;
+    try (var insert =
+        connection.prepareStatement(
+            "insert into statement(statement_id,knowledge_kind,predicate,subject_object_id,"
+                + "object_object_id,typed_value) values (?,?,?,?,?,?)")) {
+      insert.setObject(1, statementId);
+      insert.setString(2, statement.knowledgeKind().name());
+      insert.setString(3, statement.predicate());
+      insert.setObject(4, subjectId);
+      insert.setObject(5, objectId);
+      insert.setString(6, objectId == null ? "\"" + statement.object() + "\"" : null);
+      insert.executeUpdate();
+    }
+    saveContext(connection, statementId, statement);
+    saveDerivations(connection, statementId, statement);
+    return statementId;
+  }
+
+  private void saveContext(Connection connection, UUID statementId, Statement statement)
+      throws SQLException {
+    try (var insert =
+        connection.prepareStatement(
+            "insert into statement_context(context_id,statement_id,provenance_reference,"
+                + "confidence,scenario) values (?,?,?,?,?)")) {
+      insert.setObject(1, UUID.randomUUID());
+      insert.setObject(2, statementId);
+      insert.setString(3, statement.context().provenance());
+      insert.setObject(4, statement.context().confidence());
+      insert.setString(5, statement.context().validAt());
+      insert.executeUpdate();
+    }
+  }
+
+  private void saveDerivations(Connection connection, UUID statementId, Statement statement)
+      throws SQLException {
+    for (var evidence : statement.derivedFrom()) {
+      var evidenceId =
+          objectId(
+              connection,
+              "select object_id from canonical_object where scope_id = ? and identity_key = ?",
+              scopeId,
+              evidence);
+      if (evidenceId == null) {
+        throw new PersistenceException(
+            "derivation evidence is not in the current scope: " + evidence);
+      }
+      try (var insert =
+          connection.prepareStatement(
+              "insert into derivation(derived_statement_id,evidence_object_id,rule_identifier)"
+                  + " values (?,?,?)")) {
+        insert.setObject(1, statementId);
+        insert.setObject(2, evidenceId);
+        insert.setString(3, statement.predicate());
+        insert.executeUpdate();
+      }
+    }
   }
 
   private UUID saveObject(Connection connection, Node node) throws SQLException {
