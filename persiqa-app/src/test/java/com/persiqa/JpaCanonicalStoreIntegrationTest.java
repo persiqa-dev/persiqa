@@ -19,6 +19,7 @@ import com.persiqa.persistence.repository.RepresentationRepository;
 import com.persiqa.persistence.repository.StateRepository;
 import com.persiqa.persistence.repository.StatementContextRepository;
 import java.time.Instant;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -118,7 +119,7 @@ class JpaCanonicalStoreIntegrationTest {
     var scope = UUID.randomUUID();
     store.createScope(scope, "representation-test");
     store.saveRepresentation(
-        scope, UUID.randomUUID(), "Electrical view", "{}", "{\"layout\":\"grid\"}");
+        scope, UUID.randomUUID(), "Electrical view", Map.of(), Map.of("layout", "grid"));
     assertEquals(1, representations.count());
   }
 }
