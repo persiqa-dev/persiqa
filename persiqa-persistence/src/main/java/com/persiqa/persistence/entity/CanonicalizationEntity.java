@@ -28,9 +28,40 @@ public class CanonicalizationEntity {
 
   protected CanonicalizationEntity() {}
 
+  public CanonicalizationEntity(
+      UUID statementId, UUID canonicalObjectId, String mode, String policyIdentifier) {
+    this.statementId = statementId;
+    this.canonicalObjectId = canonicalObjectId;
+    this.mode = mode;
+    this.policyIdentifier = policyIdentifier;
+  }
+
   public static class Key implements Serializable {
-    UUID statementId;
-    UUID canonicalObjectId;
-    String mode;
+    private UUID statementId;
+    private UUID canonicalObjectId;
+    private String mode;
+
+    public Key() {}
+
+    public Key(UUID statementId, UUID canonicalObjectId, String mode) {
+      this.statementId = statementId;
+      this.canonicalObjectId = canonicalObjectId;
+      this.mode = mode;
+    }
+
+    @Override
+    public boolean equals(Object other) {
+      if (!(other instanceof Key key)) {
+        return false;
+      }
+      return java.util.Objects.equals(statementId, key.statementId)
+          && java.util.Objects.equals(canonicalObjectId, key.canonicalObjectId)
+          && java.util.Objects.equals(mode, key.mode);
+    }
+
+    @Override
+    public int hashCode() {
+      return java.util.Objects.hash(statementId, canonicalObjectId, mode);
+    }
   }
 }

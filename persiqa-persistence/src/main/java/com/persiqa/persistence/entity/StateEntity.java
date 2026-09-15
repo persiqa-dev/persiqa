@@ -5,6 +5,8 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.util.UUID;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 /** JPA representation of a contextual State. */
 @Entity
@@ -20,11 +22,22 @@ public class StateEntity {
   @Column(nullable = false)
   private String predicate;
 
+  @JdbcTypeCode(SqlTypes.JSON)
   @Column(name = "typed_value")
   private String typedValue;
 
+  @JdbcTypeCode(SqlTypes.JSON)
   @Column(name = "context_key", nullable = false)
   private String contextKey;
 
   protected StateEntity() {}
+
+  public StateEntity(
+      UUID id, UUID ownerObjectId, String predicate, String typedValue, String contextKey) {
+    this.id = id;
+    this.ownerObjectId = ownerObjectId;
+    this.predicate = predicate;
+    this.typedValue = typedValue;
+    this.contextKey = contextKey;
+  }
 }

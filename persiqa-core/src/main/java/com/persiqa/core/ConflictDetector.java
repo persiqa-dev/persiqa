@@ -9,6 +9,6 @@ public final class ConflictDetector {
         && right.predicate().equals("hasState")
         && left.subject().equals(right.subject())
         && !left.object().equals(right.object())
-        && java.util.Objects.equals(left.context().validAt(), right.context().validAt());
+        && java.util.Objects.equals(left.context().scenario(), right.context().scenario());
   }
 }

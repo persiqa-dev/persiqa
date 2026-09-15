@@ -1,5 +1,6 @@
 package com.persiqa.model;
 
+import java.time.Instant;
 import java.util.Objects;
 import java.util.Set;
 
@@ -76,11 +77,48 @@ public final class Ckm {
     DERIVED
   }
 
-  /** Provenance and temporal context carried by a Statement. */
-  public record Context(String provenance, Double confidence, String validAt) {
+  /** Provenance, confidence, and temporal/scenario context carried by a Statement. */
+  public record Context(
+      String provenance,
+      Double confidence,
+      Instant observedAt,
+      Instant validFrom,
+      Instant validTo,
+      String scenario) {
+    /**
+     * Creates context for the common case where the final value identifies a scenario.
+     *
+     * @param provenance the source of the assertion
+     * @param confidence the optional confidence in the range zero through one
+     * @param scenario the scenario or legacy validity-context key
+     */
+    public Context(String provenance, Double confidence, String scenario) {
+      this(provenance, confidence, null, null, null, scenario);
+    }
+
+    /** Validates context invariants independently from any persistence representation. */
+    public Context {
+      if (confidence != null && (confidence < 0 || confidence > 1)) {
+        throw new IllegalArgumentException("confidence must be between zero and one");
+      }
+      if (validFrom != null && validTo != null && validFrom.isAfter(validTo)) {
+        throw new IllegalArgumentException("validFrom must not be after validTo");
+      }
+    }
+
+    /**
+     * Returns the legacy context key used by the initial in-memory conformance suite.
+     *
+     * @deprecated use {@link #scenario()} or the explicit validity interval instead
+     */
+    @Deprecated(forRemoval = false)
+    public String validAt() {
+      return scenario;
+    }
+
     /** Returns context with no asserted qualifiers. */
     public static Context unspecified() {
-      return new Context(null, null, null);
+      return new Context(null, null, null, null, null, null);
     }
   }
 

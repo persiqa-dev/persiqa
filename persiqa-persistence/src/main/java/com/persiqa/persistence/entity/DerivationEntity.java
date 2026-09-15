@@ -26,9 +26,42 @@ public class DerivationEntity {
 
   protected DerivationEntity() {}
 
+  public DerivationEntity(UUID statementId, UUID evidenceObjectId, String ruleIdentifier) {
+    this.statementId = statementId;
+    this.evidenceObjectId = evidenceObjectId;
+    this.ruleIdentifier = ruleIdentifier;
+  }
+
+  public UUID evidenceObjectId() {
+    return evidenceObjectId;
+  }
+
   public static class Key implements Serializable {
-    UUID statementId;
-    UUID evidenceObjectId;
-    String ruleIdentifier;
+    private UUID statementId;
+    private UUID evidenceObjectId;
+    private String ruleIdentifier;
+
+    public Key() {}
+
+    public Key(UUID statementId, UUID evidenceObjectId, String ruleIdentifier) {
+      this.statementId = statementId;
+      this.evidenceObjectId = evidenceObjectId;
+      this.ruleIdentifier = ruleIdentifier;
+    }
+
+    @Override
+    public boolean equals(Object other) {
+      if (!(other instanceof Key key)) {
+        return false;
+      }
+      return java.util.Objects.equals(statementId, key.statementId)
+          && java.util.Objects.equals(evidenceObjectId, key.evidenceObjectId)
+          && java.util.Objects.equals(ruleIdentifier, key.ruleIdentifier);
+    }
+
+    @Override
+    public int hashCode() {
+      return java.util.Objects.hash(statementId, evidenceObjectId, ruleIdentifier);
+    }
   }
 }
