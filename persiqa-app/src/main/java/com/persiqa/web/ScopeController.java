@@ -1,10 +1,12 @@
 package com.persiqa.web;
 
 import com.persiqa.application.KnowledgeApplicationService;
+import com.persiqa.core.PageQuery;
+import com.persiqa.core.PageResult;
 import com.persiqa.core.ScopeAccessDeniedException;
+import com.persiqa.web.dto.KnowledgeDtos.PageResponse;
 import com.persiqa.web.dto.KnowledgeDtos.ScopeResponse;
 import com.persiqa.web.dto.KnowledgeMapper;
-import java.util.List;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
@@ -13,6 +15,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -35,10 +38,13 @@ public class ScopeController {
 
   /** Lists only scopes owned by the authenticated subject. */
   @GetMapping
-  public List<ScopeResponse> findOwnedScopes() {
-    return knowledge.findScopesOwnedBy(currentSubject.require()).stream()
-        .map(mapper::toScope)
-        .toList();
+  public PageResponse<ScopeResponse> findOwnedScopes(
+      @RequestParam(value = "page", defaultValue = "0") int page,
+      @RequestParam(value = "size", defaultValue = "50") int size,
+      @RequestParam(value = "q", required = false) String query) {
+    var result =
+        knowledge.findScopesOwnedBy(currentSubject.require(), new PageQuery(page, size, query));
+    return pageResponse(result);
   }
 
   /** Returns one scope only when it is owned by the authenticated subject. */
@@ -59,5 +65,21 @@ public class ScopeController {
   public ResponseEntity<ProblemDetail> forbidden(ScopeAccessDeniedException error) {
     return ResponseEntity.status(HttpStatus.FORBIDDEN)
         .body(ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, error.getMessage()));
+  }
+
+  /** Translates invalid list filters into HTTP 400. */
+  @ExceptionHandler(IllegalArgumentException.class)
+  public ResponseEntity<ProblemDetail> invalidRequest(IllegalArgumentException error) {
+    return ResponseEntity.badRequest()
+        .body(ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, error.getMessage()));
+  }
+
+  private PageResponse<ScopeResponse> pageResponse(PageResult<com.persiqa.core.ModelScope> page) {
+    return new PageResponse<>(
+        page.content().stream().map(mapper::toScope).toList(),
+        page.page(),
+        page.size(),
+        page.totalElements(),
+        page.totalPages());
   }
 }

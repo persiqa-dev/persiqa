@@ -58,13 +58,13 @@ class ScopeKnowledgeControllerIntegrationTest {
 
     http.perform(MockMvcRequestBuilders.get("/api/scopes/{scopeId}/relations", scope).with(ALICE))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$[0].id").value("supply-mcb-lamp"))
-        .andExpect(jsonPath("$[0].type.id").value("supplies"));
+        .andExpect(jsonPath("$.content[0].id").value("supply-mcb-lamp"))
+        .andExpect(jsonPath("$.content[0].type.id").value("supplies"));
     http.perform(MockMvcRequestBuilders.get("/api/scopes/{scopeId}/statements", scope).with(ALICE))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$[0].id").value("supply-observation"))
-        .andExpect(jsonPath("$[0].knowledgeKind").value("EXPLICIT"))
-        .andExpect(jsonPath("$[0].context.provenance").value("inspection"));
+        .andExpect(jsonPath("$.content[0].id").value("supply-observation"))
+        .andExpect(jsonPath("$.content[0].knowledgeKind").value("EXPLICIT"))
+        .andExpect(jsonPath("$.content[0].context.provenance").value("inspection"));
     http.perform(MockMvcRequestBuilders.get("/api/scopes/{scopeId}/knowledge", scope).with(ALICE))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.scope.name").value("http-read-test"))
@@ -170,13 +170,23 @@ class ScopeKnowledgeControllerIntegrationTest {
     http.perform(
             MockMvcRequestBuilders.get("/api/scopes/{scopeId}/statements", scopeId).with(ALICE))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$[3].id").value("supply-3"))
-        .andExpect(jsonPath("$[3].knowledgeKind").value("DERIVED"))
-        .andExpect(jsonPath("$[3].derivedFrom.length()").value(2));
+        .andExpect(jsonPath("$.content[3].id").value("supply-3"))
+        .andExpect(jsonPath("$.content[3].knowledgeKind").value("DERIVED"))
+        .andExpect(jsonPath("$.content[3].derivedFrom.length()").value(2));
     http.perform(
             MockMvcRequestBuilders.get("/api/scopes/{scopeId}/relations", scopeId).with(ALICE))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.length()").value(3));
+        .andExpect(jsonPath("$.content.length()").value(3));
+    http.perform(
+            MockMvcRequestBuilders.get("/api/scopes/{scopeId}/relations", scopeId)
+                .param("q", "junction")
+                .param("size", "1")
+                .with(ALICE))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.content.length()").value(1))
+        .andExpect(jsonPath("$.content[0].id").value("supply-junction-box-outlet"))
+        .andExpect(jsonPath("$.totalElements").value(2))
+        .andExpect(jsonPath("$.totalPages").value(2));
     http.perform(
             MockMvcRequestBuilders.get(
                     "/api/scopes/{scopeId}/relations/{relationId}/statements",
@@ -236,7 +246,7 @@ class ScopeKnowledgeControllerIntegrationTest {
         .andExpect(jsonPath("$.id").value("Outlet-01"));
     http.perform(MockMvcRequestBuilders.get("/api/scopes/{scopeId}/nodes", scope).with(ALICE))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$[?(@.id == 'Outlet-01')].kind").value("ENTITY"));
+        .andExpect(jsonPath("$.content[?(@.id == 'Outlet-01')].kind").value("ENTITY"));
     http.perform(
             MockMvcRequestBuilders.post("/api/scopes/{scopeId}/nodes", scope)
                 .with(ALICE)
@@ -295,12 +305,16 @@ class ScopeKnowledgeControllerIntegrationTest {
             .andReturn();
     var scopeIds = new java.util.HashSet<String>();
     var responseBody = response.getResponse().getContentAsString(StandardCharsets.UTF_8);
-    for (var scope : json.readTree(responseBody)) {
+    for (var scope : json.readTree(responseBody).get("content")) {
       scopeIds.add(scope.get("id").stringValue());
     }
     Assertions.assertTrue(scopeIds.contains(alpha.toString()));
     Assertions.assertTrue(scopeIds.contains(beta.toString()));
     Assertions.assertFalse(scopeIds.contains(bobScope.toString()));
+    http.perform(MockMvcRequestBuilders.get("/api/scopes").param("q", "alpha").with(ALICE))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.content.length()").value(1))
+        .andExpect(jsonPath("$.content[0].id").value(alpha.toString()));
     http.perform(MockMvcRequestBuilders.get("/api/scopes/{scopeId}", alpha).with(ALICE))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.name").value("Alpha"));

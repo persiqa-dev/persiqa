@@ -4,6 +4,7 @@ import com.persiqa.model.Ckm.Kind;
 import com.persiqa.model.Ckm.KnowledgeKind;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -12,6 +13,10 @@ public final class KnowledgeDtos {
   private KnowledgeDtos() {}
 
   public record ScopeResponse(UUID id, String name, String ownerSubject) {}
+
+  /** Stable envelope for a server-side paged API collection. */
+  public record PageResponse<T>(
+      List<T> content, int page, int size, long totalElements, int totalPages) {}
 
   public record NodeResponse(String id, Kind kind) {}
 
@@ -29,9 +34,9 @@ public final class KnowledgeDtos {
   /** A client-loading projection of one scope's canonical graph, not a saved Representation. */
   public record ScopeKnowledgeResponse(
       ScopeResponse scope,
-      java.util.List<NodeResponse> nodes,
-      java.util.List<RelationResponse> relations,
-      java.util.List<StatementResponse> statements) {}
+      List<NodeResponse> nodes,
+      List<RelationResponse> relations,
+      List<StatementResponse> statements) {}
 
   /**
    * Statement assertion including its original knowledge context.

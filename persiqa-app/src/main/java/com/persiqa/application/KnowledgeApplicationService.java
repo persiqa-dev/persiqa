@@ -2,6 +2,8 @@ package com.persiqa.application;
 
 import com.persiqa.core.CanonicalStore;
 import com.persiqa.core.ModelScope;
+import com.persiqa.core.PageQuery;
+import com.persiqa.core.PageResult;
 import com.persiqa.core.ScopeAccessDeniedException;
 import com.persiqa.core.StatementFirstRecording;
 import com.persiqa.model.Ckm.Context;
@@ -52,6 +54,12 @@ public class KnowledgeApplicationService {
     return store.findScopesByOwner(subject);
   }
 
+  /** Returns one page of scopes owned by the subject. */
+  @Transactional(readOnly = true)
+  public PageResult<ModelScope> findScopesOwnedBy(String subject, PageQuery pageQuery) {
+    return store.findScopesByOwner(subject, pageQuery);
+  }
+
   /** Returns the canonical graph elements held by one scope. */
   @Transactional(readOnly = true)
   public ScopeKnowledgeSnapshot findKnowledgeSnapshot(UUID scopeId, String subject) {
@@ -82,6 +90,13 @@ public class KnowledgeApplicationService {
   public List<Node> findNodes(UUID scopeId, String subject) {
     requireOwner(scopeId, subject);
     return store.findNodes(scopeId);
+  }
+
+  /** Returns one page of standalone canonical Nodes visible to the subject. */
+  @Transactional(readOnly = true)
+  public PageResult<Node> findNodes(UUID scopeId, String subject, PageQuery pageQuery) {
+    requireOwner(scopeId, subject);
+    return store.findNodes(scopeId, pageQuery);
   }
 
   /** Records an explicit assertion and its separately addressable canonical Relation. */
@@ -143,6 +158,13 @@ public class KnowledgeApplicationService {
     return store.findRelations(scopeId);
   }
 
+  /** Returns one page of canonical Relations visible to the subject. */
+  @Transactional(readOnly = true)
+  public PageResult<Relation> findRelations(UUID scopeId, String subject, PageQuery pageQuery) {
+    requireOwner(scopeId, subject);
+    return store.findRelations(scopeId, pageQuery);
+  }
+
   /** Returns the stored Statement with its original assertion context, or {@code null}. */
   @Transactional(readOnly = true)
   public Statement findStatement(UUID scopeId, String subject, String statementId) {
@@ -155,6 +177,13 @@ public class KnowledgeApplicationService {
   public List<Statement> findStatements(UUID scopeId, String subject) {
     requireOwner(scopeId, subject);
     return store.findStatements(scopeId);
+  }
+
+  /** Returns one page of Statements visible to the subject. */
+  @Transactional(readOnly = true)
+  public PageResult<Statement> findStatements(UUID scopeId, String subject, PageQuery pageQuery) {
+    requireOwner(scopeId, subject);
+    return store.findStatements(scopeId, pageQuery);
   }
 
   /** Returns every explicit or derived Statement that supports one canonical Relation. */

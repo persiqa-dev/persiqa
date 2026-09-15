@@ -27,6 +27,9 @@ public interface CanonicalStore {
   /** Returns scopes owned by one subject in stable display order. */
   List<ModelScope> findScopesByOwner(String ownerSubject);
 
+  /** Returns one page of owner-visible scopes, optionally filtered by scope name. */
+  PageResult<ModelScope> findScopesByOwner(String ownerSubject, PageQuery pageQuery);
+
   /** Persists a Node without changing its CKM identity. */
   UUID save(UUID scopeId, Node node);
 
@@ -50,11 +53,17 @@ public interface CanonicalStore {
   /** Returns standalone canonical Nodes in one scope in stable identity order. */
   List<Node> findNodes(UUID scopeId);
 
+  /** Returns one page of standalone Nodes, optionally filtered by canonical identity. */
+  PageResult<Node> findNodes(UUID scopeId, PageQuery pageQuery);
+
   /** Reconstructs a Relation, or {@code null} when unknown. */
   Relation findRelation(UUID scopeId, String identityKey);
 
   /** Returns every Relation in one scope in stable identity order. */
   List<Relation> findRelations(UUID scopeId);
+
+  /** Returns one page of Relations, optionally filtered by canonical identity. */
+  PageResult<Relation> findRelations(UUID scopeId, PageQuery pageQuery);
 
   /**
    * Reconstructs a Statement with its original assertion context.
@@ -67,6 +76,9 @@ public interface CanonicalStore {
 
   /** Returns every Statement in one scope in stable identity order. */
   List<Statement> findStatements(UUID scopeId);
+
+  /** Returns one page of Statements, optionally filtered by canonical identity. */
+  PageResult<Statement> findStatements(UUID scopeId, PageQuery pageQuery);
 
   /** Returns Statements canonically associated with one Relation. */
   List<Statement> findStatementsForRelation(UUID scopeId, String relationIdentity);

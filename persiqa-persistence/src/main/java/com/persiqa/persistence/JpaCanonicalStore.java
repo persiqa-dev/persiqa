@@ -2,6 +2,8 @@ package com.persiqa.persistence;
 
 import com.persiqa.core.CanonicalStore;
 import com.persiqa.core.ModelScope;
+import com.persiqa.core.PageQuery;
+import com.persiqa.core.PageResult;
 import com.persiqa.model.Ckm.Capability;
 import com.persiqa.model.Ckm.Concept;
 import com.persiqa.model.Ckm.Context;
@@ -41,7 +43,10 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -132,6 +137,19 @@ public class JpaCanonicalStore implements CanonicalStore {
         .toList();
   }
 
+  /** Returns one page of owner-visible scopes, optionally filtered by scope name. */
+  @Override
+  @Transactional(readOnly = true)
+  public PageResult<ModelScope> findScopesByOwner(String ownerSubject, PageQuery pageQuery) {
+    var pageable = PageRequest.of(pageQuery.page(), pageQuery.size());
+    Page<ModelScopeEntity> page =
+        pageQuery.query() == null
+            ? scopes.findByOwnerSubjectOrderByNameAscIdAsc(ownerSubject, pageable)
+            : scopes.findByOwnerSubjectAndNameContainingIgnoreCaseOrderByNameAscIdAsc(
+                ownerSubject, pageQuery.query(), pageable);
+    return page(page, entity -> new ModelScope(entity.id(), entity.name(), entity.ownerSubject()));
+  }
+
   /** Reconstructs a standalone canonical Node, or returns {@code null} when it is unknown. */
   @Override
   @Transactional(readOnly = true)
@@ -154,6 +172,20 @@ public class JpaCanonicalStore implements CanonicalStore {
         .filter(JpaCanonicalStore::isStandaloneNode)
         .map(object -> node(scopeId, object.id()))
         .toList();
+  }
+
+  /** Returns one page of standalone Nodes, optionally filtered by canonical identity. */
+  @Override
+  @Transactional(readOnly = true)
+  public PageResult<Node> findNodes(UUID scopeId, PageQuery pageQuery) {
+    requireScope(scopeId);
+    var page =
+        pageQuery.query() == null
+            ? objects.findByScopeIdAndKindInOrderByIdentityKey(
+                scopeId, standaloneNodeKinds(), pageable(pageQuery))
+            : objects.findByScopeIdAndKindInAndIdentityKeyContainingIgnoreCaseOrderByIdentityKey(
+                scopeId, standaloneNodeKinds(), pageQuery.query(), pageable(pageQuery));
+    return page(page, object -> node(scopeId, object.id()));
   }
 
   /** Persists a Node and returns its storage identifier without changing its CKM identity. */
@@ -254,6 +286,20 @@ public class JpaCanonicalStore implements CanonicalStore {
         .toList();
   }
 
+  /** Returns one page of Relations, optionally filtered by canonical identity. */
+  @Override
+  @Transactional(readOnly = true)
+  public PageResult<Relation> findRelations(UUID scopeId, PageQuery pageQuery) {
+    requireScope(scopeId);
+    var page =
+        pageQuery.query() == null
+            ? objects.findByScopeIdAndKindInOrderByIdentityKey(
+                scopeId, Set.of(Kind.RELATION.name()), pageable(pageQuery))
+            : objects.findByScopeIdAndKindAndIdentityKeyContainingIgnoreCaseOrderByIdentityKey(
+                scopeId, Kind.RELATION.name(), pageQuery.query(), pageable(pageQuery));
+    return page(page, object -> findRelation(scopeId, object.identityKey()));
+  }
+
   /**
    * Reconstructs a Statement with its original assertion context.
    *
@@ -299,6 +345,20 @@ public class JpaCanonicalStore implements CanonicalStore {
     return objects.findByScopeIdAndKindOrderByIdentityKey(scopeId, Kind.STATEMENT.name()).stream()
         .map(object -> findStatement(scopeId, object.identityKey()))
         .toList();
+  }
+
+  /** Returns one page of Statements, optionally filtered by canonical identity. */
+  @Override
+  @Transactional(readOnly = true)
+  public PageResult<Statement> findStatements(UUID scopeId, PageQuery pageQuery) {
+    requireScope(scopeId);
+    var page =
+        pageQuery.query() == null
+            ? objects.findByScopeIdAndKindInOrderByIdentityKey(
+                scopeId, Set.of(Kind.STATEMENT.name()), pageable(pageQuery))
+            : objects.findByScopeIdAndKindAndIdentityKeyContainingIgnoreCaseOrderByIdentityKey(
+                scopeId, Kind.STATEMENT.name(), pageQuery.query(), pageable(pageQuery));
+    return page(page, object -> findStatement(scopeId, object.identityKey()));
   }
 
   /** Returns every Statement canonically associated with one Relation in stable identity order. */
@@ -532,6 +592,24 @@ public class JpaCanonicalStore implements CanonicalStore {
   private static boolean isStandaloneNode(CanonicalObjectEntity object) {
     var kind = Kind.valueOf(object.kind());
     return kind != Kind.RELATION && kind != Kind.STATEMENT && kind != Kind.TYPED_VALUE;
+  }
+
+  private static Set<String> standaloneNodeKinds() {
+    return Set.of(
+        Kind.ENTITY.name(), Kind.CAPABILITY.name(), Kind.CONCEPT.name(), Kind.STATE.name());
+  }
+
+  private static PageRequest pageable(PageQuery pageQuery) {
+    return PageRequest.of(pageQuery.page(), pageQuery.size());
+  }
+
+  private static <T, R> PageResult<R> page(Page<T> source, Function<T, R> mapper) {
+    return new PageResult<>(
+        source.getContent().stream().map(mapper).toList(),
+        source.getNumber(),
+        source.getSize(),
+        source.getTotalElements(),
+        source.getTotalPages());
   }
 
   private String objectIdentity(UUID scopeId, UUID objectId) {
