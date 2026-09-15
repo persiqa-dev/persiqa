@@ -8,6 +8,7 @@ import com.persiqa.core.KnowledgeBase;
 import com.persiqa.core.PdsFixtureParser;
 import com.persiqa.core.RelationRegistry;
 import com.persiqa.model.Ckm.*;
+import java.math.BigDecimal;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 
@@ -105,7 +106,7 @@ class CkmConformanceTest {
             new Entity("Breaker"),
             new Entity("Outlet-1"),
             Set.of(),
-            new Context("inspection-A", .8, "T1"));
+            new Context("inspection-A", new BigDecimal("0.8"), "T1"));
     var b =
         new Statement(
             "b",
@@ -114,7 +115,7 @@ class CkmConformanceTest {
             new Entity("Breaker"),
             new Entity("Outlet-2"),
             Set.of(),
-            new Context("inspection-B", .7, "T1"));
+            new Context("inspection-B", new BigDecimal("0.7"), "T1"));
     assertNotEquals(a.id(), b.id());
     assertEquals("inspection-A", a.context().provenance());
   }

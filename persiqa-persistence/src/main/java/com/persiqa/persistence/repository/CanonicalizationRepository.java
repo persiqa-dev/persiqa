@@ -9,4 +9,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 /** Traceable Statement-to-canonical-object association persistence. */
 public interface CanonicalizationRepository extends JpaRepository<CanonicalizationEntity, Key> {
   List<CanonicalizationEntity> findByStatementId(UUID statementId);
+
+  List<CanonicalizationEntity> findByCanonicalObjectId(UUID canonicalObjectId);
 }

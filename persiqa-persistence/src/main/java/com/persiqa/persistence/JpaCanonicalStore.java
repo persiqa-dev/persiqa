@@ -32,6 +32,7 @@ import com.persiqa.persistence.repository.RepresentationRepository;
 import com.persiqa.persistence.repository.StateRepository;
 import com.persiqa.persistence.repository.StatementContextRepository;
 import com.persiqa.persistence.repository.StatementRepository;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -100,6 +101,25 @@ public class JpaCanonicalStore {
             () -> scopes.save(new ModelScopeEntity(scopeId, name)));
   }
 
+  /** Returns whether the persistence scope identity exists. */
+  @Transactional(readOnly = true)
+  public boolean scopeExists(UUID scopeId) {
+    return scopes.existsById(scopeId);
+  }
+
+  /** Reconstructs a standalone canonical Node, or returns {@code null} when it is unknown. */
+  @Transactional(readOnly = true)
+  public Node findNode(UUID scopeId, String identityKey) {
+    var object = object(scopeId, identityKey);
+    if (object == null
+        || Kind.valueOf(object.kind()) == Kind.RELATION
+        || Kind.valueOf(object.kind()) == Kind.STATEMENT
+        || Kind.valueOf(object.kind()) == Kind.TYPED_VALUE) {
+      return null;
+    }
+    return node(scopeId, object.id());
+  }
+
   /** Persists a Node and returns its storage identifier without changing its CKM identity. */
   @Transactional
   public UUID save(UUID scopeId, Node node) {
@@ -141,7 +161,7 @@ public class JpaCanonicalStore {
     if (statementObject == null || Kind.valueOf(statementObject.kind()) != Kind.STATEMENT) {
       throw new IllegalArgumentException("unknown Statement: " + statementIdentity);
     }
-    return contexts.findByStatementIdOrderById(statementObject.id()).stream()
+    return contexts.findByStatementIdOrderByRecordedAtAscIdAsc(statementObject.id()).stream()
         .map(JpaCanonicalStore::context)
         .toList();
   }
@@ -183,6 +203,15 @@ public class JpaCanonicalStore {
         node(scopeId, relation.targetObjectId()));
   }
 
+  /** Returns every canonical Relation in one scope in stable identity order. */
+  @Transactional(readOnly = true)
+  public List<Relation> findRelations(UUID scopeId) {
+    requireScope(scopeId);
+    return objects.findByScopeIdAndKindOrderByIdentityKey(scopeId, Kind.RELATION.name()).stream()
+        .map(object -> findRelation(scopeId, object.identityKey()))
+        .toList();
+  }
+
   /** Reconstructs a Statement together with one persisted context record. */
   @Transactional(readOnly = true)
   public Statement findStatement(UUID scopeId, String identityKey) {
@@ -191,7 +220,8 @@ public class JpaCanonicalStore {
       return null;
     }
     var statement = statements.findById(object.id()).orElseThrow();
-    var context = contexts.findByStatementIdOrderById(statement.id()).stream().findFirst();
+    var context =
+        contexts.findByStatementIdOrderByRecordedAtAscIdAsc(statement.id()).stream().findFirst();
     var evidence =
         derivations.findByStatementId(statement.id()).stream()
             .map(link -> objectIdentity(scopeId, link.evidenceObjectId()))
@@ -210,6 +240,29 @@ public class JpaCanonicalStore {
         context.map(JpaCanonicalStore::context).orElseGet(Context::unspecified));
   }
 
+  /** Returns every Statement in one scope in stable identity order. */
+  @Transactional(readOnly = true)
+  public List<Statement> findStatements(UUID scopeId) {
+    requireScope(scopeId);
+    return objects.findByScopeIdAndKindOrderByIdentityKey(scopeId, Kind.STATEMENT.name()).stream()
+        .map(object -> findStatement(scopeId, object.identityKey()))
+        .toList();
+  }
+
+  /** Returns every Statement canonically associated with one Relation in stable identity order. */
+  @Transactional(readOnly = true)
+  public List<Statement> findStatementsForRelation(UUID scopeId, String relationIdentity) {
+    var relationObject = object(scopeId, relationIdentity);
+    if (relationObject == null || Kind.valueOf(relationObject.kind()) != Kind.RELATION) {
+      return List.of();
+    }
+    return canonicalizations.findByCanonicalObjectId(relationObject.id()).stream()
+        .map(link -> objectIdentity(scopeId, link.statementId()))
+        .map(statementIdentity -> findStatement(scopeId, statementIdentity))
+        .sorted(java.util.Comparator.comparing(Statement::id))
+        .toList();
+  }
+
   private UUID saveNode(UUID scopeId, Node node) {
     if (node instanceof Relation relation) {
       return saveRelation(scopeId, relation);
@@ -221,6 +274,7 @@ public class JpaCanonicalStore {
   }
 
   private UUID saveRelation(UUID scopeId, Relation relation) {
+    validateRelationEndpoints(relation);
     var relationId = objectId(scopeId, relation);
     var sourceId = saveNode(scopeId, relation.source());
     var targetId = saveNode(scopeId, relation.target());
@@ -245,6 +299,17 @@ public class JpaCanonicalStore {
     return relationId;
   }
 
+  private static void validateRelationEndpoints(Relation relation) {
+    if (!relation.type().sources().contains(relation.source().kind())) {
+      throw new IllegalArgumentException(
+          "Relation source kind is not allowed by its type: " + relation.type().id());
+    }
+    if (!relation.type().targets().contains(relation.target().kind())) {
+      throw new IllegalArgumentException(
+          "Relation target kind is not allowed by its type: " + relation.type().id());
+    }
+  }
+
   private UUID saveStatement(UUID scopeId, Statement statement) {
     var statementId = objectId(scopeId, statement);
     var subjectId = saveNode(scopeId, statement.subject());
@@ -263,8 +328,11 @@ public class JpaCanonicalStore {
                         subjectId,
                         objectId,
                         typedValue)));
-    if (contexts.findByStatementIdOrderById(statementId).isEmpty()) {
+    var persistedContexts = contexts.findByStatementIdOrderByRecordedAtAscIdAsc(statementId);
+    if (persistedContexts.isEmpty()) {
       contexts.save(contextEntity(statementId, statement.context()));
+    } else if (!equivalentContext(context(persistedContexts.getFirst()), statement.context())) {
+      throw new IllegalArgumentException("Statement identity cannot be overwritten");
     }
     if (statement.knowledgeKind() == com.persiqa.model.Ckm.KnowledgeKind.DERIVED) {
       for (var evidenceIdentity : statement.derivedFrom()) {
@@ -347,8 +415,9 @@ public class JpaCanonicalStore {
     return new StatementContextEntity(
         UUID.randomUUID(),
         statementId,
+        Instant.now(),
         context.provenance(),
-        context.confidence() == null ? null : java.math.BigDecimal.valueOf(context.confidence()),
+        context.confidence(),
         context.observedAt(),
         context.validFrom(),
         context.validTo(),
@@ -358,11 +427,25 @@ public class JpaCanonicalStore {
   private static Context context(StatementContextEntity entity) {
     return new Context(
         entity.provenanceReference(),
-        entity.confidence() == null ? null : entity.confidence().doubleValue(),
+        entity.confidence(),
         entity.observedAt(),
         entity.validFrom(),
         entity.validTo(),
         entity.scenario());
+  }
+
+  private static boolean equivalentContext(Context left, Context right) {
+    return Objects.equals(left.provenance(), right.provenance())
+        && equivalentConfidence(left.confidence(), right.confidence())
+        && Objects.equals(left.observedAt(), right.observedAt())
+        && Objects.equals(left.validFrom(), right.validFrom())
+        && Objects.equals(left.validTo(), right.validTo())
+        && Objects.equals(left.scenario(), right.scenario());
+  }
+
+  private static boolean equivalentConfidence(
+      java.math.BigDecimal left, java.math.BigDecimal right) {
+    return left == null ? right == null : right != null && left.compareTo(right) == 0;
   }
 
   private Node node(UUID scopeId, UUID objectId) {

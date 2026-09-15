@@ -29,7 +29,10 @@ public final class CanonicalKnowledgeModel {
 
   public Statement add(Statement statement) {
     put(statements, statement.id(), statement);
-    add(statement.subject());
+    ensure(statement.subject());
+    if (statement.object() instanceof Node node) {
+      ensure(node);
+    }
     return statement;
   }
 

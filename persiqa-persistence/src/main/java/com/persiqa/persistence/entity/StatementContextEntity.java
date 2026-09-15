@@ -19,6 +19,9 @@ public class StatementContextEntity {
   @Column(name = "statement_id", nullable = false)
   private UUID statementId;
 
+  @Column(name = "recorded_at", nullable = false, updatable = false)
+  private Instant recordedAt;
+
   @Column(name = "provenance_reference")
   private String provenanceReference;
 
@@ -37,6 +40,7 @@ public class StatementContextEntity {
   public StatementContextEntity(
       UUID id,
       UUID statementId,
+      Instant recordedAt,
       String provenanceReference,
       BigDecimal confidence,
       Instant observedAt,
@@ -45,6 +49,7 @@ public class StatementContextEntity {
       String scenario) {
     this.id = id;
     this.statementId = statementId;
+    this.recordedAt = recordedAt;
     this.provenanceReference = provenanceReference;
     this.confidence = confidence;
     this.observedAt = observedAt;
@@ -59,6 +64,10 @@ public class StatementContextEntity {
 
   public UUID statementId() {
     return statementId;
+  }
+
+  public Instant recordedAt() {
+    return recordedAt;
   }
 
   public String provenanceReference() {

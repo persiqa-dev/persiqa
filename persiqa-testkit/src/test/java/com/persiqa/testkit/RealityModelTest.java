@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import com.persiqa.core.*;
 import com.persiqa.model.Ckm.*;
+import java.math.BigDecimal;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 
@@ -72,11 +73,26 @@ class RealityModelTest {
     var target = new Entity("Outlet-01");
     var result =
         writer.assertRelation(
-            "inspection-42", "supplies", source, target, new Context("inspection", .9, "T1"));
+            "supply-mcb-outlet",
+            "inspection-42",
+            "supplies",
+            source,
+            target,
+            new Context("inspection", new BigDecimal("0.9"), "T1"));
     assertEquals(KnowledgeKind.EXPLICIT, result.statement().knowledgeKind());
     assertEquals("inspection", result.statement().context().provenance());
-    assertEquals("relation:inspection-42", result.relation().id());
-    assertEquals(1, model.statements().size());
+    assertEquals("supply-mcb-outlet", result.relation().id());
+    var derived =
+        writer.deriveRelation(
+            "supply-mcb-outlet",
+            "topology-42",
+            "supplies",
+            source,
+            target,
+            Set.of("inspection-42"),
+            new Context("supply-rule", new BigDecimal("0.9"), "T1"));
+    assertEquals(result.relation(), derived.relation());
+    assertEquals(2, model.statements().size());
     assertEquals(1, model.relations().size());
   }
 
@@ -86,6 +102,7 @@ class RealityModelTest {
     var writer = new StatementFirstWriter(model, new RelationRegistry());
     var result =
         writer.deriveRelation(
+            "supply-mcb-outlet",
             "derived-1",
             "supplies",
             new Entity("MCB"),

@@ -3,7 +3,9 @@ package com.persiqa;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import com.persiqa.model.Ckm.Concept;
 import com.persiqa.model.Ckm.Context;
 import com.persiqa.model.Ckm.Entity;
 import com.persiqa.model.Ckm.Kind;
@@ -13,11 +15,13 @@ import com.persiqa.model.Ckm.RelationType;
 import com.persiqa.model.Ckm.State;
 import com.persiqa.model.Ckm.Statement;
 import com.persiqa.persistence.JpaCanonicalStore;
+import com.persiqa.persistence.repository.CanonicalObjectRepository;
 import com.persiqa.persistence.repository.CanonicalizationRepository;
 import com.persiqa.persistence.repository.DerivationRepository;
 import com.persiqa.persistence.repository.RepresentationRepository;
 import com.persiqa.persistence.repository.StateRepository;
 import com.persiqa.persistence.repository.StatementContextRepository;
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Map;
 import java.util.Set;
@@ -32,6 +36,7 @@ import org.springframework.test.context.ActiveProfiles;
 @ActiveProfiles("dev")
 class JpaCanonicalStoreIntegrationTest {
   @Autowired private JpaCanonicalStore store;
+  @Autowired private CanonicalObjectRepository objects;
   @Autowired private StatementContextRepository contexts;
   @Autowired private DerivationRepository derivations;
   @Autowired private CanonicalizationRepository canonicalizations;
@@ -57,7 +62,7 @@ class JpaCanonicalStoreIntegrationTest {
     var context =
         new Context(
             "inspection-42",
-            0.9,
+            new BigDecimal("0.9"),
             Instant.parse("2026-01-01T10:00:00Z"),
             Instant.parse("2026-01-01T00:00:00Z"),
             Instant.parse("2026-01-02T00:00:00Z"),
@@ -66,7 +71,18 @@ class JpaCanonicalStoreIntegrationTest {
         new Statement(
             "assertion-a", KnowledgeKind.EXPLICIT, "supplies", breaker, outlet, Set.of(), context);
     store.save(scope, asserted);
-    store.appendContext(scope, "assertion-a", new Context("reinspection", 0.8, "as-maintained"));
+    store.appendContext(
+        scope, "assertion-a", new Context("reinspection", new BigDecimal("0.8"), "as-maintained"));
+    var overwritten =
+        new Statement(
+            "assertion-a",
+            KnowledgeKind.EXPLICIT,
+            "supplies",
+            breaker,
+            outlet,
+            Set.of(),
+            new Context("conflicting-source", new BigDecimal("0.7"), "as-built"));
+    assertThrows(IllegalArgumentException.class, () -> store.save(scope, overwritten));
     store.canonicalize(scope, asserted, first, "SUPPORTS", "statement-first-v0.1");
 
     var derived =
@@ -87,7 +103,8 @@ class JpaCanonicalStoreIntegrationTest {
     assertEquals("inspection-42", restored.context().provenance());
     assertEquals(Instant.parse("2026-01-02T00:00:00Z"), restored.context().validTo());
     assertEquals(2, store.findContexts(scope, "assertion-a").size());
-    assertEquals(2, contexts.findByStatementIdOrderById(store.save(scope, asserted)).size());
+    assertEquals(
+        2, contexts.findByStatementIdOrderByRecordedAtAscIdAsc(store.save(scope, asserted)).size());
     assertEquals(2, derivations.findByStatementId(store.save(scope, derived)).size());
     assertEquals(1, canonicalizations.findByStatementId(store.save(scope, asserted)).size());
   }
@@ -97,6 +114,7 @@ class JpaCanonicalStoreIntegrationTest {
     var scope = UUID.randomUUID();
     store.createScope(scope, "state-test");
     var breaker = new Entity("RCBO-01");
+    var closed = new State("Closed");
     var relation =
         new Relation(
             "state-a",
@@ -104,14 +122,15 @@ class JpaCanonicalStoreIntegrationTest {
                 "hasState",
                 Set.of(Kind.ENTITY, Kind.RELATION),
                 Set.of(Kind.STATE),
-                false,
-                "none",
-                false),
+            false,
+            "none",
+            false),
             breaker,
-            new State("Closed"));
+            closed);
 
     store.save(scope, relation);
-    assertEquals(1, states.count());
+    var stateId = objects.findByScopeIdAndIdentityKey(scope, closed.id()).orElseThrow().id();
+    assertEquals(1, states.findAllById(Set.of(stateId)).size());
   }
 
   @Test
@@ -121,5 +140,122 @@ class JpaCanonicalStoreIntegrationTest {
     store.saveRepresentation(
         scope, UUID.randomUUID(), "Electrical view", Map.of(), Map.of("layout", "grid"));
     assertEquals(1, representations.count());
+  }
+
+  @Test
+  void persists_the_electrical_refinement_without_replacing_the_coarse_model() {
+    var scope = UUID.randomUUID();
+    var breaker = new Entity("MCB-01");
+    var outlet = new Entity("Outlet-01");
+    var cable = new Entity("Cable-17");
+    var junctionBox = new Entity("JunctionBox-03");
+    var supplies =
+        new RelationType("supplies", Set.of(Kind.ENTITY), Set.of(Kind.ENTITY), false, "none", true);
+    var coarse = new Relation("supply-summary", supplies, breaker, outlet);
+    var firstSegment = new Relation("supply-segment-1", supplies, breaker, cable);
+    var secondSegment = new Relation("supply-segment-2", supplies, cable, junctionBox);
+
+    store.createScope(scope, "electrical-refinement-test");
+    store.save(scope, coarse);
+    store.save(scope, firstSegment);
+    store.save(scope, secondSegment);
+    store.save(
+        scope,
+        new Statement(
+            "supply-refinement",
+            KnowledgeKind.DERIVED,
+            "supplies",
+            breaker,
+            outlet,
+            Set.of("supply-segment-1", "supply-segment-2"),
+            new Context("topology-analysis", new BigDecimal("0.95"), "as-built")));
+
+    assertEquals(coarse, store.findRelation(scope, "supply-summary"));
+    assertEquals(firstSegment, store.findRelation(scope, "supply-segment-1"));
+    assertEquals(
+        Set.of("supply-segment-1", "supply-segment-2"),
+        store.findStatement(scope, "supply-refinement").derivedFrom());
+  }
+
+  @Test
+  void persists_kubernetes_identity_across_role_and_state_changes() {
+    var scope = UUID.randomUUID();
+    var vm = new Entity("VM-01");
+    var playsRole =
+        new RelationType(
+            "playsRole", Set.of(Kind.ENTITY), Set.of(Kind.CONCEPT), false, "none", false);
+    var hasState =
+        new RelationType(
+            "hasState",
+            Set.of(Kind.ENTITY, Kind.RELATION),
+            Set.of(Kind.STATE),
+            false,
+            "none",
+            false);
+    var kubernetesNode =
+        new Relation("kubernetes-node", playsRole, vm, new Concept("KubernetesNode"));
+    var buildRunner = new Relation("build-runner", playsRole, vm, new Concept("BuildRunner"));
+    var running = new Relation("running", hasState, vm, new State("Running"));
+    var stopped = new Relation("stopped", hasState, vm, new State("Stopped"));
+
+    store.createScope(scope, "kubernetes-identity-test");
+    store.save(scope, kubernetesNode);
+    store.save(scope, running);
+    store.save(scope, buildRunner);
+    store.save(scope, stopped);
+
+    assertEquals("VM-01", store.findRelation(scope, "kubernetes-node").source().id());
+    assertEquals("VM-01", store.findRelation(scope, "build-runner").source().id());
+    assertEquals("Running", store.findRelation(scope, "running").target().id());
+    assertEquals("Stopped", store.findRelation(scope, "stopped").target().id());
+  }
+
+  @Test
+  void preserves_competing_statement_evidence_and_rejects_invalid_relation_endpoints() {
+    var scope = UUID.randomUUID();
+    var breaker = new Entity("Breaker-01");
+    var outletA = new Entity("Outlet-A");
+    var outletB = new Entity("Outlet-B");
+
+    store.createScope(scope, "competing-evidence-test");
+    store.save(
+        scope,
+        new Statement(
+            "inspection-a",
+            KnowledgeKind.EXPLICIT,
+            "supplies",
+            breaker,
+            outletA,
+            Set.of(),
+            new Context("inspection-A", new BigDecimal("0.8"), "T1")));
+    store.save(
+        scope,
+        new Statement(
+            "inspection-b",
+            KnowledgeKind.EXPLICIT,
+            "supplies",
+            breaker,
+            outletB,
+            Set.of(),
+            new Context("inspection-B", new BigDecimal("0.7"), "T1")));
+
+    assertEquals("Outlet-A", ((Entity) store.findStatement(scope, "inspection-a").object()).id());
+    assertEquals("Outlet-B", ((Entity) store.findStatement(scope, "inspection-b").object()).id());
+    assertThrows(
+        IllegalArgumentException.class,
+        () ->
+            store.save(
+                scope,
+                new Relation(
+                    "invalid-state",
+                    new RelationType(
+                        "hasState",
+                        Set.of(Kind.ENTITY),
+                        Set.of(Kind.STATE),
+                        false,
+                        "none",
+                        false),
+                    breaker,
+                    outletA)));
   }
 }

@@ -7,5 +7,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 /** Append-preserving persistence operations for Statement context records. */
 public interface StatementContextRepository extends JpaRepository<StatementContextEntity, UUID> {
-  List<StatementContextEntity> findByStatementIdOrderById(UUID statementId);
+  List<StatementContextEntity> findByStatementIdOrderByRecordedAtAscIdAsc(UUID statementId);
 }
