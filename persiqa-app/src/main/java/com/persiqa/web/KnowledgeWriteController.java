@@ -25,6 +25,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 /** HTTP commands for recording statement-first CKM knowledge. */
 @RestController
@@ -50,6 +51,7 @@ public class KnowledgeWriteController {
   @PostMapping("/scopes/{scopeId}/statements")
   public ResponseEntity<KnowledgeApplicationService.RelationRecord> recordRelation(
       @PathVariable("scopeId") UUID scopeId, @RequestBody RecordRelationRequest request) {
+    requireScope(scopeId);
     var source = request.source().resolve(scopeId, knowledge);
     var target = request.target().resolve(scopeId, knowledge);
     var type =
@@ -69,6 +71,7 @@ public class KnowledgeWriteController {
       @PathVariable("scopeId") UUID scopeId,
       @PathVariable("statementId") String statementId,
       @RequestBody Context context) {
+    requireScope(scopeId);
     knowledge.appendObservation(scopeId, statementId, context);
     return ResponseEntity.noContent().build();
   }
@@ -78,6 +81,12 @@ public class KnowledgeWriteController {
   public ResponseEntity<ProblemDetail> invalidRequest(IllegalArgumentException error) {
     return ResponseEntity.badRequest()
         .body(ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, error.getMessage()));
+  }
+
+  private void requireScope(UUID scopeId) {
+    if (!knowledge.scopeExists(scopeId)) {
+      throw new ResponseStatusException(HttpStatus.NOT_FOUND, "unknown scope: " + scopeId);
+    }
   }
 
   private KnowledgeApplicationService.RelationRecord recordRelation(

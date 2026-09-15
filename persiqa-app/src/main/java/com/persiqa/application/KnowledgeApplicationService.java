@@ -30,6 +30,12 @@ public class KnowledgeApplicationService {
     store.createScope(scopeId, name);
   }
 
+  /** Returns whether the CKM scope identity exists. */
+  @Transactional(readOnly = true)
+  public boolean scopeExists(UUID scopeId) {
+    return store.scopeExists(scopeId);
+  }
+
   /** Records an explicit assertion and its separately addressable canonical Relation. */
   @Transactional
   public RelationRecord assertRelation(

@@ -101,6 +101,12 @@ public class JpaCanonicalStore {
             () -> scopes.save(new ModelScopeEntity(scopeId, name)));
   }
 
+  /** Returns whether the persistence scope identity exists. */
+  @Transactional(readOnly = true)
+  public boolean scopeExists(UUID scopeId) {
+    return scopes.existsById(scopeId);
+  }
+
   /** Persists a Node and returns its storage identifier without changing its CKM identity. */
   @Transactional
   public UUID save(UUID scopeId, Node node) {

@@ -186,6 +186,28 @@ class ScopeKnowledgeControllerIntegrationTest {
         .andExpect(jsonPath("$.detail").value("invalid endpoints for hasState"));
   }
 
+  @Test
+  void returns_not_found_for_an_unknown_scope() throws Exception {
+    var scope = UUID.randomUUID();
+
+    http.perform(get("/api/scopes/{scopeId}/relations", scope)).andExpect(status().isNotFound());
+    http.perform(
+            post("/api/scopes/{scopeId}/statements", scope)
+                .contentType("application/json")
+                .content(
+                    json.writeValueAsString(
+                        new RecordRelationRequest(
+                            "unknown-scope-relation",
+                            "unknown-scope-statement",
+                            KnowledgeKind.EXPLICIT,
+                            "supplies",
+                            new NodeReference("MCB-01", Kind.ENTITY),
+                            new NodeReference("Outlet-01", Kind.ENTITY),
+                            Set.of(),
+                            Context.unspecified()))))
+        .andExpect(status().isNotFound());
+  }
+
   private void postRelation(UUID scopeId, RecordRelationRequest request) throws Exception {
     http.perform(
             post("/api/scopes/{scopeId}/statements", scopeId)
