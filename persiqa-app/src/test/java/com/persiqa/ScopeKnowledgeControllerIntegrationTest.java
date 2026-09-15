@@ -132,6 +132,19 @@ class ScopeKnowledgeControllerIntegrationTest {
                     json.writeValueAsString(
                         new Context("reinspection", new BigDecimal("0.8"), "as-built"))))
         .andExpect(status().isNoContent());
+    http.perform(get("/api/scopes/{scopeId}/statements/{statementId}", scopeId, "supply-1"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.id").value("supply-1"))
+        .andExpect(jsonPath("$.context.provenance").value("inspection"));
+    http.perform(
+            get(
+                "/api/scopes/{scopeId}/statements/{statementId}/observations",
+                scopeId,
+                "supply-1"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.length()").value(2))
+        .andExpect(jsonPath("$[0].provenance").value("inspection"))
+        .andExpect(jsonPath("$[1].provenance").value("reinspection"));
     http.perform(get("/api/scopes/{scopeId}/statements", scopeId))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$[3].id").value("supply-3"))

@@ -32,6 +32,7 @@ import com.persiqa.persistence.repository.RepresentationRepository;
 import com.persiqa.persistence.repository.StateRepository;
 import com.persiqa.persistence.repository.StatementContextRepository;
 import com.persiqa.persistence.repository.StatementRepository;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -141,7 +142,7 @@ public class JpaCanonicalStore {
     if (statementObject == null || Kind.valueOf(statementObject.kind()) != Kind.STATEMENT) {
       throw new IllegalArgumentException("unknown Statement: " + statementIdentity);
     }
-    return contexts.findByStatementIdOrderById(statementObject.id()).stream()
+    return contexts.findByStatementIdOrderByRecordedAtAscIdAsc(statementObject.id()).stream()
         .map(JpaCanonicalStore::context)
         .toList();
   }
@@ -200,7 +201,8 @@ public class JpaCanonicalStore {
       return null;
     }
     var statement = statements.findById(object.id()).orElseThrow();
-    var context = contexts.findByStatementIdOrderById(statement.id()).stream().findFirst();
+    var context =
+        contexts.findByStatementIdOrderByRecordedAtAscIdAsc(statement.id()).stream().findFirst();
     var evidence =
         derivations.findByStatementId(statement.id()).stream()
             .map(link -> objectIdentity(scopeId, link.evidenceObjectId()))
@@ -307,7 +309,7 @@ public class JpaCanonicalStore {
                         subjectId,
                         objectId,
                         typedValue)));
-    if (contexts.findByStatementIdOrderById(statementId).isEmpty()) {
+    if (contexts.findByStatementIdOrderByRecordedAtAscIdAsc(statementId).isEmpty()) {
       contexts.save(contextEntity(statementId, statement.context()));
     }
     if (statement.knowledgeKind() == com.persiqa.model.Ckm.KnowledgeKind.DERIVED) {
@@ -391,6 +393,7 @@ public class JpaCanonicalStore {
     return new StatementContextEntity(
         UUID.randomUUID(),
         statementId,
+        Instant.now(),
         context.provenance(),
         context.confidence(),
         context.observedAt(),

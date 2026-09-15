@@ -93,7 +93,8 @@ class JpaCanonicalStoreIntegrationTest {
     assertEquals("inspection-42", restored.context().provenance());
     assertEquals(Instant.parse("2026-01-02T00:00:00Z"), restored.context().validTo());
     assertEquals(2, store.findContexts(scope, "assertion-a").size());
-    assertEquals(2, contexts.findByStatementIdOrderById(store.save(scope, asserted)).size());
+    assertEquals(
+        2, contexts.findByStatementIdOrderByRecordedAtAscIdAsc(store.save(scope, asserted)).size());
     assertEquals(2, derivations.findByStatementId(store.save(scope, derived)).size());
     assertEquals(1, canonicalizations.findByStatementId(store.save(scope, asserted)).size());
   }

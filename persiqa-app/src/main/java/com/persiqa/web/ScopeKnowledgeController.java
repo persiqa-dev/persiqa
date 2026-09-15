@@ -1,6 +1,7 @@
 package com.persiqa.web;
 
 import com.persiqa.application.KnowledgeApplicationService;
+import com.persiqa.model.Ckm.Context;
 import com.persiqa.model.Ckm.Relation;
 import com.persiqa.model.Ckm.Statement;
 import java.util.List;
@@ -31,6 +32,24 @@ public class ScopeKnowledgeController {
   @GetMapping("/statements")
   public List<Statement> findStatements(@PathVariable("scopeId") UUID scopeId) {
     return knowledge.findStatements(scopeId);
+  }
+
+  /** Returns one Statement by its stable identity. */
+  @GetMapping("/statements/{statementId}")
+  public ResponseEntity<Statement> findStatement(
+      @PathVariable("scopeId") UUID scopeId, @PathVariable("statementId") String statementId) {
+    var statement = knowledge.findStatement(scopeId, statementId);
+    return statement == null ? ResponseEntity.notFound().build() : ResponseEntity.ok(statement);
+  }
+
+  /** Lists the append-preserved observation contexts for one Statement. */
+  @GetMapping("/statements/{statementId}/observations")
+  public ResponseEntity<List<Context>> findObservations(
+      @PathVariable("scopeId") UUID scopeId, @PathVariable("statementId") String statementId) {
+    if (knowledge.findStatement(scopeId, statementId) == null) {
+      return ResponseEntity.notFound().build();
+    }
+    return ResponseEntity.ok(knowledge.findObservations(scopeId, statementId));
   }
 
   /** Lists every explicit or derived Statement canonically associated with one Relation. */
