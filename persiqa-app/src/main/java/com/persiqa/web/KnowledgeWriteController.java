@@ -54,7 +54,7 @@ public class KnowledgeWriteController {
     var target = request.target().resolve(scopeId, knowledge);
     var type =
         relationTypes
-            .create(request.statementId(), request.relationType(), source, target)
+            .create(request.relationId(), request.relationType(), source, target)
             .type();
     var context = Objects.requireNonNullElseGet(request.context(), Context::unspecified);
     var record = recordRelation(scopeId, request, type, source, target, context);
@@ -93,10 +93,11 @@ public class KnowledgeWriteController {
             "explicit statement cannot declare derivedFrom evidence");
       }
       return knowledge.assertRelation(
-          scopeId, request.statementId(), type, source, target, context);
+          scopeId, request.relationId(), request.statementId(), type, source, target, context);
     }
     return knowledge.recordDerivedRelation(
         scopeId,
+        request.relationId(),
         request.statementId(),
         type,
         source,
@@ -119,6 +120,7 @@ public class KnowledgeWriteController {
 
   /** Request body for one explicit or derived relation assertion. */
   public record RecordRelationRequest(
+      String relationId,
       String statementId,
       KnowledgeKind knowledgeKind,
       String relationType,
@@ -127,6 +129,9 @@ public class KnowledgeWriteController {
       Set<String> derivedFrom,
       Context context) {
     public RecordRelationRequest {
+      if (relationId == null || relationId.isBlank()) {
+        throw new IllegalArgumentException("relationId must not be blank");
+      }
       if (statementId == null || statementId.isBlank()) {
         throw new IllegalArgumentException("statementId must not be blank");
       }

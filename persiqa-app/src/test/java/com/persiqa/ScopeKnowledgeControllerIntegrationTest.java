@@ -44,6 +44,7 @@ class ScopeKnowledgeControllerIntegrationTest {
     knowledge.createScope(scope, "http-read-test");
     knowledge.assertRelation(
         scope,
+        "supply-mcb-lamp",
         "supply-observation",
         supplies,
         new Entity("MCB-01"),
@@ -52,7 +53,7 @@ class ScopeKnowledgeControllerIntegrationTest {
 
     http.perform(get("/api/scopes/{scopeId}/relations", scope))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$[0].id").value("relation:supply-observation"))
+        .andExpect(jsonPath("$[0].id").value("supply-mcb-lamp"))
         .andExpect(jsonPath("$[0].type.id").value("supplies"));
     http.perform(get("/api/scopes/{scopeId}/statements", scope))
         .andExpect(status().isOk())
@@ -82,6 +83,18 @@ class ScopeKnowledgeControllerIntegrationTest {
     postRelation(
         scopeId,
         new RecordRelationRequest(
+            "supply-mcb-outlet",
+            "supply-0",
+            KnowledgeKind.EXPLICIT,
+            "supplies",
+            breaker,
+            outlet,
+            Set.of(),
+            new Context("inspection", new BigDecimal("0.8"), "as-built")));
+    postRelation(
+        scopeId,
+        new RecordRelationRequest(
+            "supply-mcb-junction-box",
             "supply-1",
             KnowledgeKind.EXPLICIT,
             "supplies",
@@ -92,6 +105,7 @@ class ScopeKnowledgeControllerIntegrationTest {
     postRelation(
         scopeId,
         new RecordRelationRequest(
+            "supply-junction-box-outlet",
             "supply-2",
             KnowledgeKind.EXPLICIT,
             "supplies",
@@ -102,6 +116,7 @@ class ScopeKnowledgeControllerIntegrationTest {
     postRelation(
         scopeId,
         new RecordRelationRequest(
+            "supply-mcb-outlet",
             "supply-3",
             KnowledgeKind.DERIVED,
             "supplies",
@@ -119,9 +134,12 @@ class ScopeKnowledgeControllerIntegrationTest {
         .andExpect(status().isNoContent());
     http.perform(get("/api/scopes/{scopeId}/statements", scopeId))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$[2].id").value("supply-3"))
-        .andExpect(jsonPath("$[2].knowledgeKind").value("DERIVED"))
-        .andExpect(jsonPath("$[2].derivedFrom.length()").value(2));
+        .andExpect(jsonPath("$[3].id").value("supply-3"))
+        .andExpect(jsonPath("$[3].knowledgeKind").value("DERIVED"))
+        .andExpect(jsonPath("$[3].derivedFrom.length()").value(2));
+    http.perform(get("/api/scopes/{scopeId}/relations", scopeId))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.length()").value(3));
   }
 
   @Test
@@ -135,6 +153,7 @@ class ScopeKnowledgeControllerIntegrationTest {
                 .content(
                     json.writeValueAsString(
                         new RecordRelationRequest(
+                            "invalid-state",
                             "invalid-state",
                             KnowledgeKind.EXPLICIT,
                             "hasState",

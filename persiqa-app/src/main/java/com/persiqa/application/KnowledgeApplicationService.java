@@ -16,7 +16,6 @@ import org.springframework.transaction.annotation.Transactional;
 /** Application use cases for recording and reading statement-first CKM knowledge. */
 @Service
 public class KnowledgeApplicationService {
-  private static final String CANONICAL_RELATION_PREFIX = "relation:";
   private static final String ASSERTION_POLICY = "statement-first-v0.1";
 
   private final JpaCanonicalStore store;
@@ -35,6 +34,7 @@ public class KnowledgeApplicationService {
   @Transactional
   public RelationRecord assertRelation(
       UUID scopeId,
+      String relationId,
       String statementId,
       RelationType type,
       Node source,
@@ -42,6 +42,7 @@ public class KnowledgeApplicationService {
       Context context) {
     return recordRelation(
         scopeId,
+        relationId,
         statementId,
         KnowledgeKind.EXPLICIT,
         type,
@@ -56,6 +57,7 @@ public class KnowledgeApplicationService {
   @Transactional
   public RelationRecord recordDerivedRelation(
       UUID scopeId,
+      String relationId,
       String statementId,
       RelationType type,
       Node source,
@@ -64,6 +66,7 @@ public class KnowledgeApplicationService {
       Context context) {
     return recordRelation(
         scopeId,
+        relationId,
         statementId,
         KnowledgeKind.DERIVED,
         type,
@@ -112,6 +115,7 @@ public class KnowledgeApplicationService {
 
   private RelationRecord recordRelation(
       UUID scopeId,
+      String relationId,
       String statementId,
       KnowledgeKind knowledgeKind,
       RelationType type,
@@ -120,7 +124,7 @@ public class KnowledgeApplicationService {
       Set<String> evidence,
       Context context,
       String canonicalizationMode) {
-    var relation = new Relation(CANONICAL_RELATION_PREFIX + statementId, type, source, target);
+    var relation = new Relation(relationId, type, source, target);
     var statement =
         new Statement(statementId, knowledgeKind, type.id(), source, target, evidence, context);
     store.save(scopeId, relation);

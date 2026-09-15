@@ -5,6 +5,8 @@ import com.persiqa.model.Ckm.KnowledgeKind;
 import com.persiqa.model.Ckm.Node;
 import com.persiqa.model.Ckm.Relation;
 import com.persiqa.model.Ckm.Statement;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -13,6 +15,7 @@ import java.util.Set;
 public final class StatementFirstWriter {
   private final CanonicalKnowledgeModel model;
   private final RelationRegistry registry;
+  private final Map<String, Relation> canonicalRelations = new HashMap<>();
 
   public StatementFirstWriter(CanonicalKnowledgeModel model, RelationRegistry registry) {
     this.model = model;
@@ -20,17 +23,22 @@ public final class StatementFirstWriter {
   }
 
   public Canonicalization assertRelation(
-      String statementId, String predicate, Node source, Node target, Context context) {
+      String relationId,
+      String statementId,
+      String predicate,
+      Node source,
+      Node target,
+      Context context) {
     var statement =
         new Statement(
             statementId, KnowledgeKind.EXPLICIT, predicate, source, target, Set.of(), context);
-    var relation = registry.create("relation:" + statementId, predicate, source, target);
     model.add(statement);
-    model.add(relation);
+    var relation = canonicalRelation(relationId, predicate, source, target);
     return new Canonicalization(statement, relation);
   }
 
   public Canonicalization deriveRelation(
+      String relationId,
       String statementId,
       String predicate,
       Node source,
@@ -40,10 +48,24 @@ public final class StatementFirstWriter {
     var statement =
         new Statement(
             statementId, KnowledgeKind.DERIVED, predicate, source, target, evidence, context);
-    var relation = registry.create("relation:" + statementId, predicate, source, target);
     model.add(statement);
-    model.add(relation);
+    var relation = canonicalRelation(relationId, predicate, source, target);
     return new Canonicalization(statement, relation);
+  }
+
+  private Relation canonicalRelation(
+      String relationId, String predicate, Node source, Node target) {
+    var requested = registry.create(relationId, predicate, source, target);
+    var existing = canonicalRelations.putIfAbsent(relationId, requested);
+    if (existing == null) {
+      model.add(requested);
+      return requested;
+    }
+    if (!existing.equals(requested)) {
+      throw new IllegalArgumentException(
+          "canonical Relation identity cannot change: " + relationId);
+    }
+    return existing;
   }
 
   public record Canonicalization(Statement statement, Relation relation) {}
