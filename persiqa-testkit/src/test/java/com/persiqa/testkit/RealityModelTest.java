@@ -1,9 +1,17 @@
 package com.persiqa.testkit;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import com.persiqa.core.*;
-import com.persiqa.model.Ckm.*;
+import com.persiqa.core.CanonicalKnowledgeModel;
+import com.persiqa.core.KnowledgeBase;
+import com.persiqa.core.RelationRegistry;
+import com.persiqa.core.StatementFirstWriter;
+import com.persiqa.model.Ckm.Capability;
+import com.persiqa.model.Ckm.Concept;
+import com.persiqa.model.Ckm.Context;
+import com.persiqa.model.Ckm.Entity;
+import com.persiqa.model.Ckm.KnowledgeKind;
+import com.persiqa.model.Ckm.State;
 import java.math.BigDecimal;
 import java.util.Set;
 import org.junit.jupiter.api.Test;

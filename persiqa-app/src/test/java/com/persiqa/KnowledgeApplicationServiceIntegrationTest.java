@@ -6,9 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import com.persiqa.application.KnowledgeApplicationService;
 import com.persiqa.model.Ckm.Context;
 import com.persiqa.model.Ckm.Entity;
-import com.persiqa.model.Ckm.Kind;
 import com.persiqa.model.Ckm.KnowledgeKind;
-import com.persiqa.model.Ckm.RelationType;
 import java.math.BigDecimal;
 import java.util.Set;
 import java.util.UUID;
@@ -22,6 +20,8 @@ import org.springframework.test.context.ActiveProfiles;
 @SpringBootTest
 @ActiveProfiles("dev")
 class KnowledgeApplicationServiceIntegrationTest {
+  private static final String OWNER = "alice";
+
   @Autowired private KnowledgeApplicationService knowledge;
 
   @Test
@@ -30,60 +30,65 @@ class KnowledgeApplicationServiceIntegrationTest {
     var breaker = new Entity("MCB-01");
     var junctionBox = new Entity("JunctionBox-03");
     var outlet = new Entity("Outlet-01");
-    var supplies =
-        new RelationType("supplies", Set.of(Kind.ENTITY), Set.of(Kind.ENTITY), false, "none", true);
 
-    knowledge.createScope(scope, "application-service-test");
+    knowledge.createScope(scope, "application-service-test", OWNER);
     var coarse =
         knowledge.assertRelation(
             scope,
+            OWNER,
             "supply-mcb-outlet",
             "supply-0",
-            supplies,
+            "supplies",
             breaker,
             outlet,
             new Context("inspection", new BigDecimal("0.8"), "as-built"));
     var first =
         knowledge.assertRelation(
             scope,
+            OWNER,
             "supply-mcb-junction-box",
             "supply-1",
-            supplies,
+            "supplies",
             breaker,
             junctionBox,
             new Context("inspection", new BigDecimal("0.9"), "as-built"));
     var second =
         knowledge.assertRelation(
             scope,
+            OWNER,
             "supply-junction-box-outlet",
             "supply-2",
-            supplies,
+            "supplies",
             junctionBox,
             outlet,
             new Context("inspection", new BigDecimal("0.9"), "as-built"));
     knowledge.appendObservation(
-        scope, "supply-1", new Context("reinspection", new BigDecimal("0.8"), "as-maintained"));
+        scope,
+        OWNER,
+        "supply-1",
+        new Context("reinspection", new BigDecimal("0.8"), "as-maintained"));
     var derived =
         knowledge.recordDerivedRelation(
             scope,
+            OWNER,
             "supply-mcb-outlet",
             "supply-summary",
-            supplies,
+            "supplies",
             breaker,
             outlet,
             Set.of(first.statement().id(), second.statement().id()),
             new Context("topology-analysis", new BigDecimal("0.95"), "as-built"));
 
-    assertNotNull(knowledge.findRelation(scope, coarse.relation().id()));
-    assertEquals(2, knowledge.findObservations(scope, "supply-1").size());
+    assertNotNull(knowledge.findRelation(scope, OWNER, coarse.relation().id()));
+    assertEquals(2, knowledge.findObservations(scope, OWNER, "supply-1").size());
     assertEquals(KnowledgeKind.DERIVED, derived.statement().knowledgeKind());
     assertEquals(
         Set.of("supply-0", "supply-summary"),
-        knowledge.findStatementsForRelation(scope, "supply-mcb-outlet").stream()
+        knowledge.findStatementsForRelation(scope, OWNER, "supply-mcb-outlet").stream()
             .map(statement -> statement.id())
             .collect(Collectors.toSet()));
     var relationIds =
-        knowledge.findRelations(scope).stream()
+        knowledge.findRelations(scope, OWNER).stream()
             .map(relation -> relation.id())
             .collect(Collectors.toSet());
     assertEquals(
@@ -91,9 +96,9 @@ class KnowledgeApplicationServiceIntegrationTest {
         relationIds);
     assertEquals(
         Set.of("supply-1", "supply-2"),
-        knowledge.findStatement(scope, "supply-summary").derivedFrom());
+        knowledge.findStatement(scope, OWNER, "supply-summary").derivedFrom());
     var statementIds =
-        knowledge.findStatements(scope).stream()
+        knowledge.findStatements(scope, OWNER).stream()
             .map(statement -> statement.id())
             .collect(Collectors.toSet());
     assertEquals(

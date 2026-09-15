@@ -1,7 +1,6 @@
 package com.persiqa.core;
 
 import com.persiqa.model.Ckm.Context;
-import com.persiqa.model.Ckm.KnowledgeKind;
 import com.persiqa.model.Ckm.Node;
 import com.persiqa.model.Ckm.Relation;
 import com.persiqa.model.Ckm.Statement;
@@ -14,12 +13,12 @@ import java.util.Set;
  */
 public final class StatementFirstWriter {
   private final CanonicalKnowledgeModel model;
-  private final RelationRegistry registry;
+  private final StatementFirstRecording recording;
   private final Map<String, Relation> canonicalRelations = new HashMap<>();
 
   public StatementFirstWriter(CanonicalKnowledgeModel model, RelationRegistry registry) {
     this.model = model;
-    this.registry = registry;
+    this.recording = new StatementFirstRecording(registry);
   }
 
   public Canonicalization assertRelation(
@@ -29,12 +28,10 @@ public final class StatementFirstWriter {
       Node source,
       Node target,
       Context context) {
-    var statement =
-        new Statement(
-            statementId, KnowledgeKind.EXPLICIT, predicate, source, target, Set.of(), context);
-    model.add(statement);
-    var relation = canonicalRelation(relationId, predicate, source, target);
-    return new Canonicalization(statement, relation);
+    var prepared =
+        recording.assertRelation(relationId, statementId, predicate, source, target, context);
+    model.add(prepared.statement());
+    return new Canonicalization(prepared.statement(), retainCanonical(prepared.relation()));
   }
 
   public Canonicalization deriveRelation(
@@ -45,25 +42,22 @@ public final class StatementFirstWriter {
       Node target,
       Set<String> evidence,
       Context context) {
-    var statement =
-        new Statement(
-            statementId, KnowledgeKind.DERIVED, predicate, source, target, evidence, context);
-    model.add(statement);
-    var relation = canonicalRelation(relationId, predicate, source, target);
-    return new Canonicalization(statement, relation);
+    var prepared =
+        recording.deriveRelation(
+            relationId, statementId, predicate, source, target, evidence, context);
+    model.add(prepared.statement());
+    return new Canonicalization(prepared.statement(), retainCanonical(prepared.relation()));
   }
 
-  private Relation canonicalRelation(
-      String relationId, String predicate, Node source, Node target) {
-    var requested = registry.create(relationId, predicate, source, target);
-    var existing = canonicalRelations.putIfAbsent(relationId, requested);
+  private Relation retainCanonical(Relation requested) {
+    var existing = canonicalRelations.putIfAbsent(requested.id(), requested);
     if (existing == null) {
       model.add(requested);
       return requested;
     }
     if (!existing.equals(requested)) {
       throw new IllegalArgumentException(
-          "canonical Relation identity cannot change: " + relationId);
+          "canonical Relation identity cannot change: " + requested.id());
     }
     return existing;
   }

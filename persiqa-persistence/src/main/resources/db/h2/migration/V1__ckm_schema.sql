@@ -1,6 +1,7 @@
 CREATE TABLE model_scope (
   scope_id UUID PRIMARY KEY,
   name VARCHAR NOT NULL,
+  owner_subject VARCHAR NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -62,6 +63,7 @@ CREATE INDEX statement_subject_predicate_idx ON statement(subject_object_id, pre
 CREATE TABLE statement_context (
   context_id UUID PRIMARY KEY,
   statement_id UUID NOT NULL REFERENCES statement(statement_id),
+  recorded_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
   provenance_reference VARCHAR,
   confidence DECIMAL(5,4) CHECK (confidence IS NULL OR confidence BETWEEN 0 AND 1),
   observed_at TIMESTAMP WITH TIME ZONE,
@@ -71,6 +73,7 @@ CREATE TABLE statement_context (
   CHECK (valid_to IS NULL OR valid_from IS NULL OR valid_from <= valid_to)
 );
 CREATE INDEX statement_context_time_idx ON statement_context(statement_id, valid_from, valid_to);
+CREATE INDEX statement_context_recorded_idx ON statement_context(statement_id, recorded_at, context_id);
 
 CREATE TABLE derivation (
   derived_statement_id UUID NOT NULL REFERENCES statement(statement_id),

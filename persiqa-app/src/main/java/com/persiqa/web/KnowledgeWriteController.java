@@ -1,7 +1,7 @@
 package com.persiqa.web;
 
 import com.persiqa.application.KnowledgeApplicationService;
-import com.persiqa.core.RelationRegistry;
+import com.persiqa.core.ScopeAccessDeniedException;
 import com.persiqa.model.Ckm.Capability;
 import com.persiqa.model.Ckm.Concept;
 import com.persiqa.model.Ckm.Context;
@@ -10,8 +10,11 @@ import com.persiqa.model.Ckm.Kind;
 import com.persiqa.model.Ckm.KnowledgeKind;
 import com.persiqa.model.Ckm.Node;
 import com.persiqa.model.Ckm.Relation;
-import com.persiqa.model.Ckm.RelationType;
 import com.persiqa.model.Ckm.State;
+import com.persiqa.web.dto.KnowledgeDtos.NodeResponse;
+import com.persiqa.web.dto.KnowledgeDtos.RelationRecordResponse;
+import com.persiqa.web.dto.KnowledgeDtos.ScopeResponse;
+import com.persiqa.web.dto.KnowledgeMapper;
 import java.net.URI;
 import java.util.Objects;
 import java.util.Set;
@@ -33,51 +36,55 @@ import org.springframework.web.util.UriComponentsBuilder;
 @RequestMapping("/api")
 public class KnowledgeWriteController {
   private final KnowledgeApplicationService knowledge;
-  private final RelationRegistry relationTypes = new RelationRegistry();
+  private final CurrentSubject currentSubject;
+  private final KnowledgeMapper mapper;
 
-  public KnowledgeWriteController(KnowledgeApplicationService knowledge) {
+  public KnowledgeWriteController(
+      KnowledgeApplicationService knowledge,
+      CurrentSubject currentSubject,
+      KnowledgeMapper mapper) {
     this.knowledge = knowledge;
+    this.currentSubject = currentSubject;
+    this.mapper = mapper;
   }
 
-  /** Creates a scope with a server-assigned persistence identity. */
+  /** Creates a scope with a server-assigned persistence identity owned by the caller. */
   @PostMapping("/scopes")
   public ResponseEntity<ScopeResponse> createScope(@RequestBody CreateScopeRequest request) {
     var scopeId = UUID.randomUUID();
-    knowledge.createScope(scopeId, request.name());
-    return ResponseEntity.created(URI.create("/api/scopes/" + scopeId))
-        .body(new ScopeResponse(scopeId, request.name()));
+    var owner = currentSubject.require();
+    var scope = knowledge.createScope(scopeId, request.name(), owner);
+    return ResponseEntity.created(URI.create("/api/scopes/" + scopeId)).body(mapper.toScope(scope));
   }
 
   /** Creates a standalone Entity, Capability, or Concept with no invented surrounding knowledge. */
   @PostMapping("/scopes/{scopeId}/nodes")
-  public ResponseEntity<Node> createNode(
+  public ResponseEntity<NodeResponse> createNode(
       @PathVariable("scopeId") UUID scopeId, @RequestBody CreateNodeRequest request) {
-    requireScope(scopeId);
+    var subject = currentSubject.require();
+    requireScopeAccess(scopeId, subject);
     var node = request.toNode();
-    knowledge.saveNode(scopeId, node);
+    knowledge.saveNode(scopeId, subject, node);
     var location =
         UriComponentsBuilder.fromPath("/api/scopes/{scopeId}/nodes/{kind}/{nodeId}")
             .buildAndExpand(scopeId, node.kind(), node.id())
             .toUri();
-    return ResponseEntity.created(location).body(node);
+    return ResponseEntity.created(location).body(mapper.toNode(node));
   }
 
   /** Records one explicit or derived Relation assertion and its canonical Relation. */
   @PostMapping("/scopes/{scopeId}/statements")
-  public ResponseEntity<KnowledgeApplicationService.RelationRecord> recordRelation(
+  public ResponseEntity<RelationRecordResponse> recordRelation(
       @PathVariable("scopeId") UUID scopeId, @RequestBody RecordRelationRequest request) {
-    requireScope(scopeId);
-    var source = request.source().resolve(scopeId, knowledge);
-    var target = request.target().resolve(scopeId, knowledge);
-    var type =
-        relationTypes
-            .create(request.relationId(), request.relationType(), source, target)
-            .type();
+    var subject = currentSubject.require();
+    requireScopeAccess(scopeId, subject);
+    var source = request.source().resolve(scopeId, subject, knowledge);
+    var target = request.target().resolve(scopeId, subject, knowledge);
     var context = Objects.requireNonNullElseGet(request.context(), Context::unspecified);
-    var record = recordRelation(scopeId, request, type, source, target, context);
+    var record = recordRelation(scopeId, subject, request, source, target, context);
     return ResponseEntity.created(
             URI.create("/api/scopes/" + scopeId + "/statements/" + request.statementId()))
-        .body(record);
+        .body(mapper.toRelationRecord(record));
   }
 
   /** Appends an independent context record without changing the original assertion. */
@@ -86,8 +93,9 @@ public class KnowledgeWriteController {
       @PathVariable("scopeId") UUID scopeId,
       @PathVariable("statementId") String statementId,
       @RequestBody Context context) {
-    requireScope(scopeId);
-    knowledge.appendObservation(scopeId, statementId, context);
+    var subject = currentSubject.require();
+    requireScopeAccess(scopeId, subject);
+    knowledge.appendObservation(scopeId, subject, statementId, context);
     return ResponseEntity.noContent().build();
   }
 
@@ -98,16 +106,27 @@ public class KnowledgeWriteController {
         .body(ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, error.getMessage()));
   }
 
-  private void requireScope(UUID scopeId) {
-    if (!knowledge.scopeExists(scopeId)) {
+  /** Translates scope ownership failures into HTTP 403. */
+  @ExceptionHandler(ScopeAccessDeniedException.class)
+  public ResponseEntity<ProblemDetail> forbidden(ScopeAccessDeniedException error) {
+    return ResponseEntity.status(HttpStatus.FORBIDDEN)
+        .body(ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, error.getMessage()));
+  }
+
+  private void requireScopeAccess(UUID scopeId, String subject) {
+    var scope = knowledge.findScope(scopeId);
+    if (scope == null) {
       throw new ResponseStatusException(HttpStatus.NOT_FOUND, "unknown scope: " + scopeId);
+    }
+    if (!scope.ownerSubject().equals(subject)) {
+      throw new ScopeAccessDeniedException("subject is not the owner of scope " + scopeId);
     }
   }
 
   private KnowledgeApplicationService.RelationRecord recordRelation(
       UUID scopeId,
+      String subject,
       RecordRelationRequest request,
-      RelationType type,
       Node source,
       Node target,
       Context context) {
@@ -117,13 +136,21 @@ public class KnowledgeWriteController {
             "explicit statement cannot declare derivedFrom evidence");
       }
       return knowledge.assertRelation(
-          scopeId, request.relationId(), request.statementId(), type, source, target, context);
+          scopeId,
+          subject,
+          request.relationId(),
+          request.statementId(),
+          request.relationType(),
+          source,
+          target,
+          context);
     }
     return knowledge.recordDerivedRelation(
         scopeId,
+        subject,
         request.relationId(),
         request.statementId(),
-        type,
+        request.relationType(),
         source,
         target,
         request.derivedFrom(),
@@ -138,9 +165,6 @@ public class KnowledgeWriteController {
       }
     }
   }
-
-  /** Scope identity returned after creation. */
-  public record ScopeResponse(UUID id, String name) {}
 
   /** Request body for a standalone canonical Node. */
   public record CreateNodeRequest(String id, Kind kind) {
@@ -204,20 +228,21 @@ public class KnowledgeWriteController {
       }
     }
 
-    private Node resolve(UUID scopeId, KnowledgeApplicationService knowledge) {
+    private Node resolve(UUID scopeId, String subject, KnowledgeApplicationService knowledge) {
       return switch (kind) {
         case ENTITY -> new Entity(id);
         case CAPABILITY -> new Capability(id);
         case CONCEPT -> new Concept(id);
         case STATE -> new State(id);
-        case RELATION -> relation(scopeId, knowledge);
+        case RELATION -> relation(scopeId, subject, knowledge);
         case STATEMENT, TYPED_VALUE ->
             throw new IllegalArgumentException("unsupported endpoint kind: " + kind);
       };
     }
 
-    private Relation relation(UUID scopeId, KnowledgeApplicationService knowledge) {
-      var relation = knowledge.findRelation(scopeId, id);
+    private Relation relation(
+        UUID scopeId, String subject, KnowledgeApplicationService knowledge) {
+      var relation = knowledge.findRelation(scopeId, subject, id);
       if (relation == null) {
         throw new IllegalArgumentException("unknown Relation endpoint: " + id);
       }

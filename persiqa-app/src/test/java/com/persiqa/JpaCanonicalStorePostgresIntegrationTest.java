@@ -29,7 +29,7 @@ import org.testcontainers.utility.DockerImageName;
 /** Verifies the production Flyway schema and JPA mapping against PostgreSQL. */
 @SpringBootTest
 @ActiveProfiles("postgres")
-@Testcontainers
+@Testcontainers(disabledWithoutDocker = true)
 class JpaCanonicalStorePostgresIntegrationTest {
   @Container
   static final PostgreSQLContainer POSTGRES =
@@ -52,7 +52,7 @@ class JpaCanonicalStorePostgresIntegrationTest {
     var supplies =
         new RelationType("supplies", Set.of(Kind.ENTITY), Set.of(Kind.ENTITY), false, "none", true);
 
-    store.createScope(scope, "postgres-integration-test");
+    store.createScope(scope, "postgres-integration-test", "test");
     store.save(scope, new Relation("supply-a", supplies, breaker, outlet));
 
     var restored = store.findRelation(scope, "supply-a");
@@ -79,7 +79,7 @@ class JpaCanonicalStorePostgresIntegrationTest {
             "none",
             false);
 
-    store.createScope(scope, "postgres-knowledge-context-test");
+    store.createScope(scope, "postgres-knowledge-context-test", "test");
     store.save(scope, new Relation("supply-1", supplies, breaker, junctionBox));
     store.save(scope, new Relation("supply-2", supplies, junctionBox, outlet));
     store.save(

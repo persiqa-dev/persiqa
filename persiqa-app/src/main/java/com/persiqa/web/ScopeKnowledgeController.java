@@ -1,15 +1,19 @@
 package com.persiqa.web;
 
 import com.persiqa.application.KnowledgeApplicationService;
-import com.persiqa.model.Ckm.Context;
+import com.persiqa.core.ScopeAccessDeniedException;
 import com.persiqa.model.Ckm.Kind;
-import com.persiqa.model.Ckm.Node;
-import com.persiqa.model.Ckm.Relation;
-import com.persiqa.model.Ckm.Statement;
+import com.persiqa.web.dto.KnowledgeDtos.NodeResponse;
+import com.persiqa.web.dto.KnowledgeDtos.ObservationResponse;
+import com.persiqa.web.dto.KnowledgeDtos.RelationResponse;
+import com.persiqa.web.dto.KnowledgeDtos.StatementResponse;
+import com.persiqa.web.dto.KnowledgeMapper;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -21,73 +25,100 @@ import org.springframework.web.server.ResponseStatusException;
 @RequestMapping("/api/scopes/{scopeId}")
 public class ScopeKnowledgeController {
   private final KnowledgeApplicationService knowledge;
+  private final CurrentSubject currentSubject;
+  private final KnowledgeMapper mapper;
 
-  public ScopeKnowledgeController(KnowledgeApplicationService knowledge) {
+  public ScopeKnowledgeController(
+      KnowledgeApplicationService knowledge,
+      CurrentSubject currentSubject,
+      KnowledgeMapper mapper) {
     this.knowledge = knowledge;
+    this.currentSubject = currentSubject;
+    this.mapper = mapper;
   }
 
   /** Lists the canonical Relations in one scope. */
   @GetMapping("/relations")
-  public List<Relation> findRelations(@PathVariable("scopeId") UUID scopeId) {
-    requireScope(scopeId);
-    return knowledge.findRelations(scopeId);
+  public List<RelationResponse> findRelations(@PathVariable("scopeId") UUID scopeId) {
+    var subject = currentSubject.require();
+    requireScopeAccess(scopeId, subject);
+    return mapper.toRelations(knowledge.findRelations(scopeId, subject));
   }
 
   /** Lists the Statements in one scope. */
   @GetMapping("/statements")
-  public List<Statement> findStatements(@PathVariable("scopeId") UUID scopeId) {
-    requireScope(scopeId);
-    return knowledge.findStatements(scopeId);
+  public List<StatementResponse> findStatements(@PathVariable("scopeId") UUID scopeId) {
+    var subject = currentSubject.require();
+    requireScopeAccess(scopeId, subject);
+    return mapper.toStatements(knowledge.findStatements(scopeId, subject));
   }
 
   /** Returns a standalone canonical Node by its stable identity and kind. */
   @GetMapping("/nodes/{kind}/{nodeId}")
-  public ResponseEntity<Node> findNode(
+  public ResponseEntity<NodeResponse> findNode(
       @PathVariable("scopeId") UUID scopeId,
       @PathVariable("kind") Kind kind,
       @PathVariable("nodeId") String nodeId) {
-    requireScope(scopeId);
-    var node = knowledge.findNode(scopeId, nodeId);
+    var subject = currentSubject.require();
+    requireScopeAccess(scopeId, subject);
+    var node = knowledge.findNode(scopeId, subject, nodeId);
     if (node == null || node.kind() != kind) {
       return ResponseEntity.notFound().build();
     }
-    return ResponseEntity.ok(node);
+    return ResponseEntity.ok(mapper.toNode(node));
   }
 
-  /** Returns one Statement by its stable identity. */
+  /** Returns one Statement assertion by its stable identity. */
   @GetMapping("/statements/{statementId}")
-  public ResponseEntity<Statement> findStatement(
+  public ResponseEntity<StatementResponse> findStatement(
       @PathVariable("scopeId") UUID scopeId, @PathVariable("statementId") String statementId) {
-    requireScope(scopeId);
-    var statement = knowledge.findStatement(scopeId, statementId);
-    return statement == null ? ResponseEntity.notFound().build() : ResponseEntity.ok(statement);
+    var subject = currentSubject.require();
+    requireScopeAccess(scopeId, subject);
+    var statement = knowledge.findStatement(scopeId, subject, statementId);
+    return statement == null
+        ? ResponseEntity.notFound().build()
+        : ResponseEntity.ok(mapper.toStatement(statement));
   }
 
-  /** Lists the append-preserved observation contexts for one Statement. */
+  /** Lists every append-preserved context for one Statement in recording order. */
   @GetMapping("/statements/{statementId}/observations")
-  public ResponseEntity<List<Context>> findObservations(
+  public ResponseEntity<List<ObservationResponse>> findObservations(
       @PathVariable("scopeId") UUID scopeId, @PathVariable("statementId") String statementId) {
-    requireScope(scopeId);
-    if (knowledge.findStatement(scopeId, statementId) == null) {
+    var subject = currentSubject.require();
+    requireScopeAccess(scopeId, subject);
+    if (knowledge.findStatement(scopeId, subject, statementId) == null) {
       return ResponseEntity.notFound().build();
     }
-    return ResponseEntity.ok(knowledge.findObservations(scopeId, statementId));
+    return ResponseEntity.ok(
+        mapper.toObservations(knowledge.findObservations(scopeId, subject, statementId)));
   }
 
   /** Lists every explicit or derived Statement canonically associated with one Relation. */
   @GetMapping("/relations/{relationId}/statements")
-  public ResponseEntity<List<Statement>> findRelationStatements(
+  public ResponseEntity<List<StatementResponse>> findRelationStatements(
       @PathVariable("scopeId") UUID scopeId, @PathVariable("relationId") String relationId) {
-    requireScope(scopeId);
-    if (knowledge.findRelation(scopeId, relationId) == null) {
+    var subject = currentSubject.require();
+    requireScopeAccess(scopeId, subject);
+    if (knowledge.findRelation(scopeId, subject, relationId) == null) {
       return ResponseEntity.notFound().build();
     }
-    return ResponseEntity.ok(knowledge.findStatementsForRelation(scopeId, relationId));
+    return ResponseEntity.ok(
+        mapper.toStatements(knowledge.findStatementsForRelation(scopeId, subject, relationId)));
   }
 
-  private void requireScope(UUID scopeId) {
-    if (!knowledge.scopeExists(scopeId)) {
+  @ExceptionHandler(ScopeAccessDeniedException.class)
+  public ResponseEntity<ProblemDetail> forbidden(ScopeAccessDeniedException error) {
+    return ResponseEntity.status(HttpStatus.FORBIDDEN)
+        .body(ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, error.getMessage()));
+  }
+
+  private void requireScopeAccess(UUID scopeId, String subject) {
+    var scope = knowledge.findScope(scopeId);
+    if (scope == null) {
       throw new ResponseStatusException(HttpStatus.NOT_FOUND, "unknown scope: " + scopeId);
+    }
+    if (!scope.ownerSubject().equals(subject)) {
+      throw new ScopeAccessDeniedException("subject is not the owner of scope " + scopeId);
     }
   }
 }

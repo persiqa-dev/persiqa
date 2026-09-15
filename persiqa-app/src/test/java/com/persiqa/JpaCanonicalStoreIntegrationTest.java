@@ -46,7 +46,7 @@ class JpaCanonicalStoreIntegrationTest {
   @Test
   void persists_the_statement_first_electrical_model_without_losing_semantics() {
     var scope = UUID.randomUUID();
-    store.createScope(scope, "electrical-test");
+    store.createScope(scope, "electrical-test", "test");
     var breaker = new Entity("MCB-01");
     var outlet = new Entity("Outlet-01");
     var supplies =
@@ -102,6 +102,10 @@ class JpaCanonicalStoreIntegrationTest {
     assertEquals(Set.of("supply-a", "supply-b"), restored.derivedFrom());
     assertEquals("inspection-42", restored.context().provenance());
     assertEquals(Instant.parse("2026-01-02T00:00:00Z"), restored.context().validTo());
+    assertEquals("inspection-42", store.findContexts(scope, "derived-a").getFirst().provenance());
+    assertEquals(
+        Instant.parse("2026-01-02T00:00:00Z"),
+        store.findContexts(scope, "derived-a").getFirst().validTo());
     assertEquals(2, store.findContexts(scope, "assertion-a").size());
     assertEquals(
         2, contexts.findByStatementIdOrderByRecordedAtAscIdAsc(store.save(scope, asserted)).size());
@@ -112,7 +116,7 @@ class JpaCanonicalStoreIntegrationTest {
   @Test
   void persists_state_ownership_through_the_has_state_contract() {
     var scope = UUID.randomUUID();
-    store.createScope(scope, "state-test");
+    store.createScope(scope, "state-test", "test");
     var breaker = new Entity("RCBO-01");
     var closed = new State("Closed");
     var relation =
@@ -136,10 +140,11 @@ class JpaCanonicalStoreIntegrationTest {
   @Test
   void keeps_representation_metadata_outside_the_canonical_model() {
     var scope = UUID.randomUUID();
-    store.createScope(scope, "representation-test");
+    store.createScope(scope, "representation-test", "test");
+    var representationId = UUID.randomUUID();
     store.saveRepresentation(
-        scope, UUID.randomUUID(), "Electrical view", Map.of(), Map.of("layout", "grid"));
-    assertEquals(1, representations.count());
+        scope, representationId, "Electrical view", Map.of(), Map.of("layout", "grid"));
+    assertEquals(true, representations.findById(representationId).isPresent());
   }
 
   @Test
@@ -155,7 +160,7 @@ class JpaCanonicalStoreIntegrationTest {
     var firstSegment = new Relation("supply-segment-1", supplies, breaker, cable);
     var secondSegment = new Relation("supply-segment-2", supplies, cable, junctionBox);
 
-    store.createScope(scope, "electrical-refinement-test");
+    store.createScope(scope, "electrical-refinement-test", "test");
     store.save(scope, coarse);
     store.save(scope, firstSegment);
     store.save(scope, secondSegment);
@@ -198,7 +203,7 @@ class JpaCanonicalStoreIntegrationTest {
     var running = new Relation("running", hasState, vm, new State("Running"));
     var stopped = new Relation("stopped", hasState, vm, new State("Stopped"));
 
-    store.createScope(scope, "kubernetes-identity-test");
+    store.createScope(scope, "kubernetes-identity-test", "test");
     store.save(scope, kubernetesNode);
     store.save(scope, running);
     store.save(scope, buildRunner);
@@ -217,7 +222,7 @@ class JpaCanonicalStoreIntegrationTest {
     var outletA = new Entity("Outlet-A");
     var outletB = new Entity("Outlet-B");
 
-    store.createScope(scope, "competing-evidence-test");
+    store.createScope(scope, "competing-evidence-test", "test");
     store.save(
         scope,
         new Statement(

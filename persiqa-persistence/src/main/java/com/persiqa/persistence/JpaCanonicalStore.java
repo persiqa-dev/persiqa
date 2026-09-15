@@ -1,5 +1,7 @@
 package com.persiqa.persistence;
 
+import com.persiqa.core.CanonicalStore;
+import com.persiqa.core.ModelScope;
 import com.persiqa.model.Ckm.Capability;
 import com.persiqa.model.Ckm.Concept;
 import com.persiqa.model.Ckm.Context;
@@ -36,6 +38,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -49,7 +52,7 @@ import org.springframework.transaction.annotation.Transactional;
  * derivation, and canonicalization records. It intentionally does not infer missing knowledge.
  */
 @Service
-public class JpaCanonicalStore {
+public class JpaCanonicalStore implements CanonicalStore {
   private static final String RELATION_TYPE_VERSION = "0.1";
   private static final String DEFAULT_DERIVATION_RULE_PREFIX = "relation-type:";
 
@@ -87,9 +90,10 @@ public class JpaCanonicalStore {
     this.representations = representations;
   }
 
-  /** Creates the scope when it does not exist and rejects a renamed existing scope. */
+  /** Creates the scope when it does not exist and rejects renamed or reassigned scopes. */
+  @Override
   @Transactional
-  public void createScope(UUID scopeId, String name) {
+  public void createScope(UUID scopeId, String name, String ownerSubject) {
     scopes
         .findById(scopeId)
         .ifPresentOrElse(
@@ -97,17 +101,30 @@ public class JpaCanonicalStore {
               if (!existing.name().equals(name)) {
                 throw new IllegalArgumentException("scope identity cannot be renamed");
               }
+              if (!existing.ownerSubject().equals(ownerSubject)) {
+                throw new IllegalArgumentException("scope owner cannot be reassigned");
+              }
             },
-            () -> scopes.save(new ModelScopeEntity(scopeId, name)));
+            () -> scopes.save(new ModelScopeEntity(scopeId, name, ownerSubject)));
   }
 
   /** Returns whether the persistence scope identity exists. */
+  @Override
   @Transactional(readOnly = true)
   public boolean scopeExists(UUID scopeId) {
     return scopes.existsById(scopeId);
   }
 
+  @Override
+  @Transactional(readOnly = true)
+  public Optional<ModelScope> findScope(UUID scopeId) {
+    return scopes
+        .findById(scopeId)
+        .map(entity -> new ModelScope(entity.id(), entity.name(), entity.ownerSubject()));
+  }
+
   /** Reconstructs a standalone canonical Node, or returns {@code null} when it is unknown. */
+  @Override
   @Transactional(readOnly = true)
   public Node findNode(UUID scopeId, String identityKey) {
     var object = object(scopeId, identityKey);
@@ -121,6 +138,7 @@ public class JpaCanonicalStore {
   }
 
   /** Persists a Node and returns its storage identifier without changing its CKM identity. */
+  @Override
   @Transactional
   public UUID save(UUID scopeId, Node node) {
     requireScope(scopeId);
@@ -128,6 +146,7 @@ public class JpaCanonicalStore {
   }
 
   /** Persists a traceable relation assertion result without collapsing either record. */
+  @Override
   @Transactional
   public void canonicalize(
       UUID scopeId,
@@ -145,6 +164,7 @@ public class JpaCanonicalStore {
   }
 
   /** Appends an independent knowledge context without mutating the Statement assertion. */
+  @Override
   @Transactional
   public void appendContext(UUID scopeId, String statementIdentity, Context context) {
     var statementObject = object(scopeId, statementIdentity);
@@ -155,6 +175,7 @@ public class JpaCanonicalStore {
   }
 
   /** Returns every append-preserved context record for one Statement. */
+  @Override
   @Transactional(readOnly = true)
   public List<Context> findContexts(UUID scopeId, String statementIdentity) {
     var statementObject = object(scopeId, statementIdentity);
@@ -188,6 +209,7 @@ public class JpaCanonicalStore {
   }
 
   /** Reconstructs an independently identified Relation and its full persisted type contract. */
+  @Override
   @Transactional(readOnly = true)
   public Relation findRelation(UUID scopeId, String identityKey) {
     var object = object(scopeId, identityKey);
@@ -204,6 +226,7 @@ public class JpaCanonicalStore {
   }
 
   /** Returns every canonical Relation in one scope in stable identity order. */
+  @Override
   @Transactional(readOnly = true)
   public List<Relation> findRelations(UUID scopeId) {
     requireScope(scopeId);
@@ -212,7 +235,13 @@ public class JpaCanonicalStore {
         .toList();
   }
 
-  /** Reconstructs a Statement together with one persisted context record. */
+  /**
+   * Reconstructs a Statement with its original assertion context.
+   *
+   * <p>The assertion context is the earliest persisted context record. Appended observations remain
+   * available through {@link #findContexts(UUID, String)} and do not replace that context.
+   */
+  @Override
   @Transactional(readOnly = true)
   public Statement findStatement(UUID scopeId, String identityKey) {
     var object = object(scopeId, identityKey);
@@ -220,8 +249,11 @@ public class JpaCanonicalStore {
       return null;
     }
     var statement = statements.findById(object.id()).orElseThrow();
-    var context =
-        contexts.findByStatementIdOrderByRecordedAtAscIdAsc(statement.id()).stream().findFirst();
+    var assertionContext =
+        contexts.findByStatementIdOrderByRecordedAtAscIdAsc(statement.id()).stream()
+            .findFirst()
+            .map(JpaCanonicalStore::context)
+            .orElseGet(Context::unspecified);
     var evidence =
         derivations.findByStatementId(statement.id()).stream()
             .map(link -> objectIdentity(scopeId, link.evidenceObjectId()))
@@ -237,10 +269,11 @@ public class JpaCanonicalStore {
         node(scopeId, statement.subjectObjectId()),
         statementObject,
         evidence,
-        context.map(JpaCanonicalStore::context).orElseGet(Context::unspecified));
+        assertionContext);
   }
 
   /** Returns every Statement in one scope in stable identity order. */
+  @Override
   @Transactional(readOnly = true)
   public List<Statement> findStatements(UUID scopeId) {
     requireScope(scopeId);
@@ -250,6 +283,7 @@ public class JpaCanonicalStore {
   }
 
   /** Returns every Statement canonically associated with one Relation in stable identity order. */
+  @Override
   @Transactional(readOnly = true)
   public List<Statement> findStatementsForRelation(UUID scopeId, String relationIdentity) {
     var relationObject = object(scopeId, relationIdentity);
@@ -411,17 +445,25 @@ public class JpaCanonicalStore {
         entity.inferencePolicy().composable());
   }
 
-  private static StatementContextEntity contextEntity(UUID statementId, Context context) {
+  private StatementContextEntity contextEntity(UUID statementId, Context context) {
     return new StatementContextEntity(
         UUID.randomUUID(),
         statementId,
-        Instant.now(),
+        nextRecordingTime(statementId),
         context.provenance(),
         context.confidence(),
         context.observedAt(),
         context.validFrom(),
         context.validTo(),
         context.scenario());
+  }
+
+  private Instant nextRecordingTime(UUID statementId) {
+    return contexts.findByStatementIdOrderByRecordedAtAscIdAsc(statementId).stream()
+        .map(StatementContextEntity::recordedAt)
+        .max(Instant::compareTo)
+        .map(last -> last.plusMillis(1))
+        .orElseGet(Instant::now);
   }
 
   private static Context context(StatementContextEntity entity) {

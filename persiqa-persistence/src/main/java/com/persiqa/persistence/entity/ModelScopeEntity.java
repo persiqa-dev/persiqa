@@ -17,11 +17,15 @@ public class ModelScopeEntity {
   @Column(nullable = false)
   private String name;
 
+  @Column(name = "owner_subject", nullable = false)
+  private String ownerSubject;
+
   protected ModelScopeEntity() {}
 
-  public ModelScopeEntity(UUID id, String name) {
+  public ModelScopeEntity(UUID id, String name, String ownerSubject) {
     this.id = id;
     this.name = name;
+    this.ownerSubject = ownerSubject;
   }
 
   public UUID id() {
@@ -30,5 +34,9 @@ public class ModelScopeEntity {
 
   public String name() {
     return name;
+  }
+
+  public String ownerSubject() {
+    return ownerSubject;
   }
 }

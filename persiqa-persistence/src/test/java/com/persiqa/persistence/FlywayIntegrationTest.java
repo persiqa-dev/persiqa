@@ -30,8 +30,8 @@ class FlywayIntegrationTest {
     var second = UUID.randomUUID();
 
     jdbc.update(
-        "insert into model_scope(scope_id,name) values (:scopeId,:name)",
-        Map.of("scopeId", scope, "name", "test"));
+        "insert into model_scope(scope_id,name,owner_subject) values (:scopeId,:name,:owner)",
+        Map.of("scopeId", scope, "name", "test", "owner", "alice"));
     for (var id : new UUID[] {source, target, first, second}) {
       jdbc.update(
           "insert into canonical_object(object_id,scope_id,identity_key,kind) values"

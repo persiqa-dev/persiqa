@@ -1,15 +1,24 @@
 package com.persiqa.testkit;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.persiqa.core.CanonicalKnowledgeModel;
 import com.persiqa.core.ConflictDetector;
 import com.persiqa.core.KnowledgeBase;
 import com.persiqa.core.PdsFixtureParser;
 import com.persiqa.core.RelationRegistry;
-import com.persiqa.model.Ckm.*;
+import com.persiqa.model.Ckm.Capability;
+import com.persiqa.model.Ckm.Concept;
+import com.persiqa.model.Ckm.Context;
+import com.persiqa.model.Ckm.Entity;
+import com.persiqa.model.Ckm.Kind;
+import com.persiqa.model.Ckm.KnowledgeKind;
+import com.persiqa.model.Ckm.State;
+import com.persiqa.model.Ckm.Statement;
 import java.math.BigDecimal;
 import java.util.Set;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 class CkmConformanceTest {
@@ -78,7 +87,7 @@ class CkmConformanceTest {
     var r = new RelationRegistry();
     var cable = new Entity("Cable");
     var box = new Entity("Box");
-    assertNotEquals(
+    Assertions.assertNotEquals(
         r.create("A", "connectedTo", cable, box), r.create("B", "connectedTo", cable, box));
   }
 
@@ -116,7 +125,7 @@ class CkmConformanceTest {
             new Entity("Outlet-2"),
             Set.of(),
             new Context("inspection-B", new BigDecimal("0.7"), "T1"));
-    assertNotEquals(a.id(), b.id());
+    Assertions.assertNotEquals(a.id(), b.id());
     assertEquals("inspection-A", a.context().provenance());
   }
 
@@ -151,8 +160,8 @@ class CkmConformanceTest {
             Set.of(),
             new Context("sensor", null, "T1"));
     var d = new ConflictDetector();
-    assertFalse(d.conflicts(closed, openLater));
-    assertTrue(d.conflicts(closed, openSameTime));
+    Assertions.assertFalse(d.conflicts(closed, openLater));
+    Assertions.assertTrue(d.conflicts(closed, openSameTime));
   }
 
   @Test
