@@ -183,6 +183,15 @@ public class JpaCanonicalStore {
         node(scopeId, relation.targetObjectId()));
   }
 
+  /** Returns every canonical Relation in one scope in stable identity order. */
+  @Transactional(readOnly = true)
+  public List<Relation> findRelations(UUID scopeId) {
+    requireScope(scopeId);
+    return objects.findByScopeIdAndKindOrderByIdentityKey(scopeId, Kind.RELATION.name()).stream()
+        .map(object -> findRelation(scopeId, object.identityKey()))
+        .toList();
+  }
+
   /** Reconstructs a Statement together with one persisted context record. */
   @Transactional(readOnly = true)
   public Statement findStatement(UUID scopeId, String identityKey) {
@@ -210,6 +219,15 @@ public class JpaCanonicalStore {
         context.map(JpaCanonicalStore::context).orElseGet(Context::unspecified));
   }
 
+  /** Returns every Statement in one scope in stable identity order. */
+  @Transactional(readOnly = true)
+  public List<Statement> findStatements(UUID scopeId) {
+    requireScope(scopeId);
+    return objects.findByScopeIdAndKindOrderByIdentityKey(scopeId, Kind.STATEMENT.name()).stream()
+        .map(object -> findStatement(scopeId, object.identityKey()))
+        .toList();
+  }
+
   private UUID saveNode(UUID scopeId, Node node) {
     if (node instanceof Relation relation) {
       return saveRelation(scopeId, relation);
@@ -221,6 +239,7 @@ public class JpaCanonicalStore {
   }
 
   private UUID saveRelation(UUID scopeId, Relation relation) {
+    validateRelationEndpoints(relation);
     var relationId = objectId(scopeId, relation);
     var sourceId = saveNode(scopeId, relation.source());
     var targetId = saveNode(scopeId, relation.target());
@@ -243,6 +262,17 @@ public class JpaCanonicalStore {
                           targetId, sourceId, "hasState", state.id(), Map.of())));
     }
     return relationId;
+  }
+
+  private static void validateRelationEndpoints(Relation relation) {
+    if (!relation.type().sources().contains(relation.source().kind())) {
+      throw new IllegalArgumentException(
+          "Relation source kind is not allowed by its type: " + relation.type().id());
+    }
+    if (!relation.type().targets().contains(relation.target().kind())) {
+      throw new IllegalArgumentException(
+          "Relation target kind is not allowed by its type: " + relation.type().id());
+    }
   }
 
   private UUID saveStatement(UUID scopeId, Statement statement) {
