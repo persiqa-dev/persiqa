@@ -73,6 +73,16 @@ class JpaCanonicalStoreIntegrationTest {
     store.save(scope, asserted);
     store.appendContext(
         scope, "assertion-a", new Context("reinspection", new BigDecimal("0.8"), "as-maintained"));
+    var overwritten =
+        new Statement(
+            "assertion-a",
+            KnowledgeKind.EXPLICIT,
+            "supplies",
+            breaker,
+            outlet,
+            Set.of(),
+            new Context("conflicting-source", new BigDecimal("0.7"), "as-built"));
+    assertThrows(IllegalArgumentException.class, () -> store.save(scope, overwritten));
     store.canonicalize(scope, asserted, first, "SUPPORTS", "statement-first-v0.1");
 
     var derived =

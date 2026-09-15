@@ -315,8 +315,11 @@ public class JpaCanonicalStore {
                         subjectId,
                         objectId,
                         typedValue)));
-    if (contexts.findByStatementIdOrderByRecordedAtAscIdAsc(statementId).isEmpty()) {
+    var persistedContexts = contexts.findByStatementIdOrderByRecordedAtAscIdAsc(statementId);
+    if (persistedContexts.isEmpty()) {
       contexts.save(contextEntity(statementId, statement.context()));
+    } else if (!equivalentContext(context(persistedContexts.getFirst()), statement.context())) {
+      throw new IllegalArgumentException("Statement identity cannot be overwritten");
     }
     if (statement.knowledgeKind() == com.persiqa.model.Ckm.KnowledgeKind.DERIVED) {
       for (var evidenceIdentity : statement.derivedFrom()) {
@@ -416,6 +419,20 @@ public class JpaCanonicalStore {
         entity.validFrom(),
         entity.validTo(),
         entity.scenario());
+  }
+
+  private static boolean equivalentContext(Context left, Context right) {
+    return Objects.equals(left.provenance(), right.provenance())
+        && equivalentConfidence(left.confidence(), right.confidence())
+        && Objects.equals(left.observedAt(), right.observedAt())
+        && Objects.equals(left.validFrom(), right.validFrom())
+        && Objects.equals(left.validTo(), right.validTo())
+        && Objects.equals(left.scenario(), right.scenario());
+  }
+
+  private static boolean equivalentConfidence(
+      java.math.BigDecimal left, java.math.BigDecimal right) {
+    return left == null ? right == null : right != null && left.compareTo(right) == 0;
   }
 
   private Node node(UUID scopeId, UUID objectId) {
