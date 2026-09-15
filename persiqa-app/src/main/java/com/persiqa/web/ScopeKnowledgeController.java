@@ -5,6 +5,7 @@ import com.persiqa.model.Ckm.Relation;
 import com.persiqa.model.Ckm.Statement;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -30,5 +31,15 @@ public class ScopeKnowledgeController {
   @GetMapping("/statements")
   public List<Statement> findStatements(@PathVariable("scopeId") UUID scopeId) {
     return knowledge.findStatements(scopeId);
+  }
+
+  /** Lists every explicit or derived Statement canonically associated with one Relation. */
+  @GetMapping("/relations/{relationId}/statements")
+  public ResponseEntity<List<Statement>> findRelationStatements(
+      @PathVariable("scopeId") UUID scopeId, @PathVariable("relationId") String relationId) {
+    if (knowledge.findRelation(scopeId, relationId) == null) {
+      return ResponseEntity.notFound().build();
+    }
+    return ResponseEntity.ok(knowledge.findStatementsForRelation(scopeId, relationId));
   }
 }

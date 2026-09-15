@@ -77,6 +77,11 @@ class KnowledgeApplicationServiceIntegrationTest {
     assertNotNull(knowledge.findRelation(scope, coarse.relation().id()));
     assertEquals(2, knowledge.findObservations(scope, "supply-1").size());
     assertEquals(KnowledgeKind.DERIVED, derived.statement().knowledgeKind());
+    assertEquals(
+        Set.of("supply-0", "supply-summary"),
+        knowledge.findStatementsForRelation(scope, "supply-mcb-outlet").stream()
+            .map(statement -> statement.id())
+            .collect(Collectors.toSet()));
     var relationIds =
         knowledge.findRelations(scope).stream()
             .map(relation -> relation.id())

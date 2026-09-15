@@ -36,6 +36,11 @@ public class CanonicalizationEntity {
     this.policyIdentifier = policyIdentifier;
   }
 
+  /** Returns the persistence identity of the associated Statement. */
+  public UUID statementId() {
+    return statementId;
+  }
+
   public static class Key implements Serializable {
     private UUID statementId;
     private UUID canonicalObjectId;

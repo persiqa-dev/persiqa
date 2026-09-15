@@ -140,6 +140,14 @@ class ScopeKnowledgeControllerIntegrationTest {
     http.perform(get("/api/scopes/{scopeId}/relations", scopeId))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.length()").value(3));
+    http.perform(
+            get(
+                "/api/scopes/{scopeId}/relations/{relationId}/statements",
+                scopeId,
+                "supply-mcb-outlet"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$[0].id").value("supply-0"))
+        .andExpect(jsonPath("$[1].id").value("supply-3"));
   }
 
   @Test

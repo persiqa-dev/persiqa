@@ -107,6 +107,12 @@ public class KnowledgeApplicationService {
     return store.findStatements(scopeId);
   }
 
+  /** Returns every explicit or derived Statement that supports one canonical Relation. */
+  @Transactional(readOnly = true)
+  public List<Statement> findStatementsForRelation(UUID scopeId, String relationId) {
+    return store.findStatementsForRelation(scopeId, relationId);
+  }
+
   /** Returns all append-preserved observations for one Statement. */
   @Transactional(readOnly = true)
   public List<Context> findObservations(UUID scopeId, String statementId) {

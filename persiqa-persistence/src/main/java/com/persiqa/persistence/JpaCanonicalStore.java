@@ -228,6 +228,20 @@ public class JpaCanonicalStore {
         .toList();
   }
 
+  /** Returns every Statement canonically associated with one Relation in stable identity order. */
+  @Transactional(readOnly = true)
+  public List<Statement> findStatementsForRelation(UUID scopeId, String relationIdentity) {
+    var relationObject = object(scopeId, relationIdentity);
+    if (relationObject == null || Kind.valueOf(relationObject.kind()) != Kind.RELATION) {
+      return List.of();
+    }
+    return canonicalizations.findByCanonicalObjectId(relationObject.id()).stream()
+        .map(link -> objectIdentity(scopeId, link.statementId()))
+        .map(statementIdentity -> findStatement(scopeId, statementIdentity))
+        .sorted(java.util.Comparator.comparing(Statement::id))
+        .toList();
+  }
+
   private UUID saveNode(UUID scopeId, Node node) {
     if (node instanceof Relation relation) {
       return saveRelation(scopeId, relation);
