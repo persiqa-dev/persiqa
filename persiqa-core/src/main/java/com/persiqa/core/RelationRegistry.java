@@ -5,6 +5,7 @@ import com.persiqa.model.Ckm.Node;
 import com.persiqa.model.Ckm.Relation;
 import com.persiqa.model.Ckm.RelationType;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -57,6 +58,13 @@ public final class RelationRegistry {
 
   public void register(RelationType t) {
     types.put(t.id(), t);
+  }
+
+  /** Returns the registered Relation Type contracts in stable identifier order. */
+  public List<RelationType> findAll() {
+    return types.values().stream()
+        .sorted(java.util.Comparator.comparing(RelationType::id))
+        .toList();
   }
 
   public Relation create(String id, String type, Node s, Node t) {

@@ -300,6 +300,18 @@ class ScopeKnowledgeControllerIntegrationTest {
   }
 
   @Test
+  void exposes_the_effective_relation_type_contracts_for_recording() throws Exception {
+    http.perform(MockMvcRequestBuilders.get("/api/relation-types").with(ALICE))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.length()").value(10))
+        .andExpect(jsonPath("$[0].id").value("classifiedAs"))
+        .andExpect(jsonPath("$[9].id").value("supplies"))
+        .andExpect(jsonPath("$[9].sources[0]").value("ENTITY"))
+        .andExpect(jsonPath("$[9].targets[0]").value("ENTITY"))
+        .andExpect(jsonPath("$[9].composable").value(true));
+  }
+
+  @Test
   void rejects_unauthenticated_api_calls() throws Exception {
     http.perform(MockMvcRequestBuilders.get("/api/scopes/{scopeId}/relations", UUID.randomUUID()))
         .andExpect(status().isUnauthorized());
