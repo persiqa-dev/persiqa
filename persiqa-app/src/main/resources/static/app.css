@@ -35,6 +35,25 @@ h3 { font-size: 1rem; }
 .summary { display: flex; gap: 0.7rem; margin-bottom: 1rem; }
 .summary div { background: #122e40; border-radius: 7px; padding: 0.7rem 1rem; }
 .summary strong { display: block; font-size: 1.35rem; }
+.topology-panel { margin-bottom: 1rem; }
+.graph-help { color: #aebbd0; font-size: 0.82rem; margin: 0.25rem 0 0; }
+.knowledge-graph { background: #101827; border: 1px solid #34435e; border-radius: 8px; cursor: grab; display: block; height: auto; min-height: 22rem; touch-action: none; width: 100%; }
+.knowledge-graph:active { cursor: grabbing; }
+.graph-edge { cursor: pointer; fill: none; marker-end: url(#graph-arrow); stroke-width: 2.5; }
+.graph-edge:hover { stroke-width: 4; }
+.graph-node { cursor: pointer; }
+.graph-node circle { fill: #172033; stroke: #7dd3fc; stroke-width: 2.5; }
+.graph-node:hover circle { fill: #164e63; stroke-width: 4; }
+.graph-node text { fill: #e9eef8; font-size: 14px; pointer-events: none; text-anchor: middle; }
+.graph-node .node-kind-label { fill: #93a4bd; font-size: 10px; }
+.graph-node .node-knowledge-label, .graph-edge-label { fill: #c7d2e8; font-size: 10px; pointer-events: none; text-anchor: middle; }
+.graph-node .node-state-label { fill: #fbbf24; font-size: 10px; }
+.graph-edge-label { paint-order: stroke; stroke: #101827; stroke-width: 4px; }
+.knowledge-graph.semantic-overview .graph-node text, .knowledge-graph.semantic-overview .graph-edge-label { display: none; }
+.knowledge-graph:not(.semantic-detail) .node-knowledge-label, .knowledge-graph:not(.semantic-detail) .graph-edge-detail { display: none; }
+.graph-legend { display: flex; flex-wrap: wrap; gap: 0.55rem 1rem; margin-top: 0.75rem; }
+.graph-legend span { align-items: center; display: inline-flex; font-size: 0.8rem; gap: 0.35rem; }
+.graph-legend i { border-radius: 50%; display: inline-block; height: 0.7rem; width: 0.7rem; }
 .graph-grid, .command-grid { display: grid; gap: 1rem; grid-template-columns: repeat(3, minmax(0, 1fr)); margin-bottom: 1rem; }
 .command-grid { grid-template-columns: minmax(240px, 0.75fr) minmax(420px, 1.25fr); }
 .item-list { display: grid; gap: 0.45rem; max-height: 360px; overflow: auto; }
