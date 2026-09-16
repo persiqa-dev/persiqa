@@ -43,7 +43,7 @@ const translations = {
     "graph.reset": "Reset view", "graph.node": "Node details", "graph.incoming": "Incoming Relations",
     "graph.outgoing": "Outgoing Relations", "graph.empty": "No graph elements recorded yet.",
     "graph.explicitCount": "E: {count}", "graph.derivedCount": "D: {count}",
-    "graph.state": "State: {value}"
+    "graph.state": "State: {value}", "graph.moreDetail": "+{count} detail"
   },
   hu: {
     "app.title": "Kanonikus tudásmodell", "language.label": "Nyelv",
@@ -89,7 +89,7 @@ const translations = {
     "graph.reset": "Nézet alaphelyzetbe", "graph.node": "Csomópont részletei", "graph.incoming": "Bejövő kapcsolatok",
     "graph.outgoing": "Kimenő kapcsolatok", "graph.empty": "Még nincs megjeleníthető gráfelem.",
     "graph.explicitCount": "E: {count}", "graph.derivedCount": "Sz: {count}",
-    "graph.state": "Állapot: {value}"
+    "graph.state": "Állapot: {value}", "graph.moreDetail": "+{count} részlet"
   }
 };
 
@@ -322,6 +322,27 @@ function statesByEntity(relations) {
     }, new Map());
 }
 
+function suppliesRefinementProjection(relations) {
+  const supplies = relations.filter((relation) => relation.type.id === "supplies");
+  const overviewRelationIds = new Set();
+  const detailRelationIds = new Set();
+  const detailNodeIds = new Set();
+  const detailCounts = new Map();
+  supplies.forEach((coarse) => {
+    supplies.filter((first) => first.source.id === coarse.source.id).forEach((first) => {
+      supplies.filter((second) => second.source.id === first.target.id
+        && second.target.id === coarse.target.id).forEach((second) => {
+        overviewRelationIds.add(coarse.id);
+        detailRelationIds.add(first.id);
+        detailRelationIds.add(second.id);
+        detailNodeIds.add(first.target.id);
+        detailCounts.set(coarse.id, (detailCounts.get(coarse.id) || 0) + 1);
+      });
+    });
+  });
+  return { overviewRelationIds, detailRelationIds, detailNodeIds, detailCounts };
+}
+
 function graphLayoutKey() {
   return `persiqa.graph.layout.${state.scopeId}`;
 }
@@ -375,6 +396,7 @@ function renderKnowledgeGraph(knowledge) {
   graphLegend.replaceChildren();
   const topologyRelations = knowledge.relations.filter((relation) => relation.type.id !== "hasState");
   const states = statesByEntity(knowledge.relations);
+  const refinement = suppliesRefinementProjection(topologyRelations);
   const nodes = graphNodes(knowledge, topologyRelations);
   if (nodes.length === 0) {
     const message = svgElement("text", { x: "500", y: "300", "text-anchor": "middle", fill: "#aebbd0" });
@@ -396,8 +418,11 @@ function renderKnowledgeGraph(knowledge) {
   topologyRelations.forEach((relation) => {
     const source = positions.get(relation.source.id);
     const target = positions.get(relation.target.id);
+    const resolutionClass = refinement.overviewRelationIds.has(relation.id)
+      ? " graph-overview-relation"
+      : refinement.detailRelationIds.has(relation.id) ? " graph-detail-relation" : "";
     const edge = svgElement("line", {
-      class: "graph-edge", x1: source.x, y1: source.y, x2: target.x, y2: target.y,
+      class: `graph-edge${resolutionClass}`, x1: source.x, y1: source.y, x2: target.x, y2: target.y,
       stroke: relationColor(relation.type.id)
     });
     edge.addEventListener("click", (event) => {
@@ -406,12 +431,19 @@ function renderKnowledgeGraph(knowledge) {
     });
     graphViewport.append(edge);
     const label = svgElement("text", {
-      class: "graph-edge-label", x: (source.x + target.x) / 2, y: (source.y + target.y) / 2 - 7
+      class: `graph-edge-label${resolutionClass}`, x: (source.x + target.x) / 2, y: (source.y + target.y) / 2 - 7
     });
     label.textContent = relationTypeLabel(relation.type.id);
     graphViewport.append(label);
+    if (refinement.overviewRelationIds.has(relation.id)) {
+      const hint = svgElement("text", {
+        class: "graph-edge-resolution-hint", x: (source.x + target.x) / 2, y: (source.y + target.y) / 2 + 12
+      });
+      hint.textContent = t("graph.moreDetail", { count: refinement.detailCounts.get(relation.id) });
+      graphViewport.append(hint);
+    }
     const detail = svgElement("text", {
-      class: "graph-edge-label graph-edge-detail", x: (source.x + target.x) / 2, y: (source.y + target.y) / 2 + 8
+      class: `graph-edge-label graph-edge-detail${resolutionClass}`, x: (source.x + target.x) / 2, y: (source.y + target.y) / 2 + 8
     });
     const counts = statementCountsForRelation(relation, knowledge.statements);
     detail.textContent = `${t("graph.explicitCount", { count: counts.explicit })} · ${t("graph.derivedCount", { count: counts.derived })}`;
@@ -435,7 +467,8 @@ function renderKnowledgeGraph(knowledge) {
   };
   nodes.forEach((node) => {
     const position = positions.get(node.id);
-    const group = svgElement("g", { class: "graph-node", transform: `translate(${position.x} ${position.y})`, tabindex: "0", role: "button" });
+    const resolutionClass = refinement.detailNodeIds.has(node.id) ? " graph-detail-node" : "";
+    const group = svgElement("g", { class: `graph-node${resolutionClass}`, transform: `translate(${position.x} ${position.y})`, tabindex: "0", role: "button" });
     const circle = svgElement("circle", { r: "38" });
     const label = svgElement("text", { y: "-3" });
     label.textContent = node.id;

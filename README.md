@@ -91,6 +91,9 @@ representation semantics for the four-concept Core.
 The normative Relation Type Registry v0.1 is
 [`PMS-009_Relation_Type_Registry.md`](docs/specification/pms/PMS-009_Relation_Type_Registry.md).
 
+The draft representation contract is
+[`PMS-010_Representation_Contract.md`](docs/specification/pms/PMS-010_Representation_Contract.md).
+
 ## Design Principles
 
 Persiqa is designed around the following principles:
