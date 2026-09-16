@@ -38,6 +38,7 @@ import com.persiqa.persistence.repository.StatementContextRepository;
 import com.persiqa.persistence.repository.StatementRepository;
 import java.time.Instant;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -148,6 +149,23 @@ public class JpaCanonicalStore implements CanonicalStore {
             : scopes.findByOwnerSubjectAndNameContainingIgnoreCaseOrderByNameAscIdAsc(
                 ownerSubject, pageQuery.query(), pageable);
     return page(page, entity -> new ModelScope(entity.id(), entity.name(), entity.ownerSubject()));
+  }
+
+  /** Allocates a unique, zero-padded ordinal while holding the scope's database write lock. */
+  @Override
+  @Transactional
+  public long nextIdentityOrdinal(UUID scopeId, String identityPrefix) {
+    if (identityPrefix == null || identityPrefix.isBlank()) {
+      throw new IllegalArgumentException("identity prefix must not be blank");
+    }
+    scopes
+        .findByIdForIdentityAllocation(scopeId)
+        .orElseThrow(() -> new IllegalArgumentException("unknown model scope: " + scopeId));
+    long ordinal = 1;
+    while (objects.existsByScopeIdAndIdentityKey(scopeId, identity(identityPrefix, ordinal))) {
+      ordinal++;
+    }
+    return ordinal;
   }
 
   /** Reconstructs a standalone canonical Node, or returns {@code null} when it is unknown. */
@@ -601,6 +619,10 @@ public class JpaCanonicalStore implements CanonicalStore {
 
   private static PageRequest pageable(PageQuery pageQuery) {
     return PageRequest.of(pageQuery.page(), pageQuery.size());
+  }
+
+  private static String identity(String prefix, long ordinal) {
+    return prefix + "-" + String.format(Locale.ROOT, "%03d", ordinal);
   }
 
   private static <T, R> PageResult<R> page(Page<T> source, Function<T, R> mapper) {

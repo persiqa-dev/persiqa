@@ -9,7 +9,6 @@ import com.persiqa.model.Ckm.Entity;
 import com.persiqa.model.Ckm.Kind;
 import com.persiqa.model.Ckm.KnowledgeKind;
 import com.persiqa.model.Ckm.Node;
-import com.persiqa.model.Ckm.Relation;
 import com.persiqa.model.Ckm.State;
 import com.persiqa.web.dto.KnowledgeDtos.NodeResponse;
 import com.persiqa.web.dto.KnowledgeDtos.RelationRecordResponse;
@@ -81,9 +80,20 @@ public class KnowledgeWriteController {
     var source = request.source().resolve(scopeId, subject, knowledge);
     var target = request.target().resolve(scopeId, subject, knowledge);
     var context = Objects.requireNonNullElseGet(request.context(), Context::unspecified);
-    var record = recordRelation(scopeId, subject, request, source, target, context);
+    var record =
+        knowledge.recordRelation(
+            scopeId,
+            subject,
+            request.relationId(),
+            request.statementId(),
+            request.knowledgeKind(),
+            request.relationType(),
+            source,
+            target,
+            request.derivedFrom(),
+            context);
     return ResponseEntity.created(
-            URI.create("/api/scopes/" + scopeId + "/statements/" + request.statementId()))
+            URI.create("/api/scopes/" + scopeId + "/statements/" + record.statement().id()))
         .body(mapper.toRelationRecord(record));
   }
 
@@ -121,40 +131,6 @@ public class KnowledgeWriteController {
     if (!scope.ownerSubject().equals(subject)) {
       throw new ScopeAccessDeniedException("subject is not the owner of scope " + scopeId);
     }
-  }
-
-  private KnowledgeApplicationService.RelationRecord recordRelation(
-      UUID scopeId,
-      String subject,
-      RecordRelationRequest request,
-      Node source,
-      Node target,
-      Context context) {
-    if (request.knowledgeKind() == KnowledgeKind.EXPLICIT) {
-      if (!request.derivedFrom().isEmpty()) {
-        throw new IllegalArgumentException(
-            "explicit statement cannot declare derivedFrom evidence");
-      }
-      return knowledge.assertRelation(
-          scopeId,
-          subject,
-          request.relationId(),
-          request.statementId(),
-          request.relationType(),
-          source,
-          target,
-          context);
-    }
-    return knowledge.recordDerivedRelation(
-        scopeId,
-        subject,
-        request.relationId(),
-        request.statementId(),
-        request.relationType(),
-        source,
-        target,
-        request.derivedFrom(),
-        context);
   }
 
   /** Request body for server-assigned CKM scope creation. */
@@ -199,12 +175,6 @@ public class KnowledgeWriteController {
       Set<String> derivedFrom,
       Context context) {
     public RecordRelationRequest {
-      if (relationId == null || relationId.isBlank()) {
-        throw new IllegalArgumentException("relationId must not be blank");
-      }
-      if (statementId == null || statementId.isBlank()) {
-        throw new IllegalArgumentException("statementId must not be blank");
-      }
       if (knowledgeKind == null) {
         throw new IllegalArgumentException("knowledgeKind is required");
       }
@@ -217,36 +187,50 @@ public class KnowledgeWriteController {
     }
   }
 
-  /** Typed endpoint reference used by a relation-recording command. */
+  /**
+   * Endpoint reference used by a relation-recording command.
+   *
+   * <p>An existing canonical Node or Relation is resolved by identity on the server. Its kind may
+   * be omitted; when supplied, it must match the canonical kind. A kind is required only when the
+   * identity introduces a new Node.
+   */
   public record NodeReference(String id, Kind kind) {
     public NodeReference {
       if (id == null || id.isBlank()) {
         throw new IllegalArgumentException("node id must not be blank");
       }
-      if (kind == null) {
-        throw new IllegalArgumentException("node kind is required");
-      }
     }
 
     private Node resolve(UUID scopeId, String subject, KnowledgeApplicationService knowledge) {
+      var existingNode = knowledge.findNode(scopeId, subject, id);
+      if (existingNode != null) {
+        validateSuppliedKind(existingNode.kind());
+        return existingNode;
+      }
+      var existingRelation = knowledge.findRelation(scopeId, subject, id);
+      if (existingRelation != null) {
+        validateSuppliedKind(Kind.RELATION);
+        return existingRelation;
+      }
+      if (kind == null) {
+        throw new IllegalArgumentException("node kind is required for a new endpoint: " + id);
+      }
       return switch (kind) {
         case ENTITY -> new Entity(id);
         case CAPABILITY -> new Capability(id);
         case CONCEPT -> new Concept(id);
         case STATE -> new State(id);
-        case RELATION -> relation(scopeId, subject, knowledge);
+        case RELATION -> throw new IllegalArgumentException("unknown Relation endpoint: " + id);
         case STATEMENT, TYPED_VALUE ->
             throw new IllegalArgumentException("unsupported endpoint kind: " + kind);
       };
     }
 
-    private Relation relation(
-        UUID scopeId, String subject, KnowledgeApplicationService knowledge) {
-      var relation = knowledge.findRelation(scopeId, subject, id);
-      if (relation == null) {
-        throw new IllegalArgumentException("unknown Relation endpoint: " + id);
+    private void validateSuppliedKind(Kind resolvedKind) {
+      if (kind != null && kind != resolvedKind) {
+        throw new IllegalArgumentException(
+            "endpoint kind does not match canonical identity " + id + ": expected " + resolvedKind);
       }
-      return relation;
     }
   }
 }

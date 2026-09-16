@@ -164,9 +164,8 @@ class ScopeKnowledgeControllerIntegrationTest {
                     "supply-1")
                 .with(ALICE))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.length()").value(2))
-        .andExpect(jsonPath("$[0].provenance").value("inspection"))
-        .andExpect(jsonPath("$[1].provenance").value("reinspection"));
+        .andExpect(jsonPath("$.length()").value(1))
+        .andExpect(jsonPath("$[0].provenance").value("reinspection"));
     http.perform(
             MockMvcRequestBuilders.get("/api/scopes/{scopeId}/statements", scopeId).with(ALICE))
         .andExpect(status().isOk())
@@ -344,6 +343,134 @@ class ScopeKnowledgeControllerIntegrationTest {
   }
 
   @Test
+  void serves_the_thin_web_client_without_requiring_api_authentication() throws Exception {
+    http.perform(MockMvcRequestBuilders.get("/index.html"))
+        .andExpect(status().isOk())
+        .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content()
+            .string(org.hamcrest.Matchers.containsString("data-i18n=\"app.title\"")));
+  }
+
+  @Test
+  void allocates_readable_identities_when_a_relation_request_omits_them() throws Exception {
+    var scope = UUID.randomUUID();
+    knowledge.createScope(scope, "generated-identities-test", "alice");
+    var request =
+        new RecordRelationRequest(
+            null,
+            null,
+            KnowledgeKind.EXPLICIT,
+            "supplies",
+            new NodeReference("MCB-01", Kind.ENTITY),
+            new NodeReference("Outlet-01", Kind.ENTITY),
+            Set.of(),
+            Context.unspecified());
+
+    http.perform(
+            MockMvcRequestBuilders.post("/api/scopes/{scopeId}/statements", scope)
+                .with(ALICE)
+                .contentType("application/json")
+                .content(json.writeValueAsString(request)))
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.relation.id").value("rel-mcb-01-supplies-outlet-01-001"))
+        .andExpect(
+            jsonPath("$.statement.id")
+                .value("stmt-rel-mcb-01-supplies-outlet-01-001-explicit-001"));
+    http.perform(
+            MockMvcRequestBuilders.post("/api/scopes/{scopeId}/statements", scope)
+                .with(ALICE)
+                .contentType("application/json")
+                .content(json.writeValueAsString(request)))
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.relation.id").value("rel-mcb-01-supplies-outlet-01-002"))
+        .andExpect(
+            jsonPath("$.statement.id")
+                .value("stmt-rel-mcb-01-supplies-outlet-01-002-explicit-001"));
+  }
+
+  @Test
+  void resolves_an_existing_endpoint_from_its_identity_without_a_client_supplied_kind()
+      throws Exception {
+    var scope = UUID.randomUUID();
+    knowledge.createScope(scope, "server-resolved-endpoint-test", "alice");
+    knowledge.saveNode(scope, "alice", new Entity("MCB-01"));
+    var request =
+        new RecordRelationRequest(
+            null,
+            null,
+            KnowledgeKind.EXPLICIT,
+            "supplies",
+            new NodeReference("MCB-01", null),
+            new NodeReference("Outlet-01", Kind.ENTITY),
+            Set.of(),
+            Context.unspecified());
+
+    http.perform(
+            MockMvcRequestBuilders.post("/api/scopes/{scopeId}/statements", scope)
+                .with(ALICE)
+                .contentType("application/json")
+                .content(json.writeValueAsString(request)))
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.relation.source.id").value("MCB-01"))
+        .andExpect(jsonPath("$.relation.source.kind").value("ENTITY"));
+  }
+
+  @Test
+  void rejects_a_kind_that_disagrees_with_an_existing_source_or_target_endpoint() throws Exception {
+    var scope = UUID.randomUUID();
+    knowledge.createScope(scope, "endpoint-kind-validation-test", "alice");
+    knowledge.saveNode(scope, "alice", new Entity("MCB-01"));
+    knowledge.saveNode(scope, "alice", new Entity("Outlet-01"));
+    var sourceMismatch =
+        new RecordRelationRequest(
+            null,
+            null,
+            KnowledgeKind.EXPLICIT,
+            "supplies",
+            new NodeReference("MCB-01", Kind.CAPABILITY),
+            new NodeReference("Outlet-01", null),
+            Set.of(),
+            Context.unspecified());
+    var targetMismatch =
+        new RecordRelationRequest(
+            null,
+            null,
+            KnowledgeKind.EXPLICIT,
+            "supplies",
+            new NodeReference("MCB-01", null),
+            new NodeReference("Outlet-01", Kind.CAPABILITY),
+            Set.of(),
+            Context.unspecified());
+
+    assertEndpointKindMismatch(scope, sourceMismatch, "MCB-01");
+    assertEndpointKindMismatch(scope, targetMismatch, "Outlet-01");
+  }
+
+  @Test
+  void preserves_manually_supplied_relation_and_statement_identities() throws Exception {
+    var scope = UUID.randomUUID();
+    knowledge.createScope(scope, "manual-identities-test", "alice");
+    var request =
+        new RecordRelationRequest(
+            "kitchen-circuit-link",
+            "as-built-inspection-17",
+            KnowledgeKind.EXPLICIT,
+            "supplies",
+            new NodeReference("MCB-01", Kind.ENTITY),
+            new NodeReference("Outlet-01", Kind.ENTITY),
+            Set.of(),
+            Context.unspecified());
+
+    http.perform(
+            MockMvcRequestBuilders.post("/api/scopes/{scopeId}/statements", scope)
+                .with(ALICE)
+                .contentType("application/json")
+                .content(json.writeValueAsString(request)))
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.relation.id").value("kitchen-circuit-link"))
+        .andExpect(jsonPath("$.statement.id").value("as-built-inspection-17"));
+  }
+
+  @Test
   void rejects_unauthenticated_api_calls() throws Exception {
     http.perform(MockMvcRequestBuilders.get("/api/scopes/{scopeId}/relations", UUID.randomUUID()))
         .andExpect(status().isUnauthorized());
@@ -358,5 +485,16 @@ class ScopeKnowledgeControllerIntegrationTest {
         .andExpect(status().isCreated())
         .andExpect(jsonPath("$.statement.id").value(request.statementId()))
         .andExpect(jsonPath("$.relation.type.id").value(request.relationType()));
+  }
+
+  private void assertEndpointKindMismatch(
+      UUID scopeId, RecordRelationRequest request, String identity) throws Exception {
+    http.perform(
+            MockMvcRequestBuilders.post("/api/scopes/{scopeId}/statements", scopeId)
+                .with(ALICE)
+                .contentType("application/json")
+                .content(json.writeValueAsString(request)))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.detail").value(org.hamcrest.Matchers.containsString(identity)));
   }
 }

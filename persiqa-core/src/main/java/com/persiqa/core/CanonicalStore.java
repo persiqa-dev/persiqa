@@ -30,6 +30,14 @@ public interface CanonicalStore {
   /** Returns one page of owner-visible scopes, optionally filtered by scope name. */
   PageResult<ModelScope> findScopesByOwner(String ownerSubject, PageQuery pageQuery);
 
+  /**
+   * Allocates the next unused ordinal for one human-readable identity prefix within a scope.
+   *
+   * <p>Implementations SHALL serialize allocation within the scope so concurrent writers cannot
+   * receive the same ordinal.
+   */
+  long nextIdentityOrdinal(UUID scopeId, String identityPrefix);
+
   /** Persists a Node without changing its CKM identity. */
   UUID save(UUID scopeId, Node node);
 

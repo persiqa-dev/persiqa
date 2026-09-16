@@ -7,10 +7,13 @@ import com.persiqa.core.PageResult;
 import com.persiqa.core.ScopeAccessDeniedException;
 import com.persiqa.core.StatementFirstRecording;
 import com.persiqa.model.Ckm.Context;
+import com.persiqa.model.Ckm.KnowledgeKind;
 import com.persiqa.model.Ckm.Node;
 import com.persiqa.model.Ckm.Relation;
 import com.persiqa.model.Ckm.Statement;
+import java.text.Normalizer;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
@@ -76,6 +79,49 @@ public class KnowledgeApplicationService {
   public void saveNode(UUID scopeId, String subject, Node node) {
     requireOwner(scopeId, subject);
     store.save(scopeId, node);
+  }
+
+  /**
+   * Records a Relation statement, allocating readable identities when callers leave either one
+   * unspecified.
+   */
+  @Transactional
+  public RelationRecord recordRelation(
+      UUID scopeId,
+      String subject,
+      String relationId,
+      String statementId,
+      KnowledgeKind knowledgeKind,
+      String relationType,
+      Node source,
+      Node target,
+      Set<String> evidence,
+      Context context) {
+    requireOwner(scopeId, subject);
+    if (knowledgeKind == KnowledgeKind.EXPLICIT && !evidence.isEmpty()) {
+      throw new IllegalArgumentException("explicit statement cannot declare derivedFrom evidence");
+    }
+    var resolvedRelationId =
+        suppliedOrGenerated(
+            relationId, () -> generatedRelationIdentity(scopeId, source, relationType, target));
+    var resolvedStatementId =
+        suppliedOrGenerated(
+            statementId,
+            () -> generatedStatementIdentity(scopeId, resolvedRelationId, knowledgeKind));
+    var prepared =
+        knowledgeKind == KnowledgeKind.EXPLICIT
+            ? recording.assertRelation(
+                resolvedRelationId, resolvedStatementId, relationType, source, target, context)
+            : recording.deriveRelation(
+                resolvedRelationId,
+                resolvedStatementId,
+                relationType,
+                source,
+                target,
+                evidence,
+                context);
+    var mode = knowledgeKind == KnowledgeKind.EXPLICIT ? "ASSERTS" : "DERIVES";
+    return persist(scopeId, prepared, mode);
   }
 
   /** Returns a standalone canonical Node, or {@code null} when the identity is unknown. */
@@ -194,11 +240,16 @@ public class KnowledgeApplicationService {
     return store.findStatementsForRelation(scopeId, relationId);
   }
 
-  /** Returns all append-preserved observations for one Statement. */
+  /**
+   * Returns contexts appended after the immutable assertion context for one Statement.
+   *
+   * <p>The persistence store retains the assertion context as the first context record so a
+   * Statement can be reconstructed without duplicating it. It is not itself a later observation.
+   */
   @Transactional(readOnly = true)
   public List<Context> findObservations(UUID scopeId, String subject, String statementId) {
     requireOwner(scopeId, subject);
-    return store.findContexts(scopeId, statementId);
+    return store.findContexts(scopeId, statementId).stream().skip(1).toList();
   }
 
   private RelationRecord persist(
@@ -212,6 +263,36 @@ public class KnowledgeApplicationService {
         canonicalizationMode,
         ASSERTION_POLICY);
     return new RelationRecord(prepared.statement(), prepared.relation());
+  }
+
+  private String generatedRelationIdentity(
+      UUID scopeId, Node source, String relationType, Node target) {
+    var prefix =
+        "rel-" + slug(source.id()) + "-" + slug(relationType) + "-" + slug(target.id());
+    return numberedIdentity(prefix, store.nextIdentityOrdinal(scopeId, prefix));
+  }
+
+  private String generatedStatementIdentity(
+      UUID scopeId, String relationId, KnowledgeKind knowledgeKind) {
+    var prefix =
+        "stmt-" + slug(relationId) + "-" + knowledgeKind.name().toLowerCase(Locale.ROOT);
+    return numberedIdentity(prefix, store.nextIdentityOrdinal(scopeId, prefix));
+  }
+
+  private static String suppliedOrGenerated(
+      String supplied, java.util.function.Supplier<String> generated) {
+    return supplied == null || supplied.isBlank() ? generated.get() : supplied;
+  }
+
+  private static String numberedIdentity(String prefix, long ordinal) {
+    return prefix + "-" + String.format(Locale.ROOT, "%03d", ordinal);
+  }
+
+  private static String slug(String value) {
+    var normalized = Normalizer.normalize(value, Normalizer.Form.NFD).replaceAll("\\p{M}", "");
+    var slug = normalized.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+", "-");
+    slug = slug.replaceAll("(^-)|(-$)", "");
+    return slug.isBlank() ? "item" : slug;
   }
 
   private ModelScope requireOwner(UUID scopeId, String subject) {

@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Persiqa CKM</title>
+    <link rel="stylesheet" href="/app.css">
+    <script defer src="/app.js"></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">Persiqa</p>
+        <h1 data-i18n="app.title">Canonical Knowledge Model</h1>
+      </div>
+      <label class="language-selector"><span data-i18n="language.label">Language</span>
+        <select id="language" aria-label="Language">
+          <option value="en">English</option>
+          <option value="hu">Magyar</option>
+        </select>
+      </label>
+      <form id="sign-in-form" class="sign-in-form">
+        <label><span data-i18n="auth.subject">Subject</span> <input id="username" name="username" autocomplete="username" required></label>
+        <label><span data-i18n="auth.password">Password</span> <input id="password" name="password" type="password" autocomplete="current-password" required></label>
+        <button type="submit" data-i18n="auth.connect">Connect</button>
+      </form>
+    </header>
+
+    <main>
+      <p id="status" class="status" role="status" data-i18n="status.signIn">Sign in with a development subject to begin.</p>
+      <section id="workspace" class="workspace hidden">
+        <aside class="sidebar panel">
+          <div class="section-heading">
+            <h2 data-i18n="scopes.title">Scopes</h2>
+            <button id="refresh-scopes" class="icon-button" type="button" data-i18n-title="scopes.refresh" title="Refresh scopes">↻</button>
+          </div>
+          <form id="create-scope-form" class="inline-form">
+            <input id="scope-name" data-i18n-placeholder="scopes.newName" placeholder="New scope name" required>
+            <button type="submit" data-i18n="actions.create">Create</button>
+          </form>
+          <label class="search-label"><span data-i18n="actions.search">Search</span> <input id="scope-search" data-i18n-placeholder="scopes.name" placeholder="Scope name"></label>
+          <nav id="scope-list" class="scope-list" data-i18n-aria-label="scopes.navigation" aria-label="Model scopes"></nav>
+        </aside>
+
+        <section id="scope-workbench" class="workbench hidden">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow" data-i18n="scope.canonical">Canonical scope</p>
+              <h2 id="scope-title" data-i18n="scope.select">Select a scope</h2>
+            </div>
+            <button id="refresh-knowledge" type="button" data-i18n="actions.refreshGraph">Refresh graph</button>
+          </div>
+
+          <div id="graph-summary" class="summary"></div>
+          <div class="graph-grid">
+            <section class="panel graph-panel"><h3 data-i18n="summary.nodes">Nodes</h3><div id="node-list"></div></section>
+            <section class="panel graph-panel"><h3 data-i18n="summary.relations">Relations</h3><div id="relation-list"></div></section>
+            <section class="panel graph-panel"><h3 data-i18n="summary.statements">Statements</h3><div id="statement-list"></div></section>
+          </div>
+
+          <section id="inspector" class="panel inspector hidden">
+            <div class="section-heading">
+              <h3 id="inspector-title"></h3>
+              <button id="close-inspector" type="button" data-i18n="actions.close">Close</button>
+            </div>
+            <div id="inspector-content"></div>
+          </section>
+
+          <div class="command-grid">
+            <form id="create-node-form" class="panel command-form">
+              <h3 data-i18n="node.addCanonical">Add canonical node</h3>
+              <label><span data-i18n="endpoint.identity">Identity</span> <input name="id" placeholder="Outlet-01" required></label>
+              <label><span data-i18n="endpoint.kind">Kind</span>
+                <select name="kind" class="node-kind" data-kinds="ENTITY,CAPABILITY,CONCEPT"></select>
+              </label>
+              <button type="submit" data-i18n="node.add">Add node</button>
+            </form>
+
+            <form id="record-relation-form" class="panel command-form">
+              <h3 data-i18n="statement.record">Record Relation statement</h3>
+              <label><span data-i18n="statement.relationIdentity">Relation identity (optional)</span>
+                <input id="relation-id" name="relationId" data-i18n-placeholder="statement.relationIdentityHint" placeholder="Generated from source, type, and target">
+              </label>
+              <label><span data-i18n="statement.identity">Statement identity (optional)</span>
+                <input id="statement-id" name="statementId" data-i18n-placeholder="statement.identityHint" placeholder="Generated from relation and knowledge kind">
+              </label>
+              <label><span data-i18n="statement.relationType">Relation Type</span> <select id="relation-type" name="relationType" required></select></label>
+              <div class="endpoint-grid">
+                <label><span data-i18n="endpoint.sourceIdentity">Source identity</span>
+                  <input id="source-id" name="sourceId" list="endpoint-options" data-i18n-placeholder="endpoint.sourceHint" placeholder="Choose or enter MCB-01" required>
+                </label>
+                <label><span data-i18n="endpoint.sourceKind">Source kind</span>
+                  <select id="source-kind" name="sourceKind" class="node-kind" data-kinds="ENTITY,CAPABILITY,CONCEPT,STATE,RELATION"></select>
+                </label>
+                <label><span data-i18n="endpoint.targetIdentity">Target identity</span>
+                  <input id="target-id" name="targetId" list="endpoint-options" data-i18n-placeholder="endpoint.targetHint" placeholder="Choose or enter Outlet-01" required>
+                </label>
+                <label><span data-i18n="endpoint.targetKind">Target kind</span>
+                  <select id="target-kind" name="targetKind" class="node-kind" data-kinds="ENTITY,CAPABILITY,CONCEPT,STATE,RELATION"></select>
+                </label>
+              </div>
+              <datalist id="endpoint-options"></datalist>
+              <label><span data-i18n="statement.knowledgeKind">Knowledge kind</span>
+                <select id="knowledge-kind" name="knowledgeKind">
+                  <option value="EXPLICIT" data-i18n="knowledge.explicit">Explicit</option>
+                  <option value="DERIVED" data-i18n="knowledge.derived">Derived</option>
+                </select>
+              </label>
+              <label id="evidence-field" class="hidden"><span data-i18n="statement.evidence">Evidence Statement identities (comma separated)</span>
+                <input name="derivedFrom" data-i18n-placeholder="statement.evidenceHint" placeholder="inspection-002, inspection-003">
+              </label>
+              <details>
+                <summary data-i18n="context.title">Knowledge context</summary>
+                <label><span data-i18n="context.provenance">Provenance</span> <input name="provenance" data-i18n-placeholder="context.provenanceHint" placeholder="as-built inspection"></label>
+                <label><span data-i18n="context.confidence">Confidence</span> <input name="confidence" type="number" min="0" max="1" step="0.01"></label>
+                <label><span data-i18n="context.scenario">Scenario</span> <input name="scenario" data-i18n-placeholder="context.scenarioHint" placeholder="installed"></label>
+              </details>
+              <button type="submit" data-i18n="statement.record">Record statement</button>
+            </form>
+          </div>
+        </section>
+      </section>
+    </main>
+  </body>
+</html>

@@ -80,7 +80,7 @@ class KnowledgeApplicationServiceIntegrationTest {
             new Context("topology-analysis", new BigDecimal("0.95"), "as-built"));
 
     assertNotNull(knowledge.findRelation(scope, OWNER, coarse.relation().id()));
-    assertEquals(2, knowledge.findObservations(scope, OWNER, "supply-1").size());
+    assertEquals(1, knowledge.findObservations(scope, OWNER, "supply-1").size());
     assertEquals(KnowledgeKind.DERIVED, derived.statement().knowledgeKind());
     assertEquals(
         Set.of("supply-0", "supply-summary"),
