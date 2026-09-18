@@ -4,8 +4,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Persiqa CKM</title>
-    <link rel="stylesheet" href="/app.css?v=ckm-0.1.0-semantic-reachability">
-    <script defer src="/app.js?v=ckm-0.1.0-semantic-reachability"></script>
+    <link rel="stylesheet" href="/app.css?v=ckm-0.1.0-theme-selector">
+    <script defer src="/app.js?v=ckm-0.1.0-theme-selector"></script>
   </head>
   <body>
     <header class="topbar">
@@ -20,6 +20,12 @@
         <select id="language" aria-label="Language">
           <option value="en">English</option>
           <option value="hu">Magyar</option>
+        </select>
+      </label>
+      <label class="theme-selector"><span data-i18n="theme.label">Theme</span>
+        <select id="theme" aria-label="Theme">
+          <option value="dark" data-i18n="theme.dark">Dark</option>
+          <option value="light" data-i18n="theme.light">Light</option>
         </select>
       </label>
       <form id="sign-in-form" class="sign-in-form">

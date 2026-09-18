@@ -1,6 +1,7 @@
 const translations = {
   en: {
     "app.title": "Canonical Knowledge Model", "language.label": "Language",
+    "theme.label": "Theme", "theme.dark": "Dark", "theme.light": "Light",
     "auth.subject": "Subject", "auth.password": "Password", "auth.connect": "Connect",
     "status.signIn": "Sign in with a development subject to begin.",
     "status.connected": "Connected. Select a scope or create a new one.",
@@ -74,6 +75,7 @@ const translations = {
   },
   hu: {
     "app.title": "Kanonikus tudásmodell", "language.label": "Nyelv",
+    "theme.label": "Téma", "theme.dark": "Sötét", "theme.light": "Világos",
     "auth.subject": "Azonosító", "auth.password": "Jelszó", "auth.connect": "Csatlakozás",
     "status.signIn": "A kezdéshez jelentkezz be egy fejlesztői azonosítóval.",
     "status.connected": "Kapcsolódva. Válassz ki vagy hozz létre egy hatókört.",
@@ -153,7 +155,8 @@ const state = {
   derivationProposals: [], derivationQueried: false,
   semanticTraversal: null,
   workbenchView: "overview", knowledgeList: "nodes", knowledgeListQuery: "", knowledgeListPage: 0, knowledgePage: null, knowledgeListRequest: 0,
-  language: localStorage.getItem("persiqa.language") || navigator.language?.slice(0, 2) || "en"
+  language: localStorage.getItem("persiqa.language") || navigator.language?.slice(0, 2) || "en",
+  theme: localStorage.getItem("persiqa.theme") || "dark"
 };
 
 const statusElement = document.querySelector("#status");
@@ -188,6 +191,7 @@ const graphState = {
 const svgNamespace = "http://www.w3.org/2000/svg";
 
 if (!translations[state.language]) state.language = "en";
+if (!["dark", "light"].includes(state.theme)) state.theme = "dark";
 
 function t(key, values = {}) {
   return translations[state.language][key]?.replace(/\{(\w+)\}/g, (_, name) => values[name] ?? `{${name}}`) || key;
@@ -224,6 +228,11 @@ function applyTranslations() {
   renderKnowledgeList();
   renderDerivationProposals();
   renderSemanticTraversal();
+}
+
+function applyTheme() {
+  document.documentElement.dataset.theme = state.theme;
+  document.querySelector("#theme").value = state.theme;
 }
 
 function showStatus(message, error = false) {
@@ -1541,6 +1550,11 @@ document.querySelector("#language").addEventListener("change", (event) => {
   hideInspector();
   if (state.scopeId) loadKnowledge().catch(report);
 });
+document.querySelector("#theme").addEventListener("change", (event) => {
+  state.theme = event.target.value;
+  localStorage.setItem("persiqa.theme", state.theme);
+  applyTheme();
+});
 document.querySelector("#knowledge-kind").addEventListener("change", (event) => {
   document.querySelector("#evidence-field").classList.toggle("hidden", event.target.value !== "DERIVED");
 });
@@ -1676,5 +1690,6 @@ document.querySelector("#record-relation-form").addEventListener("submit", async
 
 function report(error) { showStatus(error.message, true); }
 
+applyTheme();
 applyTranslations();
 resetRelationForm(document.querySelector("#record-relation-form"));
