@@ -518,7 +518,7 @@ function svgElement(name, attributes = {}) {
 }
 
 function relationColor(typeId) {
-  const palette = ["#38bdf8", "#a78bfa", "#fbbf24", "#34d399", "#fb7185", "#f97316"];
+  const palette = ["#c25f05", "#c98a4d", "#d6ad38", "#55a889", "#bc6d6d", "#aa7b57"];
   const value = [...typeId].reduce((total, character) => total + character.charCodeAt(0), 0);
   return palette[value % palette.length];
 }
@@ -828,7 +828,7 @@ function renderKnowledgeGraph(knowledge) {
     ? serverTopology.nodes.map((entry) => entry.node)
     : graphNodes(knowledge, topologyRelations, visibleNodeIds);
   if (nodes.length === 0) {
-    const message = svgElement("text", { x: "500", y: "300", "text-anchor": "middle", fill: "#aebbd0" });
+    const message = svgElement("text", { x: "500", y: "300", "text-anchor": "middle", fill: "#c3b9af" });
     message.textContent = t("graph.empty");
     graphViewport.append(message);
     resetGraphView();
