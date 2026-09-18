@@ -4,8 +4,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Persiqa CKM</title>
-    <link rel="stylesheet" href="/app.css">
-    <script defer src="/app.js"></script>
+    <link rel="stylesheet" href="/app.css?v=ckm-0.1.0-derivation-dialog-feedback">
+    <script defer src="/app.js?v=ckm-0.1.0-derivation-dialog-feedback"></script>
   </head>
   <body>
     <header class="topbar">
@@ -57,10 +57,15 @@
               <div>
                 <h3 data-i18n="graph.title">Knowledge graph</h3>
                 <p class="graph-help" data-i18n="graph.help">Drag to pan, use the wheel to zoom, and select a node or relation for details.</p>
+                <label class="graph-anchor"><span data-i18n="graph.topology">Topology</span><select id="graph-topology"><option value="ELECTRICAL_SUPPLY" data-i18n="graph.topologyElectrical">Electrical supply</option><option value="DEPENDENCY" data-i18n="graph.topologyDependency">Dependencies</option></select></label>
+                <label class="graph-anchor"><span data-i18n="graph.layout">Layout</span><select id="graph-layout"><option value="LEFT_TO_RIGHT" data-i18n="graph.layoutLeftToRight">Left to right</option><option value="TOP_TO_BOTTOM" data-i18n="graph.layoutTopToBottom">Top to bottom</option></select></label>
+                <label class="graph-anchor"><span data-i18n="graph.source">Source device</span><input id="graph-source" list="graph-source-options" data-i18n-placeholder="graph.sourceHint" placeholder="Choose MainSwitch-01"><datalist id="graph-source-options"></datalist></label>
+                <label class="graph-anchor"><span data-i18n="graph.destination">Destination device</span><input id="graph-destination" list="graph-destination-options" data-i18n-placeholder="graph.destinationHint" placeholder="Choose ElectricBoiler-01" disabled><datalist id="graph-destination-options"></datalist></label>
+                <label class="graph-anchor"><span data-i18n="graph.direction">Direction</span><select id="graph-direction"><option value="DOWNSTREAM" data-i18n="graph.downstream">Downstream</option><option value="UPSTREAM" data-i18n="graph.upstream">Upstream</option></select></label>
               </div>
               <button id="reset-graph-view" type="button" data-i18n="graph.reset">Reset view</button>
             </div>
-            <svg id="knowledge-graph" class="knowledge-graph" viewBox="0 0 1000 600" role="img" data-i18n-aria-label="graph.title" aria-label="Knowledge graph">
+            <svg id="knowledge-graph" class="knowledge-graph" viewBox="0 0 1000 800" role="img" data-i18n-aria-label="graph.title" aria-label="Knowledge graph">
               <defs>
                 <marker id="graph-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="strokeWidth">
                   <path d="M 0 0 L 8 4 L 0 8 z"></path>
@@ -70,6 +75,23 @@
             </svg>
             <div id="graph-legend" class="graph-legend"></div>
           </section>
+          <section class="panel derivation-panel">
+            <div class="section-heading">
+              <div>
+                <h3 data-i18n="derivation.title">Derived knowledge proposals</h3>
+                <p id="derivation-help" class="graph-help" data-i18n="derivation.noSource">Choose a source device to find reviewable conclusions.</p>
+              </div>
+              <span id="find-derivation-proposals-hint" data-i18n-title="derivation.noSource" title="Choose a source device to find reviewable conclusions."><button id="find-derivation-proposals" type="button" data-i18n="derivation.find" disabled>Find proposals</button></span>
+            </div>
+          </section>
+          <dialog id="derivation-proposals-dialog" class="derivation-dialog" aria-labelledby="derivation-dialog-title">
+            <div class="section-heading">
+              <h3 id="derivation-dialog-title" data-i18n="derivation.title">Derived knowledge proposals</h3>
+              <button id="close-derivation-proposals" type="button" data-i18n="actions.close">Close</button>
+            </div>
+            <p id="derivation-feedback" class="derivation-feedback" role="status"></p>
+            <div id="derivation-proposal-list" class="item-list"></div>
+          </dialog>
           <div class="graph-grid">
             <section class="panel graph-panel"><h3 data-i18n="summary.nodes">Nodes</h3><div id="node-list"></div></section>
             <section class="panel graph-panel"><h3 data-i18n="summary.relations">Relations</h3><div id="relation-list"></div></section>

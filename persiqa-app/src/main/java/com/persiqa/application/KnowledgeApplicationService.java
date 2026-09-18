@@ -26,10 +26,15 @@ public class KnowledgeApplicationService {
 
   private final CanonicalStore store;
   private final StatementFirstRecording recording;
+  private final RefinementBindingService refinements;
 
-  public KnowledgeApplicationService(CanonicalStore store, StatementFirstRecording recording) {
+  public KnowledgeApplicationService(
+      CanonicalStore store,
+      StatementFirstRecording recording,
+      RefinementBindingService refinements) {
     this.store = store;
     this.recording = recording;
+    this.refinements = refinements;
   }
 
   /** Creates one named CKM scope owned by the given subject. */
@@ -262,6 +267,9 @@ public class KnowledgeApplicationService {
         prepared.relation(),
         canonicalizationMode,
         ASSERTION_POLICY);
+    if (prepared.statement().knowledgeKind() == KnowledgeKind.EXPLICIT) {
+      refinements.detectAndBind(scopeId);
+    }
     return new RelationRecord(prepared.statement(), prepared.relation());
   }
 

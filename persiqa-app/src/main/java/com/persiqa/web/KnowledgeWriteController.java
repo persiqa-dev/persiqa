@@ -1,6 +1,8 @@
 package com.persiqa.web;
 
+import com.persiqa.application.DerivationProposalService;
 import com.persiqa.application.KnowledgeApplicationService;
+import com.persiqa.application.TopologyProjectionService.Direction;
 import com.persiqa.core.ScopeAccessDeniedException;
 import com.persiqa.model.Ckm.Capability;
 import com.persiqa.model.Ckm.Concept;
@@ -10,11 +12,13 @@ import com.persiqa.model.Ckm.Kind;
 import com.persiqa.model.Ckm.KnowledgeKind;
 import com.persiqa.model.Ckm.Node;
 import com.persiqa.model.Ckm.State;
+import com.persiqa.web.dto.KnowledgeDtos.DerivationProposalResponse;
 import com.persiqa.web.dto.KnowledgeDtos.NodeResponse;
 import com.persiqa.web.dto.KnowledgeDtos.RelationRecordResponse;
 import com.persiqa.web.dto.KnowledgeDtos.ScopeResponse;
 import com.persiqa.web.dto.KnowledgeMapper;
 import java.net.URI;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
@@ -22,10 +26,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -37,14 +43,17 @@ public class KnowledgeWriteController {
   private final KnowledgeApplicationService knowledge;
   private final CurrentSubject currentSubject;
   private final KnowledgeMapper mapper;
+  private final DerivationProposalService derivations;
 
   public KnowledgeWriteController(
       KnowledgeApplicationService knowledge,
       CurrentSubject currentSubject,
-      KnowledgeMapper mapper) {
+      KnowledgeMapper mapper,
+      DerivationProposalService derivations) {
     this.knowledge = knowledge;
     this.currentSubject = currentSubject;
     this.mapper = mapper;
+    this.derivations = derivations;
   }
 
   /** Creates a scope with a server-assigned persistence identity owned by the caller. */
@@ -92,6 +101,42 @@ public class KnowledgeWriteController {
             target,
             request.derivedFrom(),
             context);
+    return ResponseEntity.created(
+            URI.create("/api/scopes/" + scopeId + "/statements/" + record.statement().id()))
+        .body(mapper.toRelationRecord(record));
+  }
+
+  /** Lists reviewable transitive conclusions without writing derived knowledge. */
+  @GetMapping("/scopes/{scopeId}/semantic/derivation-proposals")
+  public List<DerivationProposalResponse> findDerivationProposals(
+      @PathVariable("scopeId") UUID scopeId,
+      @RequestParam("anchor") String anchor,
+      @RequestParam("relationType") String relationType,
+      @RequestParam(value = "direction", defaultValue = "DOWNSTREAM") Direction direction,
+      @RequestParam(value = "maxHops", defaultValue = "20") int maxHops) {
+    var subject = currentSubject.require();
+    requireScopeAccess(scopeId, subject);
+    return derivations.propose(scopeId, subject, anchor, relationType, direction, maxHops).stream()
+        .map(mapper::toDerivationProposal)
+        .toList();
+  }
+
+  /** Accepts one current proposal and records it as a normal derived Statement. */
+  @PostMapping("/scopes/{scopeId}/semantic/derivations")
+  public ResponseEntity<RelationRecordResponse> acceptDerivation(
+      @PathVariable("scopeId") UUID scopeId, @RequestBody DerivationAcceptanceRequest request) {
+    var subject = currentSubject.require();
+    requireScopeAccess(scopeId, subject);
+    var record =
+        derivations.accept(
+            scopeId,
+            subject,
+            request.anchor(),
+            request.reachable(),
+            request.relationType(),
+            Objects.requireNonNullElse(request.direction(), Direction.DOWNSTREAM),
+            Objects.requireNonNullElse(request.maxHops(), 20),
+            Objects.requireNonNullElseGet(request.context(), Context::unspecified));
     return ResponseEntity.created(
             URI.create("/api/scopes/" + scopeId + "/statements/" + record.statement().id()))
         .body(mapper.toRelationRecord(record));
@@ -184,6 +229,27 @@ public class KnowledgeWriteController {
       source = Objects.requireNonNull(source, "source is required");
       target = Objects.requireNonNull(target, "target is required");
       derivedFrom = Set.copyOf(Objects.requireNonNullElse(derivedFrom, Set.of()));
+    }
+  }
+
+  /** Identifies one currently reviewable semantic derivation proposal to accept. */
+  public record DerivationAcceptanceRequest(
+      String anchor,
+      String reachable,
+      String relationType,
+      Direction direction,
+      Integer maxHops,
+      Context context) {
+    public DerivationAcceptanceRequest {
+      if (anchor == null || anchor.isBlank()) {
+        throw new IllegalArgumentException("anchor is required");
+      }
+      if (reachable == null || reachable.isBlank()) {
+        throw new IllegalArgumentException("reachable is required");
+      }
+      if (relationType == null || relationType.isBlank()) {
+        throw new IllegalArgumentException("relationType is required");
+      }
     }
   }
 

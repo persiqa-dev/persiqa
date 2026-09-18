@@ -1,5 +1,6 @@
 package com.persiqa.web.dto;
 
+import com.persiqa.application.TopologyProjectionService.Direction;
 import com.persiqa.model.Ckm.Kind;
 import com.persiqa.model.Ckm.KnowledgeKind;
 import java.math.BigDecimal;
@@ -37,6 +38,47 @@ public final class KnowledgeDtos {
       List<NodeResponse> nodes,
       List<RelationResponse> relations,
       List<StatementResponse> statements) {}
+
+  /** Server-calculated display projection; it does not create canonical CKM knowledge. */
+  public record TopologyProjectionResponse(
+      List<TopologyNodeResponse> nodes, List<TopologyEdgeResponse> edges) {}
+
+  public record TopologyNodeResponse(
+      NodeResponse node, int depth, boolean anchor, boolean terminal) {}
+
+  public record TopologyEdgeResponse(
+      NodeResponse source,
+      NodeResponse target,
+      String relationType,
+      boolean virtual,
+      int hopCount,
+      int hiddenNodeCount,
+      List<String> supportingRelationIds) {}
+
+  /** Auditable result of a read-only semantic traversal. */
+  public record SemanticTraversalResponse(
+      NodeResponse anchor,
+      String relationType,
+      Direction direction,
+      int maxHops,
+      boolean truncated,
+      List<SemanticMatchResponse> matches) {}
+
+  public record SemanticMatchResponse(
+      NodeResponse target, int hops, List<SemanticStepResponse> witness) {}
+
+  public record SemanticStepResponse(
+      RelationResponse relation, List<StatementResponse> supportingStatements) {}
+
+  /** A reviewable, non-persisted derived-knowledge conclusion. */
+  public record DerivationProposalResponse(
+      NodeResponse reachable,
+      NodeResponse source,
+      NodeResponse target,
+      String relationType,
+      int hops,
+      List<String> evidenceStatementIds,
+      List<String> supportingRelationIds) {}
 
   /**
    * Statement assertion including its original knowledge context.

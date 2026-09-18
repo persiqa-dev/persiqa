@@ -50,7 +50,7 @@ public final class RelationRegistry {
             "supplies", Set.of(Kind.ENTITY), Set.of(Kind.ENTITY), false, "none", true));
     register(
         new RelationType(
-            "dependsOn", Set.of(Kind.ENTITY), Set.of(Kind.ENTITY), false, "none", false));
+            "dependsOn", Set.of(Kind.ENTITY), Set.of(Kind.ENTITY), false, "none", true));
     register(
         new RelationType(
             "hostedOn", Set.of(Kind.ENTITY), Set.of(Kind.ENTITY), false, "hosts", false));

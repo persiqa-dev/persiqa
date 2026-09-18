@@ -31,6 +31,10 @@ public class RefinementBindingDetailEntity {
     this.relationId = relationId;
   }
 
+  public UUID relationId() {
+    return relationId;
+  }
+
   public static class Key implements Serializable {
     private UUID bindingId;
     private int ordinal;

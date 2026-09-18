@@ -27,6 +27,12 @@ public class RefinementBindingEntity {
   @Column(name = "declared_at", nullable = false)
   private Instant declaredAt;
 
+  @Column(name = "invalidated_at")
+  private Instant invalidatedAt;
+
+  @Column(name = "invalidated_reason")
+  private String invalidatedReason;
+
   protected RefinementBindingEntity() {}
 
   public RefinementBindingEntity(
@@ -36,5 +42,28 @@ public class RefinementBindingEntity {
     this.coarseRelationId = coarseRelationId;
     this.declaredBy = declaredBy;
     this.declaredAt = declaredAt;
+  }
+
+  public UUID id() {
+    return id;
+  }
+
+  public UUID scopeId() {
+    return scopeId;
+  }
+
+  public UUID coarseRelationId() {
+    return coarseRelationId;
+  }
+
+  public boolean active() {
+    return invalidatedAt == null;
+  }
+
+  public void invalidate(String reason) {
+    if (invalidatedAt == null) {
+      invalidatedAt = Instant.now();
+      invalidatedReason = reason;
+    }
   }
 }

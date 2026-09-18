@@ -16,8 +16,9 @@ model.
 It is especially intended for progressive-refinement cases. A coarse assertion
 and the more detailed path discovered later MAY both remain canonical knowledge,
 while a selected representation shows only the resolution appropriate to the
-reader's current view. The first projection strategy SHALL be runtime
-aggregation over declared Relation Type composition rules.
+reader's current view. A detailed projection SHALL use a persisted Refinement
+Binding; it SHALL NOT silently guess that a merely connected path supersedes a
+coarse Relation.
 
 ## 2. Separation from canonical knowledge
 
@@ -53,6 +54,12 @@ Each profile SHALL identify:
 The profile itself is not a new Core object. A persistence implementation MAY
 store it as application configuration. It SHALL keep it separate from
 canonical Relation and Statement storage.
+
+An application MAY provide system-defined profiles without persisting them. The
+initial Persiqa client provides `ELECTRICAL_SUPPLY`, which selects directed
+`supplies` Relations and presents their root-to-terminal forest in layers, and
+`DEPENDENCY`, which does the same for `dependsOn`. These are representation
+choices; they SHALL NOT create a topology-specific CKM primitive.
 
 The initial resolution vocabulary is:
 
@@ -119,6 +126,28 @@ The binding declares display substitutability only. It SHALL NOT assert that the
 coarse Relation is false, obsolete, deleted, derived, or identical to any
 detailed Relation.
 
+### 5.1 Automatic binding detection
+
+After recording a composable Relation, the write service SHALL evaluate the
+scope for an automatic binding. It SHALL create one only when all of the
+following hold:
+
+1. a canonical coarse Relation and an alternative, ordered path have the same
+   Relation Type and endpoints;
+2. the alternative path contains at least two Relations, is acyclic, and stays
+   within the same scope;
+3. the Relation Type registry declares that type composable; and
+4. exactly one such alternative path exists.
+
+The service SHALL persist the binding and every detailed Relation identity in
+order, together with a stable system declarer and timestamp. If no qualifying
+path exists, or two or more qualifying paths exist, it SHALL create no automatic
+binding. The coarse Relation then remains visible in detailed projections.
+
+This rule deliberately recognizes only the unambiguous progressive-knowledge
+case. Choosing between competing physical routes requires an explicit,
+authorized binding in a later API.
+
 ## 6. Projection rules
 
 For every Relation selected by a profile, a conforming projection SHALL apply
@@ -128,7 +157,9 @@ these rules in order:
 2. At `OVERVIEW`, the engine MAY replace an eligible composable path with a
    virtual summary edge and omit its intermediate nodes.
 3. At `DETAIL`, include the canonical path Relations and intermediate nodes.
-4. An applicable Refinement Binding MAY override the runtime path selection.
+4. At `DETAIL`, an applicable persisted Refinement Binding SHALL replace its
+   coarse Relation with its ordered detailed Relations. The engine SHALL NOT
+   make that substitution from graph reachability alone.
 5. If multiple bindings or paths apply, the implementation SHALL either select a
    user-declared binding or show `COMPLETE`; it SHALL NOT choose silently from
    ambiguous alternatives.
@@ -136,6 +167,24 @@ these rules in order:
 Omitted topology SHALL remain reachable through the Relation and Statement
 inspectors. A representation SHOULD indicate that more or less detail is
 available, without fabricating semantic facts.
+
+### 6.1 Selected endpoint path
+
+When a representation is requested for a selected source and destination, it
+SHALL return one ordered witness path, rather than the union of every path that
+happens to connect the same endpoints. The source SHALL be the first node and
+the destination SHALL be the final node in the requested direction.
+
+Before selecting that witness, the projection SHALL apply applicable Refinement
+Bindings. A Relation supported only by `DERIVED` Statements SHALL NOT be used
+as a topology edge when its evidence path is available: it is a valid canonical
+semantic conclusion, but rendering it beside its explicit evidence would create
+a misleading shortcut. Such Relations remain queryable and inspectable.
+
+If several admissible explicit paths remain, the implementation MAY select a
+stable deterministic witness for this endpoint-path representation. It SHALL
+not treat that selection as a new canonical fact, a Refinement Binding, or a
+claim that the non-selected paths are false.
 
 ## 7. Zoom interaction
 
@@ -194,15 +243,16 @@ crosses scope boundaries, has a discontinuous path, or violates a declared
 composition policy.
 
 When canonical knowledge changes and makes a formerly valid binding invalid,
-the implementation SHALL retain the canonical knowledge. It SHALL mark the
-binding unusable and fall back to `COMPLETE` until a user or authorized process
-repairs it.
+the implementation SHALL retain the canonical knowledge and its audit trail. It
+SHALL persist an invalidation timestamp and reason, exclude that binding from
+detailed projections, and fall back to `COMPLETE` until a user or authorized
+process repairs it.
 
 ## 10. Open questions
 
 The following remain deliberately open:
 
-1. persistence and REST contract for Representation Profiles and Refinement
+1. REST contract for manually managing Representation Profiles and Refinement
    Bindings;
 2. authorization and sharing rules for user, team, and system profiles;
 3. support for branching or alternative detailed paths;

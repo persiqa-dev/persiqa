@@ -43,7 +43,17 @@ const translations = {
     "graph.reset": "Reset view", "graph.node": "Node details", "graph.incoming": "Incoming Relations",
     "graph.outgoing": "Outgoing Relations", "graph.empty": "No graph elements recorded yet.",
     "graph.explicitCount": "E: {count}", "graph.derivedCount": "D: {count}",
-    "graph.state": "State: {value}", "graph.moreDetail": "+{count} detail"
+    "graph.state": "State: {value}", "graph.moreDetail": "+{count} detail",
+    "graph.topology": "Topology", "graph.topologyElectrical": "Electrical supply", "graph.topologyDependency": "Dependencies",
+    "graph.additionalRelation": "Additional relation",
+    "graph.layout": "Layout", "graph.layoutLeftToRight": "Left to right", "graph.layoutTopToBottom": "Top to bottom",
+    "graph.source": "Source device", "graph.sourceHint": "Choose MainSwitch-01", "graph.destination": "Destination device", "graph.destinationHint": "Choose ElectricBoiler-01", "graph.direction": "Direction", "graph.downstream": "Downstream", "graph.upstream": "Upstream",
+    "derivation.title": "Derived knowledge proposals", "derivation.noSource": "Choose a source device to find reviewable conclusions.",
+    "derivation.ready": "Find conclusions supported by the selected semantic path.", "derivation.find": "Find proposals",
+    "derivation.none": "No new derived conclusions are available.", "derivation.hops": "{count} hops",
+    "derivation.evidence": "Evidence: {ids}", "derivation.accept": "Record as derived",
+    "derivation.found": "Found {count} reviewable proposals.",
+    "derivation.accepted": "Recorded derived statement {statement}."
   },
   hu: {
     "app.title": "Kanonikus tudásmodell", "language.label": "Nyelv",
@@ -89,12 +99,24 @@ const translations = {
     "graph.reset": "Nézet alaphelyzetbe", "graph.node": "Csomópont részletei", "graph.incoming": "Bejövő kapcsolatok",
     "graph.outgoing": "Kimenő kapcsolatok", "graph.empty": "Még nincs megjeleníthető gráfelem.",
     "graph.explicitCount": "E: {count}", "graph.derivedCount": "Sz: {count}",
-    "graph.state": "Állapot: {value}", "graph.moreDetail": "+{count} részlet"
+    "graph.state": "Állapot: {value}", "graph.moreDetail": "+{count} részlet",
+    "graph.topology": "Topológia", "graph.topologyElectrical": "Elektromos ellátás", "graph.topologyDependency": "Függőségek",
+    "graph.additionalRelation": "További kapcsolat",
+    "graph.layout": "Elrendezés", "graph.layoutLeftToRight": "Balról jobbra", "graph.layoutTopToBottom": "Fentről lefelé",
+    "graph.source": "Forrás eszköz", "graph.sourceHint": "Válaszd ki: MainSwitch-01", "graph.destination": "Cél eszköz", "graph.destinationHint": "Válaszd ki: ElectricBoiler-01", "graph.direction": "Irány", "graph.downstream": "Leszálló", "graph.upstream": "Felszálló",
+    "derivation.title": "Származtatott tudásjavaslatok", "derivation.noSource": "Válassz forrás eszközt az ellenőrizhető következtetések kereséséhez.",
+    "derivation.ready": "Keress a kiválasztott szemantikus út által alátámasztott következtetéseket.", "derivation.find": "Javaslatok keresése",
+    "derivation.none": "Nincs új rögzíthető származtatott következtetés.", "derivation.hops": "{count} lépés",
+    "derivation.evidence": "Bizonyíték: {ids}", "derivation.accept": "Rögzítés származtatottként",
+    "derivation.found": "{count} ellenőrizhető javaslat található.",
+    "derivation.accepted": "A(z) {statement} származtatott állítás rögzítve."
   }
 };
 
 const state = {
   authorization: null, scopeId: null, relationTypes: [], endpointKinds: new Map(), knowledge: null,
+  graphProfile: "ELECTRICAL_SUPPLY", graphLayout: "LEFT_TO_RIGHT", graphSource: null, graphDestination: null, graphDestinations: [], graphDirection: "DOWNSTREAM", graphTopology: null,
+  derivationProposals: [], derivationQueried: false,
   language: localStorage.getItem("persiqa.language") || navigator.language?.slice(0, 2) || "en"
 };
 
@@ -108,6 +130,13 @@ const inspectorContent = document.querySelector("#inspector-content");
 const graphSvg = document.querySelector("#knowledge-graph");
 const graphViewport = document.querySelector("#graph-viewport");
 const graphLegend = document.querySelector("#graph-legend");
+const derivationHelp = document.querySelector("#derivation-help");
+const derivationProposalList = document.querySelector("#derivation-proposal-list");
+const findDerivationProposalsButton = document.querySelector("#find-derivation-proposals");
+const findDerivationProposalsHint = document.querySelector("#find-derivation-proposals-hint");
+const derivationProposalsDialog = document.querySelector("#derivation-proposals-dialog");
+const closeDerivationProposalsButton = document.querySelector("#close-derivation-proposals");
+const derivationFeedback = document.querySelector("#derivation-feedback");
 const graphState = {
   x: 0, y: 0, scale: 1, dragging: null, nodeDragging: null,
   suppressClickNodeId: null, updateEdges: null
@@ -127,6 +156,12 @@ function relationTypeLabel(typeId) {
   return translations[state.language][key] || typeId;
 }
 
+function graphProfile() {
+  return state.graphProfile === "DEPENDENCY"
+    ? { relationType: "dependsOn", direction: "DOWNSTREAM" }
+    : { relationType: "supplies", direction: "DOWNSTREAM" };
+}
+
 function applyTranslations() {
   document.documentElement.lang = state.language;
   document.querySelector("#language").value = state.language;
@@ -141,6 +176,7 @@ function applyTranslations() {
   populateNodeKinds();
   renderRelationTypes();
   if (state.knowledge) renderKnowledgeGraph(state.knowledge);
+  renderDerivationProposals();
 }
 
 function showStatus(message, error = false) {
@@ -255,9 +291,12 @@ function renderRelationTypes() {
   relationType.value = selected || state.relationTypes[0]?.id || "";
 }
 
-function renderKnowledge(knowledge) {
+function renderKnowledge(knowledge, preserveDerivationProposals = false) {
   state.knowledge = knowledge;
+  state.graphTopology = null;
+  if (!preserveDerivationProposals) clearDerivationProposals();
   renderEndpointOptions(knowledge);
+  renderGraphSources(knowledge);
   document.querySelector("#scope-title").textContent = knowledge.scope.name;
   const summary = document.querySelector("#graph-summary");
   summary.replaceChildren();
@@ -284,6 +323,104 @@ function renderKnowledge(knowledge) {
   renderKnowledgeGraph(knowledge);
 }
 
+function clearDerivationProposals() {
+  derivationProposalsDialog.close();
+  derivationFeedback.textContent = "";
+  state.derivationProposals = [];
+  state.derivationQueried = false;
+  renderDerivationProposals();
+}
+
+function renderDerivationProposals() {
+  const canQuery = Boolean(state.scopeId && state.graphSource);
+  findDerivationProposalsButton.disabled = !canQuery;
+  findDerivationProposalsHint.title = canQuery ? "" : t("derivation.noSource");
+  derivationHelp.textContent = t(canQuery ? "derivation.ready" : "derivation.noSource");
+  derivationProposalList.replaceChildren();
+  if (!canQuery || !state.derivationQueried) return;
+  if (state.derivationProposals.length === 0) {
+    derivationProposalList.textContent = t("derivation.none");
+    return;
+  }
+  state.derivationProposals.forEach((proposal) => {
+    const item = document.createElement("div");
+    item.className = "item derivation-proposal";
+    const title = document.createElement("strong");
+    title.textContent = `${proposal.source.id} —${relationTypeLabel(proposal.relationType)}→ ${proposal.target.id}`;
+    const hops = document.createElement("span");
+    hops.textContent = t("derivation.hops", { count: proposal.hops });
+    const evidence = document.createElement("span");
+    evidence.textContent = t("derivation.evidence", { ids: proposal.evidenceStatementIds.join(", ") });
+    const accept = document.createElement("button");
+    accept.type = "button";
+    accept.textContent = t("derivation.accept");
+    accept.addEventListener("click", () => acceptDerivationProposal(proposal, accept).catch(report));
+    item.append(title, hops, evidence, accept);
+    derivationProposalList.append(item);
+  });
+}
+
+async function loadDerivationProposals() {
+  if (!state.scopeId || !state.graphSource) {
+    showStatus(t("derivation.noSource"), true);
+    return;
+  }
+  findDerivationProposalsButton.disabled = true;
+  try {
+    const query = new URLSearchParams({
+      anchor: state.graphSource,
+      relationType: graphProfile().relationType,
+      direction: state.graphDirection,
+      maxHops: "20"
+    });
+    state.derivationProposals = await request(
+      `/api/scopes/${state.scopeId}/semantic/derivation-proposals?${query}`);
+    state.derivationQueried = true;
+    renderDerivationProposals();
+    derivationProposalsDialog.showModal();
+    showStatus(t("derivation.found", { count: state.derivationProposals.length }));
+  } finally {
+    findDerivationProposalsButton.disabled = false;
+  }
+}
+
+async function acceptDerivationProposal(proposal, button) {
+  button.disabled = true;
+  try {
+    const record = await request(`/api/scopes/${state.scopeId}/semantic/derivations`, {
+      method: "POST",
+      body: JSON.stringify({
+        anchor: state.graphSource,
+        reachable: proposal.reachable.id,
+        relationType: proposal.relationType,
+        direction: state.graphDirection,
+        maxHops: 20
+      })
+    });
+    state.derivationProposals = state.derivationProposals.filter((candidate) => candidate !== proposal);
+    await loadKnowledge(true);
+    renderDerivationProposals();
+    derivationFeedback.textContent = t("derivation.accepted", { statement: record.statement.id });
+    showStatus(t("derivation.accepted", { statement: record.statement.id }));
+  } catch (error) {
+    button.disabled = false;
+    throw error;
+  }
+}
+
+function renderGraphSources(knowledge) {
+  const options = document.querySelector("#graph-source-options");
+  options.replaceChildren();
+  graphNodes(knowledge, knowledge.relations.filter((relation) => relation.type.id === graphProfile().relationType))
+    .filter((node) => node.kind === "ENTITY")
+    .forEach((node) => {
+      const option = document.createElement("option");
+      option.value = node.id;
+      options.append(option);
+    });
+  document.querySelector("#graph-source").value = state.graphSource || "";
+}
+
 function svgElement(name, attributes = {}) {
   const element = document.createElementNS(svgNamespace, name);
   Object.entries(attributes).forEach(([key, value]) => element.setAttribute(key, value));
@@ -296,8 +433,9 @@ function relationColor(typeId) {
   return palette[value % palette.length];
 }
 
-function graphNodes(knowledge, topologyRelations) {
+function graphNodes(knowledge, topologyRelations, visibleNodeIds = null) {
   const nodes = new Map(knowledge.nodes
+    .filter((node) => !visibleNodeIds || visibleNodeIds.has(node.id))
     .filter((node) => node.kind !== "STATE")
     .map((node) => [node.id, node]));
   topologyRelations.forEach((relation) => {
@@ -307,6 +445,22 @@ function graphNodes(knowledge, topologyRelations) {
   return [...nodes.values()]
     .filter((node) => node.kind !== "STATE")
     .sort((left, right) => left.id.localeCompare(right.id));
+}
+
+function reachableSupplies(anchorId, relations, direction) {
+  const visibleNodeIds = new Set([anchorId]);
+  const pending = [anchorId];
+  while (pending.length > 0) {
+    const sourceId = pending.shift();
+    relations.filter((relation) => (direction === "DOWNSTREAM" ? relation.source.id : relation.target.id) === sourceId).forEach((relation) => {
+      const nextId = direction === "DOWNSTREAM" ? relation.target.id : relation.source.id;
+      if (!visibleNodeIds.has(nextId)) {
+        visibleNodeIds.add(nextId);
+        pending.push(nextId);
+      }
+    });
+  }
+  return visibleNodeIds;
 }
 
 function statesByEntity(relations) {
@@ -363,7 +517,22 @@ function saveGraphPosition(nodeId, position) {
   localStorage.setItem(graphLayoutKey(), JSON.stringify(positions));
 }
 
-function graphPositions(nodes) {
+function graphPositions(nodes, depths = null) {
+  if (depths) {
+    const levels = new Map();
+    nodes.forEach((node) => {
+      const depth = depths.get(node.id) ?? 0;
+      const level = levels.get(depth) || [];
+      level.push(node);
+      levels.set(depth, level);
+    });
+    return new Map(nodes.map((node) => {
+      const depth = depths.get(node.id) ?? 0;
+      const level = levels.get(depth);
+      const index = level.indexOf(node);
+      return [node.id, { x: ((index + 1) * 1000) / (level.length + 1), y: 80 + (depth * 105) }];
+    }));
+  }
   const centerX = 500;
   const centerY = 300;
   const radius = Math.max(120, Math.min(230, 38 * nodes.length));
@@ -378,10 +547,144 @@ function graphPositions(nodes) {
   return generated;
 }
 
+function topologyTreeLayout(nodes, relations, projection, orientation) {
+  const depths = projection.depths;
+  const children = new Map(nodes.map((node) => [node.id, []]));
+  const primaryRelationIds = new Set();
+  const primaryParents = new Set();
+
+  // A projection may be a DAG. For the layout we make its deterministic spanning forest
+  // explicit: each node gets the closest eligible predecessor as its visual parent.
+  const parentCandidates = [...relations]
+    .filter((relation) => depths.has(relation.source.id) && depths.has(relation.target.id))
+    .filter((relation) => (depths.get(relation.source.id) ?? 0) < (depths.get(relation.target.id) ?? 0))
+    .sort((left, right) => {
+      const target = left.target.id.localeCompare(right.target.id);
+      if (target !== 0) return target;
+      const leftDistance = depths.get(left.target.id) - depths.get(left.source.id);
+      const rightDistance = depths.get(right.target.id) - depths.get(right.source.id);
+      return leftDistance - rightDistance || left.source.id.localeCompare(right.source.id)
+        || left.id.localeCompare(right.id);
+    });
+  parentCandidates.forEach((relation) => {
+    if (primaryParents.has(relation.target.id)) return;
+    primaryParents.add(relation.target.id);
+    primaryRelationIds.add(relation.id);
+    children.get(relation.source.id).push(relation.target.id);
+  });
+  children.forEach((childIds) => childIds.sort((left, right) => left.localeCompare(right)));
+
+  const roots = nodes
+    .filter((node) => !primaryParents.has(node.id))
+    .sort((left, right) => (depths.get(left.id) - depths.get(right.id)) || left.id.localeCompare(right.id));
+  const positions = new Map();
+  const placed = new Set();
+  let nextLeaf = 0;
+  const place = (nodeId) => {
+    if (placed.has(nodeId)) return positions.get(nodeId).row;
+    placed.add(nodeId);
+    const childRows = children.get(nodeId)
+      .filter((childId) => !placed.has(childId))
+      .map(place);
+    const row = childRows.length === 0
+      ? nextLeaf++
+      : (childRows[0] + childRows[childRows.length - 1]) / 2;
+    positions.set(nodeId, { row });
+    return row;
+  };
+  roots.forEach((node) => place(node.id));
+  nodes.filter((node) => !placed.has(node.id)).sort((left, right) => left.id.localeCompare(right.id))
+    .forEach((node) => place(node.id));
+
+  const maximumDepth = Math.max(...nodes.map((node) => depths.get(node.id) ?? 0));
+  const rowCount = Math.max(1, nextLeaf);
+  const vertical = orientation === "TOP_TO_BOTTOM";
+  const canvasWidth = vertical ? Math.max(1000, 180 + ((rowCount - 1) * 180)) : 1000;
+  const canvasHeight = vertical ? 1000 : Math.max(800, 180 + ((rowCount - 1) * 150));
+  positions.forEach((position, nodeId) => {
+    positions.set(nodeId, {
+      x: vertical
+        ? 90 + (position.row * 180)
+        : 100 + ((800 * (depths.get(nodeId) ?? 0)) / Math.max(1, maximumDepth)),
+      y: vertical
+        ? 100 + ((800 * (depths.get(nodeId) ?? 0)) / Math.max(1, maximumDepth))
+        : 90 + (position.row * 150)
+    });
+  });
+  return { positions, primaryRelationIds, canvasWidth, canvasHeight };
+}
+
+function configureGraphCanvas(canvasWidth, canvasHeight) {
+  graphSvg.setAttribute("viewBox", `0 0 ${canvasWidth} ${canvasHeight}`);
+}
+
+function orthogonalEdge(source, target, busY = null) {
+  if (source.x === target.x) {
+    return {
+      points: `${source.x},${source.y} ${target.x},${target.y}`,
+      labelX: source.x,
+      labelY: (source.y + target.y) / 2
+    };
+  }
+  const middleY = busY ?? (source.y + target.y) / 2;
+  return {
+    points: `${source.x},${source.y} ${source.x},${middleY} ${target.x},${middleY} ${target.x},${target.y}`,
+    labelX: (source.x + target.x) / 2,
+    labelY: middleY
+  };
+}
+
+function straightEdge(source, target) {
+  return {
+    points: `${source.x},${source.y} ${target.x},${target.y}`,
+    labelX: (source.x + target.x) / 2,
+    labelY: (source.y + target.y) / 2
+  };
+}
+
+function nodeLabelLines(identity) {
+  const words = identity
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/-(?=\d)/g, " ")
+    .split(/[\s_-]+/)
+    .filter(Boolean);
+  if (words.length < 3) return [words.join("-")];
+  const midpoint = Math.ceil(words.length / 2);
+  return [words.slice(0, midpoint).join(" "), words.slice(midpoint).join("-")];
+}
+
+function appendNodeLabel(label, identity) {
+  const lines = nodeLabelLines(identity);
+  lines.forEach((line, index) => {
+    const part = svgElement("tspan", { x: "0", dy: index === 0 ? -6 * (lines.length - 1) : "12" });
+    part.textContent = line;
+    label.append(part);
+  });
+  return lines.length;
+}
+
+function supplyTree(anchorId, relations, direction) {
+  const depths = new Map([[anchorId, 0]]);
+  const pending = [anchorId];
+  while (pending.length > 0) {
+    const current = pending.shift();
+    relations.filter((relation) => (direction === "DOWNSTREAM" ? relation.source.id : relation.target.id) === current)
+      .forEach((relation) => {
+        const next = direction === "DOWNSTREAM" ? relation.target.id : relation.source.id;
+        if (!depths.has(next)) {
+          depths.set(next, depths.get(current) + 1);
+          pending.push(next);
+        }
+      });
+  }
+  const terminals = new Set([...depths.keys()].filter((nodeId) => !relations.some((relation) =>
+    (direction === "DOWNSTREAM" ? relation.source.id : relation.target.id) === nodeId)));
+  return { depths, terminals };
+}
+
 function updateGraphTransform() {
   graphViewport.setAttribute("transform", `translate(${graphState.x} ${graphState.y}) scale(${graphState.scale})`);
-  graphSvg.classList.toggle("semantic-overview", graphState.scale < 0.75);
-  graphSvg.classList.toggle("semantic-detail", graphState.scale >= 1.35);
+  graphSvg.classList.remove("semantic-overview", "semantic-detail");
 }
 
 function resetGraphView() {
@@ -394,10 +697,30 @@ function resetGraphView() {
 function renderKnowledgeGraph(knowledge) {
   graphViewport.replaceChildren();
   graphLegend.replaceChildren();
-  const topologyRelations = knowledge.relations.filter((relation) => relation.type.id !== "hasState");
+  const serverTopology = state.graphTopology;
+  const supplyRelations = knowledge.relations.filter((relation) => relation.type.id === "supplies");
+  const projection = serverTopology
+    ? {
+      depths: new Map(serverTopology.nodes.map((entry) => [entry.node.id, entry.depth])),
+      terminals: new Set(serverTopology.nodes.filter((entry) => entry.terminal).map((entry) => entry.node.id))
+    }
+    : null;
+  const visibleNodeIds = projection ? new Set(projection.depths.keys()) : null;
+  const topologyRelations = serverTopology
+    ? serverTopology.edges.map((edge, index) => ({
+      id: edge.virtual ? `virtual-${index}` : edge.supportingRelationIds[0],
+      type: { id: edge.relationType }, source: edge.source, target: edge.target,
+      virtual: edge.virtual, hiddenNodeCount: edge.hiddenNodeCount,
+      supportingRelationIds: edge.supportingRelationIds
+    }))
+    : knowledge.relations.filter((relation) => relation.type.id !== "hasState");
   const states = statesByEntity(knowledge.relations);
-  const refinement = suppliesRefinementProjection(topologyRelations);
-  const nodes = graphNodes(knowledge, topologyRelations);
+  const refinement = serverTopology
+    ? { overviewRelationIds: new Set(), detailRelationIds: new Set(), detailNodeIds: new Set(), detailCounts: new Map() }
+    : suppliesRefinementProjection(topologyRelations);
+  const nodes = serverTopology
+    ? serverTopology.nodes.map((entry) => entry.node)
+    : graphNodes(knowledge, topologyRelations, visibleNodeIds);
   if (nodes.length === 0) {
     const message = svgElement("text", { x: "500", y: "300", "text-anchor": "middle", fill: "#aebbd0" });
     message.textContent = t("graph.empty");
@@ -405,7 +728,11 @@ function renderKnowledgeGraph(knowledge) {
     resetGraphView();
     return;
   }
-  const positions = graphPositions(nodes);
+  const layout = serverTopology
+    ? topologyTreeLayout(nodes, topologyRelations, projection, state.graphLayout)
+    : { positions: graphPositions(nodes, projection?.depths) };
+  configureGraphCanvas(layout.canvasWidth ?? 1000, layout.canvasHeight ?? 800);
+  const positions = layout.positions;
   const edgeElements = new Map();
   const relationTypes = [...new Set(topologyRelations.map((relation) => relation.type.id))].sort();
   relationTypes.forEach((typeId) => {
@@ -415,69 +742,117 @@ function renderKnowledgeGraph(knowledge) {
     item.append(marker, document.createTextNode(relationTypeLabel(typeId)));
     graphLegend.append(item);
   });
+  if (serverTopology && topologyRelations.some((relation) => !layout.primaryRelationIds.has(relation.id))) {
+    const item = document.createElement("span");
+    const marker = document.createElement("i");
+    marker.className = "graph-secondary-marker";
+    item.append(marker, document.createTextNode(t("graph.additionalRelation")));
+    graphLegend.append(item);
+  }
   topologyRelations.forEach((relation) => {
     const source = positions.get(relation.source.id);
     const target = positions.get(relation.target.id);
+    const geometry = serverTopology
+      ? straightEdge(source, target)
+      : orthogonalEdge(source, target);
     const resolutionClass = refinement.overviewRelationIds.has(relation.id)
       ? " graph-overview-relation"
       : refinement.detailRelationIds.has(relation.id) ? " graph-detail-relation" : "";
-    const edge = svgElement("line", {
-      class: `graph-edge${resolutionClass}`, x1: source.x, y1: source.y, x2: target.x, y2: target.y,
+    const treeClass = projection && !serverTopology
+      ? ` graph-tree-edge level-${projection.depths.get(relation.source.id)}` : "";
+    const secondaryClass = serverTopology && !layout.primaryRelationIds.has(relation.id)
+      ? " graph-secondary-edge" : "";
+    const edge = svgElement("polyline", {
+      class: `graph-edge${resolutionClass}${treeClass}${secondaryClass}`, points: geometry.points,
       stroke: relationColor(relation.type.id)
     });
     edge.addEventListener("click", (event) => {
       event.stopPropagation();
-      showRelationDetails(relation);
+      if (relation.virtual) showTopologyEdgeDetails(relation); else showRelationDetails(relation);
     });
     graphViewport.append(edge);
-    const label = svgElement("text", {
-      class: `graph-edge-label${resolutionClass}`, x: (source.x + target.x) / 2, y: (source.y + target.y) / 2 - 7
+    const label = serverTopology ? null : svgElement("text", {
+      class: `graph-edge-label${resolutionClass}`, x: geometry.labelX, y: geometry.labelY - 7
     });
-    label.textContent = relationTypeLabel(relation.type.id);
-    graphViewport.append(label);
+    if (label) {
+      label.textContent = relationTypeLabel(relation.type.id);
+      graphViewport.append(label);
+    }
     if (refinement.overviewRelationIds.has(relation.id)) {
       const hint = svgElement("text", {
-        class: "graph-edge-resolution-hint", x: (source.x + target.x) / 2, y: (source.y + target.y) / 2 + 12
+        class: "graph-edge-resolution-hint", x: geometry.labelX, y: geometry.labelY + 12
       });
       hint.textContent = t("graph.moreDetail", { count: refinement.detailCounts.get(relation.id) });
       graphViewport.append(hint);
     }
-    const detail = svgElement("text", {
-      class: `graph-edge-label graph-edge-detail${resolutionClass}`, x: (source.x + target.x) / 2, y: (source.y + target.y) / 2 + 8
+    if (relation.virtual) {
+      const hint = svgElement("text", {
+        class: "graph-edge-resolution-hint", x: geometry.labelX, y: geometry.labelY + 12
+      });
+      hint.textContent = t("graph.moreDetail", { count: relation.hiddenNodeCount });
+      graphViewport.append(hint);
+    }
+    const detail = serverTopology ? null : svgElement("text", {
+      class: `graph-edge-label graph-edge-detail${resolutionClass}`, x: geometry.labelX, y: geometry.labelY + 8
     });
-    const counts = statementCountsForRelation(relation, knowledge.statements);
-    detail.textContent = `${t("graph.explicitCount", { count: counts.explicit })} · ${t("graph.derivedCount", { count: counts.derived })}`;
-    graphViewport.append(detail);
+    if (detail) {
+      const counts = statementCountsForRelation(relation, knowledge.statements);
+      detail.textContent = `${t("graph.explicitCount", { count: counts.explicit })} · ${t("graph.derivedCount", { count: counts.derived })}`;
+      graphViewport.append(detail);
+    }
     edgeElements.set(relation.id, { edge, label, detail });
   });
+  if (projection && !serverTopology) {
+    projection.terminals.forEach((terminalId) => {
+      const depth = projection.depths.get(terminalId);
+      if (depth < 2) return;
+      const source = positions.get(state.graphSource);
+      const target = positions.get(terminalId);
+      const edge = svgElement("line", { class: "graph-edge graph-overview-virtual", x1: source.x, y1: source.y, x2: target.x, y2: target.y, stroke: "#fbbf24" });
+      const hint = svgElement("text", { class: "graph-edge-resolution-hint graph-overview-virtual", x: (source.x + target.x) / 2, y: (source.y + target.y) / 2 - 8 });
+      hint.textContent = t("graph.moreDetail", { count: depth - 1 });
+      graphViewport.append(edge, hint);
+    });
+  }
   graphState.updateEdges = () => {
     topologyRelations.forEach((relation) => {
       const source = positions.get(relation.source.id);
       const target = positions.get(relation.target.id);
+      const geometry = serverTopology
+        ? straightEdge(source, target)
+        : orthogonalEdge(source, target);
       const elements = edgeElements.get(relation.id);
-      elements.edge.setAttribute("x1", source.x);
-      elements.edge.setAttribute("y1", source.y);
-      elements.edge.setAttribute("x2", target.x);
-      elements.edge.setAttribute("y2", target.y);
-      elements.label.setAttribute("x", (source.x + target.x) / 2);
-      elements.label.setAttribute("y", (source.y + target.y) / 2 - 7);
-      elements.detail.setAttribute("x", (source.x + target.x) / 2);
-      elements.detail.setAttribute("y", (source.y + target.y) / 2 + 8);
+      elements.edge.setAttribute("points", geometry.points);
+      if (elements.label) {
+        elements.label.setAttribute("x", geometry.labelX);
+        elements.label.setAttribute("y", geometry.labelY - 7);
+      }
+      if (elements.detail) {
+        elements.detail.setAttribute("x", geometry.labelX);
+        elements.detail.setAttribute("y", geometry.labelY + 8);
+      }
     });
   };
   nodes.forEach((node) => {
     const position = positions.get(node.id);
     const resolutionClass = refinement.detailNodeIds.has(node.id) ? " graph-detail-node" : "";
-    const group = svgElement("g", { class: `graph-node${resolutionClass}`, transform: `translate(${position.x} ${position.y})`, tabindex: "0", role: "button" });
-    const circle = svgElement("circle", { r: "38" });
+    const treeClass = projection && !serverTopology && node.id !== state.graphSource && !projection.terminals.has(node.id)
+      ? ` graph-tree-intermediate level-${projection.depths.get(node.id)}` : "";
+    const pathClass = serverTopology ? " graph-path-node" : "";
+    const topologyRoleClass = serverTopology
+      ? `${serverTopology.nodes.find((entry) => entry.node.id === node.id)?.anchor ? " graph-anchor-node" : ""}${projection.terminals.has(node.id) ? " graph-terminal-node" : ""}`
+      : "";
+    const group = svgElement("g", { class: `graph-node${resolutionClass}${treeClass}${pathClass}${topologyRoleClass}`, transform: `translate(${position.x} ${position.y})`, tabindex: "0", role: "button" });
+    const circle = svgElement("circle", { r: serverTopology ? "50" : "38" });
     const label = svgElement("text", { y: "-3" });
-    label.textContent = node.id;
-    const kind = svgElement("text", { class: "node-kind-label", y: "15" });
+    const labelLines = serverTopology ? appendNodeLabel(label, node.id) : 1;
+    if (!serverTopology) label.textContent = node.id;
+    const kind = svgElement("text", { class: "node-kind-label", y: labelLines > 1 ? "20" : "15" });
     kind.textContent = kindLabel(node.kind);
     const counts = statementCountsForNode(node.id, knowledge.statements);
-    const knowledgeLabel = svgElement("text", { class: "node-knowledge-label", y: "29" });
+    const knowledgeLabel = svgElement("text", { class: "node-knowledge-label", y: "34" });
     knowledgeLabel.textContent = `${t("graph.explicitCount", { count: counts.explicit })} · ${t("graph.derivedCount", { count: counts.derived })}`;
-    const stateLabel = svgElement("text", { class: "node-state-label", y: "45" });
+    const stateLabel = svgElement("text", { class: "node-state-label", y: "39" });
     const stateIds = states.get(node.id);
     if (stateIds) stateLabel.textContent = t("graph.state", { value: stateIds.join(" · ") });
     const selectNode = (event) => {
@@ -502,11 +877,14 @@ function renderKnowledgeGraph(knowledge) {
     group.addEventListener("keydown", (event) => {
       if (event.key === "Enter" || event.key === " ") selectNode(event);
     });
-    group.append(circle, label, kind, knowledgeLabel);
+    const title = svgElement("title");
+    title.textContent = node.id;
+    group.append(title, circle, label, kind);
+    if (!serverTopology) group.append(knowledgeLabel);
     if (stateIds) group.append(stateLabel);
     graphViewport.append(group);
   });
-  resetGraphView();
+  updateGraphTransform();
 }
 
 function statementObjectId(statement) {
@@ -600,9 +978,55 @@ function endpointFrom(form, identityName, kindName) {
   return { id, kind: form.get(kindName) };
 }
 
-async function loadKnowledge() {
+async function loadKnowledge(preserveDerivationProposals = false) {
   if (!state.scopeId) return;
-  renderKnowledge(await request(`/api/scopes/${state.scopeId}/knowledge`));
+  renderKnowledge(
+    await request(`/api/scopes/${state.scopeId}/knowledge`),
+    preserveDerivationProposals);
+  if (state.graphSource && state.graphDestination) {
+    await loadTopologyPath();
+  } else if (state.graphSource) {
+    await loadAnchoredTopology();
+  } else {
+    await loadInitialTopology();
+  }
+}
+
+async function loadInitialTopology() {
+  if (!state.scopeId || state.graphSource) return;
+  const query = new URLSearchParams({ profile: state.graphProfile, direction: state.graphDirection });
+  state.graphTopology = await request(`/api/scopes/${state.scopeId}/topology/initial?${query}`);
+  renderKnowledgeGraph(state.knowledge);
+}
+
+async function loadAnchoredTopology() {
+  if (!state.scopeId || !state.graphSource || state.graphDestination) return;
+  const query = new URLSearchParams({
+    anchor: state.graphSource,
+    direction: state.graphDirection,
+    relationType: graphProfile().relationType,
+    detailLevel: "DETAIL"
+  });
+  state.graphTopology = await request(`/api/scopes/${state.scopeId}/topology?${query}`);
+  renderKnowledgeGraph(state.knowledge);
+}
+
+async function loadTopologyPath() {
+  if (!state.scopeId || !state.graphSource || !state.graphDestination) return;
+  const query = new URLSearchParams({
+    source: state.graphSource, destination: state.graphDestination,
+    direction: state.graphDirection, relationType: graphProfile().relationType
+  });
+  state.graphTopology = await request(`/api/scopes/${state.scopeId}/topology/path?${query}`);
+  renderKnowledgeGraph(state.knowledge);
+}
+
+function showTopologyEdgeDetails(relation) {
+  showInspector(`${relationTypeLabel(relation.type.id)}: ${t("graph.moreDetail", { count: relation.hiddenNodeCount })}`);
+  appendMetadata(inspectorContent, [
+    [t("statement.subject"), relation.source.id], [t("statement.object"), relation.target.id],
+    [t("inspector.supportingStatements"), relation.supportingRelationIds.join(", ")]
+  ]);
 }
 
 async function showRelationDetails(relation) {
@@ -715,6 +1139,83 @@ document.querySelector("#refresh-scopes").addEventListener("click", () => loadSc
 document.querySelector("#refresh-knowledge").addEventListener("click", () => loadKnowledge().catch(report));
 document.querySelector("#close-inspector").addEventListener("click", hideInspector);
 document.querySelector("#reset-graph-view").addEventListener("click", resetGraphView);
+findDerivationProposalsButton.addEventListener("click", () => loadDerivationProposals().catch(report));
+closeDerivationProposalsButton.addEventListener("click", () => derivationProposalsDialog.close());
+document.querySelector("#graph-layout").addEventListener("change", (event) => {
+  state.graphLayout = event.target.value;
+  resetGraphView();
+  if (state.knowledge) renderKnowledgeGraph(state.knowledge);
+});
+document.querySelector("#graph-topology").addEventListener("change", (event) => {
+  state.graphProfile = event.target.value;
+  state.graphDirection = graphProfile().direction;
+  document.querySelector("#graph-direction").value = state.graphDirection;
+  state.graphSource = null;
+  state.graphDestination = null;
+  state.graphDestinations = [];
+  document.querySelector("#graph-source").value = "";
+  const destination = document.querySelector("#graph-destination");
+  destination.value = "";
+  destination.disabled = true;
+  state.graphTopology = null;
+  clearDerivationProposals();
+  renderGraphSources(state.knowledge);
+  loadInitialTopology().catch(report);
+});
+document.querySelector("#graph-source").addEventListener("input", async (event) => {
+  const candidates = graphNodes(
+    state.knowledge,
+    state.knowledge.relations.filter((relation) => relation.type.id === graphProfile().relationType));
+  state.graphSource = candidates.some((node) => node.kind === "ENTITY" && node.id === event.target.value)
+    ? event.target.value
+    : null;
+  state.graphTopology = null;
+  clearDerivationProposals();
+  state.graphDestination = null;
+  const destination = document.querySelector("#graph-destination");
+  destination.value = "";
+  destination.disabled = !state.graphSource;
+  if (!state.graphSource) {
+    state.graphDestinations = [];
+    await loadInitialTopology();
+    return;
+  }
+  try {
+    const query = new URLSearchParams({
+      source: state.graphSource,
+      direction: state.graphDirection,
+      relationType: graphProfile().relationType
+    });
+    state.graphDestinations = await request(`/api/scopes/${state.scopeId}/topology/destinations?${query}`);
+    const options = document.querySelector("#graph-destination-options");
+    options.replaceChildren();
+    state.graphDestinations.forEach((node) => {
+      const option = document.createElement("option");
+      option.value = node.id;
+      options.append(option);
+    });
+    await loadAnchoredTopology();
+  } catch (error) { report(error); }
+});
+document.querySelector("#graph-destination").addEventListener("input", (event) => {
+  state.graphDestination = state.graphDestinations.some((node) => node.id === event.target.value)
+    ? event.target.value
+    : null;
+  state.graphTopology = null;
+  if (state.graphDestination) loadTopologyPath().catch(report); else loadAnchoredTopology().catch(report);
+});
+document.querySelector("#graph-direction").addEventListener("change", (event) => {
+  state.graphDirection = event.target.value;
+  state.graphTopology = null;
+  clearDerivationProposals();
+  state.graphDestination = null;
+  document.querySelector("#graph-destination").value = "";
+  if (state.graphSource) {
+    document.querySelector("#graph-source").dispatchEvent(new Event("input"));
+  } else {
+    loadInitialTopology().catch(report);
+  }
+});
 document.querySelector("#scope-search").addEventListener("input", () => loadScopes().catch(report));
 document.querySelector("#language").addEventListener("change", (event) => {
   state.language = event.target.value;
@@ -739,9 +1240,10 @@ document.querySelector("#target-id").addEventListener("input", (event) => {
 
 function graphPoint(event) {
   const bounds = graphSvg.getBoundingClientRect();
+  const viewBox = graphSvg.viewBox.baseVal;
   return {
-    x: (event.clientX - bounds.left) * 1000 / bounds.width,
-    y: (event.clientY - bounds.top) * 600 / bounds.height
+    x: (event.clientX - bounds.left) * viewBox.width / bounds.width,
+    y: (event.clientY - bounds.top) * viewBox.height / bounds.height
   };
 }
 

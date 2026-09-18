@@ -1,19 +1,31 @@
 package com.persiqa.web.dto;
 
+import com.persiqa.application.DerivationProposalService.DerivationProposal;
 import com.persiqa.application.KnowledgeApplicationService.RelationRecord;
+import com.persiqa.application.SemanticTraversalService.SemanticMatch;
+import com.persiqa.application.SemanticTraversalService.SemanticStep;
+import com.persiqa.application.SemanticTraversalService.SemanticTraversal;
+import com.persiqa.application.TopologyProjectionService.ProjectedEdge;
+import com.persiqa.application.TopologyProjectionService.ProjectedNode;
 import com.persiqa.core.ModelScope;
 import com.persiqa.model.Ckm.Context;
 import com.persiqa.model.Ckm.Node;
 import com.persiqa.model.Ckm.Relation;
 import com.persiqa.model.Ckm.RelationType;
 import com.persiqa.model.Ckm.Statement;
+import com.persiqa.web.dto.KnowledgeDtos.DerivationProposalResponse;
 import com.persiqa.web.dto.KnowledgeDtos.NodeResponse;
 import com.persiqa.web.dto.KnowledgeDtos.ObservationResponse;
 import com.persiqa.web.dto.KnowledgeDtos.RelationRecordResponse;
 import com.persiqa.web.dto.KnowledgeDtos.RelationResponse;
 import com.persiqa.web.dto.KnowledgeDtos.RelationTypeResponse;
 import com.persiqa.web.dto.KnowledgeDtos.ScopeResponse;
+import com.persiqa.web.dto.KnowledgeDtos.SemanticMatchResponse;
+import com.persiqa.web.dto.KnowledgeDtos.SemanticStepResponse;
+import com.persiqa.web.dto.KnowledgeDtos.SemanticTraversalResponse;
 import com.persiqa.web.dto.KnowledgeDtos.StatementResponse;
+import com.persiqa.web.dto.KnowledgeDtos.TopologyEdgeResponse;
+import com.persiqa.web.dto.KnowledgeDtos.TopologyNodeResponse;
 import java.util.List;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -47,6 +59,18 @@ public interface KnowledgeMapper {
   List<StatementResponse> toStatements(List<Statement> statements);
 
   RelationRecordResponse toRelationRecord(RelationRecord record);
+
+  TopologyNodeResponse toTopologyNode(ProjectedNode node);
+
+  TopologyEdgeResponse toTopologyEdge(ProjectedEdge edge);
+
+  SemanticTraversalResponse toSemanticTraversal(SemanticTraversal traversal);
+
+  SemanticMatchResponse toSemanticMatch(SemanticMatch match);
+
+  SemanticStepResponse toSemanticStep(SemanticStep step);
+
+  DerivationProposalResponse toDerivationProposal(DerivationProposal proposal);
 
   /** Maps a Statement object endpoint to a Node DTO when it is a Node. */
   @Named("statementObject")

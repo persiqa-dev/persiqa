@@ -9,6 +9,7 @@ body { margin: 0; min-width: 320px; }
 button, input, select { font: inherit; }
 button { border: 0; border-radius: 7px; background: #38bdf8; color: #082f49; cursor: pointer; font-weight: 700; padding: 0.55rem 0.8rem; }
 button:hover { background: #7dd3fc; }
+button:disabled { background: #475569; color: #cbd5e1; cursor: not-allowed; }
 input, select { background: #172033; border: 1px solid #34435e; border-radius: 6px; color: inherit; padding: 0.5rem; width: 100%; }
 label { display: grid; gap: 0.3rem; font-size: 0.86rem; }
 main { margin: 0 auto; max-width: 1440px; padding: 1.5rem; }
@@ -36,16 +37,31 @@ h3 { font-size: 1rem; }
 .summary div { background: #122e40; border-radius: 7px; padding: 0.7rem 1rem; }
 .summary strong { display: block; font-size: 1.35rem; }
 .topology-panel { margin-bottom: 1rem; }
+.derivation-panel { margin-bottom: 1rem; }
+.derivation-panel .section-heading > span { display: inline-block; }
+.derivation-proposal { display: grid; gap: 0.35rem; }
+.derivation-proposal button { justify-self: start; margin-top: 0.25rem; }
+.derivation-dialog { background: #172033; border: 1px solid #38bdf8; border-radius: 10px; color: inherit; max-width: min(760px, calc(100vw - 2rem)); padding: 1rem; width: 100%; }
+.derivation-dialog::backdrop { background: rgb(8 15 28 / 75%); }
+.derivation-dialog .item-list { max-height: min(65vh, 640px); }
+.derivation-feedback { color: #86efac; font-size: 0.85rem; margin: 0 0 0.8rem; }
 .graph-help { color: #aebbd0; font-size: 0.82rem; margin: 0.25rem 0 0; }
+.graph-anchor { display: inline-flex; font-size: 0.8rem; gap: 0.4rem; margin-top: 0.6rem; }
+.graph-anchor input { padding: 0.25rem; }
 .knowledge-graph { background: #101827; border: 1px solid #34435e; border-radius: 8px; cursor: grab; display: block; height: auto; min-height: 22rem; touch-action: none; width: 100%; }
 .knowledge-graph:active { cursor: grabbing; }
 .graph-edge { cursor: pointer; fill: none; marker-end: url(#graph-arrow); stroke-width: 2.5; }
 .graph-edge:hover { stroke-width: 4; }
+.graph-secondary-edge { opacity: 0.68; stroke-dasharray: 7 5; }
 .graph-node { cursor: pointer; }
 .graph-node circle { fill: #172033; stroke: #7dd3fc; stroke-width: 2.5; }
+.graph-node.graph-anchor-node circle { fill: #12364a; stroke: #38bdf8; stroke-width: 4; }
+.graph-node.graph-terminal-node circle { stroke: #34d399; }
 .graph-node:hover circle { fill: #164e63; stroke-width: 4; }
 .graph-node text { fill: #e9eef8; font-size: 14px; pointer-events: none; text-anchor: middle; }
 .graph-node .node-kind-label { fill: #93a4bd; font-size: 10px; }
+.graph-node.graph-path-node text { font-size: 12px; }
+.graph-node.graph-path-node .node-kind-label { font-size: 10px; }
 .graph-node .node-knowledge-label, .graph-edge-label { fill: #c7d2e8; font-size: 10px; pointer-events: none; text-anchor: middle; }
 .graph-node .node-state-label { fill: #fbbf24; font-size: 10px; }
 .graph-edge-label { paint-order: stroke; stroke: #101827; stroke-width: 4px; }
@@ -54,11 +70,16 @@ h3 { font-size: 1rem; }
 .knowledge-graph.semantic-overview .graph-edge-resolution-hint { display: block; }
 .knowledge-graph:not(.semantic-overview) .graph-edge-resolution-hint { display: none; }
 .knowledge-graph.semantic-overview .graph-detail-node, .knowledge-graph.semantic-overview .graph-detail-relation { display: none; }
+.knowledge-graph.semantic-overview .graph-tree-intermediate, .knowledge-graph.semantic-overview .graph-tree-edge { display: none; }
+.knowledge-graph.semantic-overview .graph-overview-virtual { display: block; }
+.knowledge-graph:not(.semantic-overview) .graph-overview-virtual { display: none; }
+.knowledge-graph:not(.semantic-detail) .graph-tree-intermediate:not(.level-1), .knowledge-graph:not(.semantic-detail) .graph-tree-edge:not(.level-0) { display: none; }
 .knowledge-graph.semantic-detail .graph-overview-relation { display: none; }
 .knowledge-graph:not(.semantic-detail) .node-knowledge-label, .knowledge-graph:not(.semantic-detail) .graph-edge-detail { display: none; }
 .graph-legend { display: flex; flex-wrap: wrap; gap: 0.55rem 1rem; margin-top: 0.75rem; }
 .graph-legend span { align-items: center; display: inline-flex; font-size: 0.8rem; gap: 0.35rem; }
 .graph-legend i { border-radius: 50%; display: inline-block; height: 0.7rem; width: 0.7rem; }
+.graph-legend .graph-secondary-marker { background: transparent; border: 2px dashed #aebbd0; border-radius: 0; height: 0; width: 1.4rem; }
 .graph-grid, .command-grid { display: grid; gap: 1rem; grid-template-columns: repeat(3, minmax(0, 1fr)); margin-bottom: 1rem; }
 .command-grid { grid-template-columns: minmax(240px, 0.75fr) minmax(420px, 1.25fr); }
 .item-list { display: grid; gap: 0.45rem; max-height: 360px; overflow: auto; }

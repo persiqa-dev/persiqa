@@ -1,6 +1,11 @@
 package com.persiqa.web;
 
 import com.persiqa.application.KnowledgeApplicationService;
+import com.persiqa.application.SemanticTraversalService;
+import com.persiqa.application.TopologyProjectionService;
+import com.persiqa.application.TopologyProjectionService.DetailLevel;
+import com.persiqa.application.TopologyProjectionService.Direction;
+import com.persiqa.application.TopologyProjectionService.TopologyProfile;
 import com.persiqa.core.PageQuery;
 import com.persiqa.core.PageResult;
 import com.persiqa.core.ScopeAccessDeniedException;
@@ -10,7 +15,9 @@ import com.persiqa.web.dto.KnowledgeDtos.ObservationResponse;
 import com.persiqa.web.dto.KnowledgeDtos.PageResponse;
 import com.persiqa.web.dto.KnowledgeDtos.RelationResponse;
 import com.persiqa.web.dto.KnowledgeDtos.ScopeKnowledgeResponse;
+import com.persiqa.web.dto.KnowledgeDtos.SemanticTraversalResponse;
 import com.persiqa.web.dto.KnowledgeDtos.StatementResponse;
+import com.persiqa.web.dto.KnowledgeDtos.TopologyProjectionResponse;
 import com.persiqa.web.dto.KnowledgeMapper;
 import java.util.List;
 import java.util.UUID;
@@ -33,14 +40,20 @@ public class ScopeKnowledgeController {
   private final KnowledgeApplicationService knowledge;
   private final CurrentSubject currentSubject;
   private final KnowledgeMapper mapper;
+  private final TopologyProjectionService topology;
+  private final SemanticTraversalService semanticTraversal;
 
   public ScopeKnowledgeController(
       KnowledgeApplicationService knowledge,
       CurrentSubject currentSubject,
-      KnowledgeMapper mapper) {
+      KnowledgeMapper mapper,
+      TopologyProjectionService topology,
+      SemanticTraversalService semanticTraversal) {
     this.knowledge = knowledge;
     this.currentSubject = currentSubject;
     this.mapper = mapper;
+    this.topology = topology;
+    this.semanticTraversal = semanticTraversal;
   }
 
   /** Lists the canonical Relations in one scope. */
@@ -81,6 +94,83 @@ public class ScopeKnowledgeController {
         snapshot.nodes().stream().map(mapper::toNode).toList(),
         mapper.toRelations(snapshot.relations()),
         mapper.toStatements(snapshot.statements()));
+  }
+
+  /** Returns a server-calculated display projection of a composable relation topology. */
+  @GetMapping("/topology")
+  public TopologyProjectionResponse findTopology(
+      @PathVariable("scopeId") UUID scopeId,
+      @RequestParam("anchor") String anchor,
+      @RequestParam(value = "direction", defaultValue = "DOWNSTREAM") Direction direction,
+      @RequestParam(value = "relationType", defaultValue = "supplies") String relationType,
+      @RequestParam(value = "detailLevel", defaultValue = "DETAIL") DetailLevel detailLevel) {
+    var subject = currentSubject.require();
+    requireScopeAccess(scopeId, subject);
+    var projection =
+        topology.project(scopeId, subject, anchor, direction, relationType, detailLevel);
+    return new TopologyProjectionResponse(
+        projection.nodes().stream().map(mapper::toTopologyNode).toList(),
+        projection.edges().stream().map(mapper::toTopologyEdge).toList());
+  }
+
+  /** Returns the initial layered forest for one system-provided topology profile. */
+  @GetMapping("/topology/initial")
+  public TopologyProjectionResponse findInitialTopology(
+      @PathVariable("scopeId") UUID scopeId,
+      @RequestParam(value = "profile", defaultValue = "ELECTRICAL_SUPPLY")
+          TopologyProfile profile,
+      @RequestParam(value = "direction", defaultValue = "DOWNSTREAM") Direction direction) {
+    var subject = currentSubject.require();
+    requireScopeAccess(scopeId, subject);
+    var projection = topology.initial(scopeId, subject, profile, direction);
+    return new TopologyProjectionResponse(
+        projection.nodes().stream().map(mapper::toTopologyNode).toList(),
+        projection.edges().stream().map(mapper::toTopologyEdge).toList());
+  }
+
+  /** Lists valid destination Nodes for one selected source Node. */
+  @GetMapping("/topology/destinations")
+  public List<NodeResponse> findTopologyDestinations(
+      @PathVariable("scopeId") UUID scopeId,
+      @RequestParam("source") String source,
+      @RequestParam(value = "direction", defaultValue = "DOWNSTREAM") Direction direction,
+      @RequestParam(value = "relationType", defaultValue = "supplies") String relationType) {
+    var subject = currentSubject.require();
+    requireScopeAccess(scopeId, subject);
+    return topology.destinations(scopeId, subject, source, direction, relationType).stream()
+        .map(mapper::toNode)
+        .toList();
+  }
+
+  /** Returns the canonical path graph between a selected source and destination Node. */
+  @GetMapping("/topology/path")
+  public TopologyProjectionResponse findTopologyPath(
+      @PathVariable("scopeId") UUID scopeId,
+      @RequestParam("source") String source,
+      @RequestParam("destination") String destination,
+      @RequestParam(value = "direction", defaultValue = "DOWNSTREAM") Direction direction,
+      @RequestParam(value = "relationType", defaultValue = "supplies") String relationType) {
+    var subject = currentSubject.require();
+    requireScopeAccess(scopeId, subject);
+    var projection =
+        topology.projectPath(scopeId, subject, source, destination, direction, relationType);
+    return new TopologyProjectionResponse(
+        projection.nodes().stream().map(mapper::toTopologyNode).toList(),
+        projection.edges().stream().map(mapper::toTopologyEdge).toList());
+  }
+
+  /** Returns auditable transitive reachability over one semantically composable Relation Type. */
+  @GetMapping("/semantic/traversal")
+  public SemanticTraversalResponse traverseSemantically(
+      @PathVariable("scopeId") UUID scopeId,
+      @RequestParam("anchor") String anchor,
+      @RequestParam("relationType") String relationType,
+      @RequestParam(value = "direction", defaultValue = "DOWNSTREAM") Direction direction,
+      @RequestParam(value = "maxHops", defaultValue = "20") int maxHops) {
+    var subject = currentSubject.require();
+    requireScopeAccess(scopeId, subject);
+    return mapper.toSemanticTraversal(
+        semanticTraversal.traverse(scopeId, subject, anchor, relationType, direction, maxHops));
   }
 
   /** Lists the Statements in one scope. */

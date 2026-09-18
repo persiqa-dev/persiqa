@@ -8,4 +8,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 /** Persistence operations for non-canonical refinement bindings. */
 public interface RefinementBindingRepository extends JpaRepository<RefinementBindingEntity, UUID> {
   List<RefinementBindingEntity> findByScopeId(UUID scopeId);
+
+  List<RefinementBindingEntity> findByScopeIdAndInvalidatedAtIsNull(UUID scopeId);
+
+  boolean existsByScopeIdAndCoarseRelationIdAndInvalidatedAtIsNull(
+      UUID scopeId, UUID coarseRelationId);
 }

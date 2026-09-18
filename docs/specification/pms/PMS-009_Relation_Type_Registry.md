@@ -191,11 +191,11 @@ A composition rule MAY derive `A supplies C` from `A supplies B` and `B supplies
 |---|---|
 | Source / target | Dependent Entity → dependency Entity |
 | Direction / inverse | Directed; no inverse |
-| Symmetry / inference | false; none by default |
+| Symmetry / inference | false; declared, context-compatible dependency composition only |
 | Cardinality | Unconstrained |
 | Conflict | Cycles or exclusivity only where declared |
 
-Dependency propagation requires an explicit domain rule. `dependsOn` SHALL NOT be inferred merely because two Entities share a supply path, host, container, or controller.
+A composition rule MAY derive `A dependsOn C` from `A dependsOn B` and `B dependsOn C` only when both share compatible dependency context and no declared boundary prevents propagation. `dependsOn` SHALL NOT be inferred merely because two Entities share a supply path, host, container, or controller.
 
 ## RT-010 --- `hostedOn`
 
