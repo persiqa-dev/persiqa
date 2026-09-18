@@ -7,11 +7,17 @@ const translations = {
     "status.connectFailed": "Could not connect: {detail}",
     "status.scopeCreated": "Created scope {name}.", "status.nodeRecorded": "Canonical node recorded.",
     "status.statementRecorded": "Recorded {statement} for {relation}.",
+    "status.observationRecorded": "Appended an observation to {statement}.",
+    "status.observationContextRequired": "Provide at least one observation-context value.",
     "scopes.title": "Scopes", "scopes.refresh": "Refresh scopes", "scopes.newName": "New scope name",
     "scopes.name": "Scope name", "scopes.navigation": "Model scopes", "scope.canonical": "Canonical scope",
     "scope.select": "Select a scope", "actions.create": "Create", "actions.search": "Search",
     "actions.refreshGraph": "Refresh graph", "actions.close": "Close", "summary.nodes": "Nodes", "summary.relations": "Relations",
     "summary.statements": "Statements", "empty.knowledge": "No canonical knowledge recorded yet.",
+    "workspace.overview": "Overview", "workspace.knowledge": "Knowledge", "workspace.record": "Record knowledge",
+    "knowledge.browseHelp": "Browse canonical knowledge in focused, paged lists.", "knowledge.searchHint": "Search the selected list",
+    "knowledge.navigation": "Knowledge collections", "pagination.previous": "Previous", "pagination.next": "Next",
+    "pagination.summary": "Page {page} of {total} · {count} items",
     "node.addCanonical": "Add canonical node", "node.add": "Add node", "endpoint.identity": "Identity", "endpoint.kind": "Kind",
     "endpoint.sourceIdentity": "Source identity", "endpoint.sourceKind": "Source kind",
     "endpoint.targetIdentity": "Target identity", "endpoint.targetKind": "Target kind",
@@ -39,6 +45,7 @@ const translations = {
     "inspector.noObservations": "No later observations recorded.", "context.observedAt": "Observed at",
     "context.validFrom": "Valid from", "context.validTo": "Valid to", "statement.predicate": "Predicate",
     "statement.subject": "Subject", "statement.object": "Object",
+    "observation.add": "Append observation", "observation.append": "Append observation",
     "graph.title": "Knowledge graph", "graph.help": "Drag a node to arrange it, drag the background to pan, use the wheel to zoom, and select a node or relation for details.",
     "graph.reset": "Reset view", "graph.node": "Node details", "graph.incoming": "Incoming Relations",
     "graph.outgoing": "Outgoing Relations", "graph.empty": "No graph elements recorded yet.",
@@ -48,6 +55,10 @@ const translations = {
     "graph.additionalRelation": "Additional relation",
     "graph.layout": "Layout", "graph.layoutLeftToRight": "Left to right", "graph.layoutTopToBottom": "Top to bottom",
     "graph.source": "Source device", "graph.sourceHint": "Choose MainSwitch-01", "graph.destination": "Destination device", "graph.destinationHint": "Choose ElectricBoiler-01", "graph.direction": "Direction", "graph.downstream": "Downstream", "graph.upstream": "Upstream",
+    "graph.modeOverview": "Topology overview", "graph.modeSource": "Source-focused topology", "graph.modePath": "Selected path",
+    "graph.modeOverviewHelp": "Choose a source device to focus this topology.",
+    "graph.modeSourceHelp": "Now choose a destination device to show one exact path from the selected source.",
+    "graph.modePathHelp": "Showing one ordered path between the selected source and destination.",
     "derivation.title": "Derived knowledge proposals", "derivation.noSource": "Choose a source device to find reviewable conclusions.",
     "derivation.ready": "Find conclusions supported by the selected semantic path.", "derivation.find": "Find proposals",
     "derivation.none": "No new derived conclusions are available.", "derivation.hops": "{count} hops",
@@ -63,11 +74,17 @@ const translations = {
     "status.connectFailed": "Nem sikerült kapcsolódni: {detail}",
     "status.scopeCreated": "A(z) {name} hatókör létrejött.", "status.nodeRecorded": "A kanonikus csomópont rögzítve.",
     "status.statementRecorded": "A(z) {statement} állítás rögzítve ehhez: {relation}.",
+    "status.observationRecorded": "A megfigyelés hozzáadva ehhez: {statement}.",
+    "status.observationContextRequired": "Adj meg legalább egy megfigyelési kontextusértéket.",
     "scopes.title": "Hatókörök", "scopes.refresh": "Hatókörök frissítése", "scopes.newName": "Új hatókör neve",
     "scopes.name": "Hatókör neve", "scopes.navigation": "Modellhatókörök", "scope.canonical": "Kanonikus hatókör",
     "scope.select": "Válassz egy hatókört", "actions.create": "Létrehozás", "actions.search": "Keresés",
     "actions.refreshGraph": "Gráf frissítése", "actions.close": "Bezárás", "summary.nodes": "Csomópontok", "summary.relations": "Kapcsolatok",
     "summary.statements": "Állítások", "empty.knowledge": "Még nincs rögzített kanonikus tudás.",
+    "workspace.overview": "Áttekintés", "workspace.knowledge": "Tudás", "workspace.record": "Tudás rögzítése",
+    "knowledge.browseHelp": "A kanonikus tudás fókuszált, lapozható listákban böngészhető.", "knowledge.searchHint": "Keresés a kiválasztott listában",
+    "knowledge.navigation": "Tudásgyűjtemények", "pagination.previous": "Előző", "pagination.next": "Következő",
+    "pagination.summary": "{page}. oldal / {total} · {count} elem",
     "node.addCanonical": "Kanonikus csomópont hozzáadása", "node.add": "Csomópont hozzáadása", "endpoint.identity": "Azonosító", "endpoint.kind": "Típus",
     "endpoint.sourceIdentity": "Forrás azonosítója", "endpoint.sourceKind": "Forrás típusa",
     "endpoint.targetIdentity": "Cél azonosítója", "endpoint.targetKind": "Cél típusa",
@@ -95,6 +112,7 @@ const translations = {
     "inspector.noObservations": "Nincs rögzített későbbi megfigyelés.", "context.observedAt": "Megfigyelés ideje",
     "context.validFrom": "Érvényesség kezdete", "context.validTo": "Érvényesség vége", "statement.predicate": "Predikátum",
     "statement.subject": "Alany", "statement.object": "Tárgy",
+    "observation.add": "Megfigyelés hozzáadása", "observation.append": "Megfigyelés hozzáadása",
     "graph.title": "Tudásgráf", "graph.help": "Az elrendezéshez húzz egy csomópontot, a pásztázáshoz a hátteret, a nagyításhoz használd a görgőt, részletekhez pedig válassz egy csomópontot vagy kapcsolatot.",
     "graph.reset": "Nézet alaphelyzetbe", "graph.node": "Csomópont részletei", "graph.incoming": "Bejövő kapcsolatok",
     "graph.outgoing": "Kimenő kapcsolatok", "graph.empty": "Még nincs megjeleníthető gráfelem.",
@@ -104,6 +122,10 @@ const translations = {
     "graph.additionalRelation": "További kapcsolat",
     "graph.layout": "Elrendezés", "graph.layoutLeftToRight": "Balról jobbra", "graph.layoutTopToBottom": "Fentről lefelé",
     "graph.source": "Forrás eszköz", "graph.sourceHint": "Válaszd ki: MainSwitch-01", "graph.destination": "Cél eszköz", "graph.destinationHint": "Válaszd ki: ElectricBoiler-01", "graph.direction": "Irány", "graph.downstream": "Leszálló", "graph.upstream": "Felszálló",
+    "graph.modeOverview": "Topológiai áttekintés", "graph.modeSource": "Forrásra fókuszált topológia", "graph.modePath": "Kiválasztott útvonal",
+    "graph.modeOverviewHelp": "Válassz ki egy forrás eszközt a topológia szűkítéséhez.",
+    "graph.modeSourceHelp": "Most válassz cél eszközt, hogy a kiválasztott forrás és cél közötti pontos út jelenjen meg.",
+    "graph.modePathHelp": "A kiválasztott forrás és cél közötti egy rendezett útvonal látható.",
     "derivation.title": "Származtatott tudásjavaslatok", "derivation.noSource": "Válassz forrás eszközt az ellenőrizhető következtetések kereséséhez.",
     "derivation.ready": "Keress a kiválasztott szemantikus út által alátámasztott következtetéseket.", "derivation.find": "Javaslatok keresése",
     "derivation.none": "Nincs új rögzíthető származtatott következtetés.", "derivation.hops": "{count} lépés",
@@ -117,6 +139,7 @@ const state = {
   authorization: null, scopeId: null, relationTypes: [], endpointKinds: new Map(), knowledge: null,
   graphProfile: "ELECTRICAL_SUPPLY", graphLayout: "LEFT_TO_RIGHT", graphSource: null, graphDestination: null, graphDestinations: [], graphDirection: "DOWNSTREAM", graphTopology: null,
   derivationProposals: [], derivationQueried: false,
+  workbenchView: "overview", knowledgeList: "nodes", knowledgeListQuery: "", knowledgeListPage: 0, knowledgePage: null, knowledgeListRequest: 0,
   language: localStorage.getItem("persiqa.language") || navigator.language?.slice(0, 2) || "en"
 };
 
@@ -130,6 +153,7 @@ const inspectorContent = document.querySelector("#inspector-content");
 const graphSvg = document.querySelector("#knowledge-graph");
 const graphViewport = document.querySelector("#graph-viewport");
 const graphLegend = document.querySelector("#graph-legend");
+const graphMode = document.querySelector("#graph-mode");
 const derivationHelp = document.querySelector("#derivation-help");
 const derivationProposalList = document.querySelector("#derivation-proposal-list");
 const findDerivationProposalsButton = document.querySelector("#find-derivation-proposals");
@@ -176,6 +200,8 @@ function applyTranslations() {
   populateNodeKinds();
   renderRelationTypes();
   if (state.knowledge) renderKnowledgeGraph(state.knowledge);
+  updateGraphMode();
+  renderKnowledgeList();
   renderDerivationProposals();
 }
 
@@ -308,19 +334,83 @@ function renderKnowledge(knowledge, preserveDerivationProposals = false) {
       card.append(number, document.createTextNode(t(label)));
       summary.append(card);
     });
-  renderItems(document.querySelector("#node-list"), knowledge.nodes,
-    (node) => textItem(node.id, kindLabel(node.kind)));
-  renderItems(document.querySelector("#relation-list"), knowledge.relations,
-    (relation) => selectableItem(
-      relation.id,
-      `${relation.source.id} —${relationTypeLabel(relation.type.id)}→ ${relation.target.id}`,
-      () => showRelationDetails(relation)));
-  renderItems(document.querySelector("#statement-list"), knowledge.statements,
-    (statement) => selectableItem(
-      statement.id,
-      `${t(`knowledge.${statement.knowledgeKind.toLowerCase()}`)} · ${relationTypeLabel(statement.predicate)}`,
-      () => showStatementDetails(statement.id)));
   renderKnowledgeGraph(knowledge);
+}
+
+function activateWorkbenchView(view) {
+  state.workbenchView = view;
+  document.querySelectorAll(".workbench-view").forEach((element) => {
+    element.classList.toggle("hidden", element.id !== `${view}-view`);
+  });
+  document.querySelectorAll(".workbench-menu-item").forEach((button) => {
+    const active = button.dataset.workbenchView === view;
+    button.classList.toggle("active", active);
+    button.setAttribute("aria-current", active ? "page" : "false");
+  });
+  if (view === "knowledge" && state.scopeId) loadKnowledgeList().catch(report);
+}
+
+function knowledgeListConfiguration() {
+  return {
+    nodes: {
+      endpoint: "nodes",
+      render: (node) => textItem(node.id, kindLabel(node.kind))
+    },
+    relations: {
+      endpoint: "relations",
+      render: (relation) => selectableItem(
+        relation.id,
+        `${relation.source.id} —${relationTypeLabel(relation.type.id)}→ ${relation.target.id}`,
+        () => showRelationDetails(relation))
+    },
+    statements: {
+      endpoint: "statements",
+      render: (statement) => selectableItem(
+        statement.id,
+        `${t(`knowledge.${statement.knowledgeKind.toLowerCase()}`)} · ${relationTypeLabel(statement.predicate)}`,
+        () => showStatementDetails(statement.id))
+    }
+  }[state.knowledgeList];
+}
+
+function renderKnowledgeList() {
+  const page = state.knowledgePage;
+  const list = document.querySelector("#knowledge-list");
+  const previous = document.querySelector("#knowledge-previous-page");
+  const next = document.querySelector("#knowledge-next-page");
+  const summary = document.querySelector("#knowledge-page-summary");
+  if (!page) {
+    list.replaceChildren();
+    previous.disabled = true;
+    next.disabled = true;
+    summary.textContent = "";
+    return;
+  }
+  renderItems(list, page.content, knowledgeListConfiguration().render);
+  previous.disabled = page.page === 0;
+  next.disabled = page.page + 1 >= page.totalPages;
+  summary.textContent = t("pagination.summary", {
+    page: page.totalElements === 0 ? 0 : page.page + 1,
+    total: page.totalPages,
+    count: page.totalElements
+  });
+}
+
+async function loadKnowledgeList() {
+  if (!state.scopeId) return;
+  const requestNumber = ++state.knowledgeListRequest;
+  const query = new URLSearchParams({ page: String(state.knowledgeListPage), size: "25" });
+  if (state.knowledgeListQuery) query.set("q", state.knowledgeListQuery);
+  const page = await request(
+    `/api/scopes/${state.scopeId}/${knowledgeListConfiguration().endpoint}?${query}`);
+  if (requestNumber !== state.knowledgeListRequest) return;
+  state.knowledgePage = page;
+  if (page.page >= page.totalPages && page.totalPages > 0) {
+    state.knowledgeListPage = page.totalPages - 1;
+    return loadKnowledgeList();
+  }
+  state.knowledgeListPage = page.page;
+  renderKnowledgeList();
 }
 
 function clearDerivationProposals() {
@@ -687,6 +777,21 @@ function updateGraphTransform() {
   graphSvg.classList.remove("semantic-overview", "semantic-detail");
 }
 
+function graphModeState() {
+  if (state.graphSource && state.graphDestination) return "path";
+  if (state.graphSource) return "source";
+  return "overview";
+}
+
+function updateGraphMode() {
+  const mode = graphModeState();
+  graphMode.replaceChildren();
+  const label = document.createElement("strong");
+  label.textContent = t(`graph.mode${mode.charAt(0).toUpperCase()}${mode.slice(1)}`);
+  graphMode.append(label, document.createTextNode(` · ${t(`graph.mode${mode.charAt(0).toUpperCase()}${mode.slice(1)}Help`)}`));
+  graphMode.closest(".topology-panel").classList.toggle("graph-path-mode", mode === "path");
+}
+
 function resetGraphView() {
   graphState.x = 0;
   graphState.y = 0;
@@ -695,6 +800,7 @@ function resetGraphView() {
 }
 
 function renderKnowledgeGraph(knowledge) {
+  updateGraphMode();
   graphViewport.replaceChildren();
   graphLegend.replaceChildren();
   const serverTopology = state.graphTopology;
@@ -990,6 +1096,7 @@ async function loadKnowledge(preserveDerivationProposals = false) {
   } else {
     await loadInitialTopology();
   }
+  if (state.workbenchView === "knowledge") await loadKnowledgeList();
 }
 
 async function loadInitialTopology() {
@@ -1061,6 +1168,59 @@ function contextEntries(context) {
   ];
 }
 
+function observationInput(labelKey, name, type = "text") {
+  const label = document.createElement("label");
+  const labelText = document.createElement("span");
+  labelText.textContent = t(labelKey);
+  const input = document.createElement("input");
+  input.name = name;
+  input.type = type;
+  if (name === "confidence") {
+    input.min = "0";
+    input.max = "1";
+    input.step = "0.01";
+  }
+  label.append(labelText, input);
+  return label;
+}
+
+function observationForm(statementId) {
+  const form = document.createElement("form");
+  form.className = "observation-form";
+  const heading = document.createElement("h4");
+  heading.textContent = t("observation.add");
+  const fields = document.createElement("div");
+  fields.className = "observation-fields";
+  fields.append(
+    observationInput("context.provenance", "provenance"),
+    observationInput("context.confidence", "confidence", "number"),
+    observationInput("context.observedAt", "observedAt", "datetime-local"),
+    observationInput("context.validFrom", "validFrom", "datetime-local"),
+    observationInput("context.validTo", "validTo", "datetime-local"),
+    observationInput("context.scenario", "scenario"));
+  const submit = document.createElement("button");
+  submit.type = "submit";
+  submit.textContent = t("observation.append");
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    try {
+      const context = contextFrom(new FormData(form));
+      if (!context) throw new Error(t("status.observationContextRequired"));
+      submit.disabled = true;
+      await request(
+        `/api/scopes/${state.scopeId}/statements/${encodeURIComponent(statementId)}/observations`,
+        { method: "POST", body: JSON.stringify(context) });
+      showStatus(t("status.observationRecorded", { statement: statementId }));
+      await showStatementDetails(statementId);
+    } catch (error) {
+      report(error);
+      submit.disabled = false;
+    }
+  });
+  form.append(heading, fields, submit);
+  return form;
+}
+
 async function showStatementDetails(statementId) {
   try {
     const [statement, observations] = await Promise.all([
@@ -1088,11 +1248,17 @@ async function showStatementDetails(statementId) {
     } else {
       observations.forEach((observation) => appendMetadata(inspectorContent, contextEntries(observation)));
     }
+    inspectorContent.append(observationForm(statement.id));
   } catch (error) { report(error); }
 }
 
 async function selectScope(scopeId) {
   state.scopeId = scopeId;
+  state.knowledgeListPage = 0;
+  state.knowledgeListQuery = "";
+  state.knowledgePage = null;
+  document.querySelector("#knowledge-search").value = "";
+  activateWorkbenchView("overview");
   workbench.classList.remove("hidden");
   await Promise.all([loadScopes(), loadKnowledge()]);
 }
@@ -1111,11 +1277,19 @@ function populateNodeKinds() {
   });
 }
 
+function instantFrom(form, field) {
+  const value = form.get(field);
+  return value ? new Date(value).toISOString() : null;
+}
+
 function contextFrom(form) {
   const confidence = form.get("confidence");
   const context = {
     provenance: form.get("provenance") || null,
     confidence: confidence ? Number(confidence) : null,
+    observedAt: instantFrom(form, "observedAt"),
+    validFrom: instantFrom(form, "validFrom"),
+    validTo: instantFrom(form, "validTo"),
     scenario: form.get("scenario") || null
   };
   return Object.values(context).some((value) => value !== null) ? context : null;
@@ -1137,6 +1311,39 @@ document.querySelector("#sign-in-form").addEventListener("submit", async (event)
 
 document.querySelector("#refresh-scopes").addEventListener("click", () => loadScopes().catch(report));
 document.querySelector("#refresh-knowledge").addEventListener("click", () => loadKnowledge().catch(report));
+document.querySelectorAll(".workbench-menu-item").forEach((button) => {
+  button.addEventListener("click", () => activateWorkbenchView(button.dataset.workbenchView));
+});
+document.querySelectorAll(".knowledge-tab").forEach((button) => {
+  button.addEventListener("click", () => {
+    state.knowledgeList = button.dataset.knowledgeList;
+    state.knowledgeListPage = 0;
+    state.knowledgePage = null;
+    document.querySelectorAll(".knowledge-tab").forEach((tab) => {
+      const active = tab === button;
+      tab.classList.toggle("active", active);
+      tab.setAttribute("aria-selected", String(active));
+    });
+    loadKnowledgeList().catch(report);
+  });
+});
+let knowledgeSearchTimer;
+document.querySelector("#knowledge-search").addEventListener("input", (event) => {
+  state.knowledgeListQuery = event.target.value.trim();
+  state.knowledgeListPage = 0;
+  clearTimeout(knowledgeSearchTimer);
+  knowledgeSearchTimer = setTimeout(() => loadKnowledgeList().catch(report), 200);
+});
+document.querySelector("#knowledge-previous-page").addEventListener("click", () => {
+  if (state.knowledgeListPage === 0) return;
+  state.knowledgeListPage -= 1;
+  loadKnowledgeList().catch(report);
+});
+document.querySelector("#knowledge-next-page").addEventListener("click", () => {
+  if (!state.knowledgePage || state.knowledgeListPage + 1 >= state.knowledgePage.totalPages) return;
+  state.knowledgeListPage += 1;
+  loadKnowledgeList().catch(report);
+});
 document.querySelector("#close-inspector").addEventListener("click", hideInspector);
 document.querySelector("#reset-graph-view").addEventListener("click", resetGraphView);
 findDerivationProposalsButton.addEventListener("click", () => loadDerivationProposals().catch(report));
@@ -1159,6 +1366,7 @@ document.querySelector("#graph-topology").addEventListener("change", (event) => 
   destination.disabled = true;
   state.graphTopology = null;
   clearDerivationProposals();
+  updateGraphMode();
   renderGraphSources(state.knowledge);
   loadInitialTopology().catch(report);
 });
@@ -1175,6 +1383,7 @@ document.querySelector("#graph-source").addEventListener("input", async (event) 
   const destination = document.querySelector("#graph-destination");
   destination.value = "";
   destination.disabled = !state.graphSource;
+  updateGraphMode();
   if (!state.graphSource) {
     state.graphDestinations = [];
     await loadInitialTopology();
@@ -1202,6 +1411,7 @@ document.querySelector("#graph-destination").addEventListener("input", (event) =
     ? event.target.value
     : null;
   state.graphTopology = null;
+  updateGraphMode();
   if (state.graphDestination) loadTopologyPath().catch(report); else loadAnchoredTopology().catch(report);
 });
 document.querySelector("#graph-direction").addEventListener("change", (event) => {
@@ -1210,6 +1420,7 @@ document.querySelector("#graph-direction").addEventListener("change", (event) =>
   clearDerivationProposals();
   state.graphDestination = null;
   document.querySelector("#graph-destination").value = "";
+  updateGraphMode();
   if (state.graphSource) {
     document.querySelector("#graph-source").dispatchEvent(new Event("input"));
   } else {

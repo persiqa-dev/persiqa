@@ -4,8 +4,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Persiqa CKM</title>
-    <link rel="stylesheet" href="/app.css?v=ckm-0.1.0-derivation-dialog-feedback">
-    <script defer src="/app.js?v=ckm-0.1.0-derivation-dialog-feedback"></script>
+    <link rel="stylesheet" href="/app.css?v=ckm-0.1.0-observation-context">
+    <script defer src="/app.js?v=ckm-0.1.0-observation-context"></script>
   </head>
   <body>
     <header class="topbar">
@@ -51,8 +51,15 @@
             <button id="refresh-knowledge" type="button" data-i18n="actions.refreshGraph">Refresh graph</button>
           </div>
 
-          <div id="graph-summary" class="summary"></div>
-          <section class="panel topology-panel">
+          <nav class="workbench-menu" aria-label="Scope workspace">
+            <button class="workbench-menu-item active" type="button" data-workbench-view="overview" data-i18n="workspace.overview" aria-current="page">Overview</button>
+            <button class="workbench-menu-item" type="button" data-workbench-view="knowledge" data-i18n="workspace.knowledge">Knowledge</button>
+            <button class="workbench-menu-item" type="button" data-workbench-view="record" data-i18n="workspace.record">Record knowledge</button>
+          </nav>
+
+          <section id="overview-view" class="workbench-view">
+            <div id="graph-summary" class="summary"></div>
+            <section class="panel topology-panel">
             <div class="section-heading">
               <div>
                 <h3 data-i18n="graph.title">Knowledge graph</h3>
@@ -62,6 +69,7 @@
                 <label class="graph-anchor"><span data-i18n="graph.source">Source device</span><input id="graph-source" list="graph-source-options" data-i18n-placeholder="graph.sourceHint" placeholder="Choose MainSwitch-01"><datalist id="graph-source-options"></datalist></label>
                 <label class="graph-anchor"><span data-i18n="graph.destination">Destination device</span><input id="graph-destination" list="graph-destination-options" data-i18n-placeholder="graph.destinationHint" placeholder="Choose ElectricBoiler-01" disabled><datalist id="graph-destination-options"></datalist></label>
                 <label class="graph-anchor"><span data-i18n="graph.direction">Direction</span><select id="graph-direction"><option value="DOWNSTREAM" data-i18n="graph.downstream">Downstream</option><option value="UPSTREAM" data-i18n="graph.upstream">Upstream</option></select></label>
+                <p id="graph-mode" class="graph-mode" role="status"></p>
               </div>
               <button id="reset-graph-view" type="button" data-i18n="graph.reset">Reset view</button>
             </div>
@@ -74,8 +82,8 @@
               <g id="graph-viewport"></g>
             </svg>
             <div id="graph-legend" class="graph-legend"></div>
-          </section>
-          <section class="panel derivation-panel">
+            </section>
+            <section class="panel derivation-panel">
             <div class="section-heading">
               <div>
                 <h3 data-i18n="derivation.title">Derived knowledge proposals</h3>
@@ -83,6 +91,7 @@
               </div>
               <span id="find-derivation-proposals-hint" data-i18n-title="derivation.noSource" title="Choose a source device to find reviewable conclusions."><button id="find-derivation-proposals" type="button" data-i18n="derivation.find" disabled>Find proposals</button></span>
             </div>
+            </section>
           </section>
           <dialog id="derivation-proposals-dialog" class="derivation-dialog" aria-labelledby="derivation-dialog-title">
             <div class="section-heading">
@@ -92,11 +101,30 @@
             <p id="derivation-feedback" class="derivation-feedback" role="status"></p>
             <div id="derivation-proposal-list" class="item-list"></div>
           </dialog>
-          <div class="graph-grid">
-            <section class="panel graph-panel"><h3 data-i18n="summary.nodes">Nodes</h3><div id="node-list"></div></section>
-            <section class="panel graph-panel"><h3 data-i18n="summary.relations">Relations</h3><div id="relation-list"></div></section>
-            <section class="panel graph-panel"><h3 data-i18n="summary.statements">Statements</h3><div id="statement-list"></div></section>
-          </div>
+          <section id="knowledge-view" class="workbench-view hidden">
+            <section class="panel knowledge-panel">
+              <div class="section-heading knowledge-heading">
+                <div>
+                  <h3 data-i18n="workspace.knowledge">Knowledge</h3>
+                  <p class="graph-help" data-i18n="knowledge.browseHelp">Browse canonical knowledge in focused, paged lists.</p>
+                </div>
+                <label class="knowledge-search"><span data-i18n="actions.search">Search</span><input id="knowledge-search" data-i18n-placeholder="knowledge.searchHint" placeholder="Search the selected list"></label>
+              </div>
+              <div class="knowledge-tabs" role="tablist" data-i18n-aria-label="knowledge.navigation" aria-label="Knowledge collections">
+                <button class="knowledge-tab active" type="button" role="tab" aria-selected="true" data-knowledge-list="nodes" data-i18n="summary.nodes">Nodes</button>
+                <button class="knowledge-tab" type="button" role="tab" aria-selected="false" data-knowledge-list="relations" data-i18n="summary.relations">Relations</button>
+                <button class="knowledge-tab" type="button" role="tab" aria-selected="false" data-knowledge-list="statements" data-i18n="summary.statements">Statements</button>
+              </div>
+              <div id="knowledge-list" class="item-list knowledge-list"></div>
+              <div class="pagination" aria-live="polite">
+                <span id="knowledge-page-summary"></span>
+                <div>
+                  <button id="knowledge-previous-page" type="button" data-i18n="pagination.previous">Previous</button>
+                  <button id="knowledge-next-page" type="button" data-i18n="pagination.next">Next</button>
+                </div>
+              </div>
+            </section>
+          </section>
 
           <section id="inspector" class="panel inspector hidden">
             <div class="section-heading">
@@ -106,7 +134,8 @@
             <div id="inspector-content"></div>
           </section>
 
-          <div class="command-grid">
+          <section id="record-view" class="workbench-view hidden">
+            <div class="command-grid">
             <form id="create-node-form" class="panel command-form">
               <h3 data-i18n="node.addCanonical">Add canonical node</h3>
               <label><span data-i18n="endpoint.identity">Identity</span> <input name="id" placeholder="Outlet-01" required></label>
@@ -153,11 +182,15 @@
                 <summary data-i18n="context.title">Knowledge context</summary>
                 <label><span data-i18n="context.provenance">Provenance</span> <input name="provenance" data-i18n-placeholder="context.provenanceHint" placeholder="as-built inspection"></label>
                 <label><span data-i18n="context.confidence">Confidence</span> <input name="confidence" type="number" min="0" max="1" step="0.01"></label>
+                <label><span data-i18n="context.observedAt">Observed at</span> <input name="observedAt" type="datetime-local"></label>
+                <label><span data-i18n="context.validFrom">Valid from</span> <input name="validFrom" type="datetime-local"></label>
+                <label><span data-i18n="context.validTo">Valid to</span> <input name="validTo" type="datetime-local"></label>
                 <label><span data-i18n="context.scenario">Scenario</span> <input name="scenario" data-i18n-placeholder="context.scenarioHint" placeholder="installed"></label>
               </details>
               <button type="submit" data-i18n="statement.record">Record statement</button>
             </form>
-          </div>
+            </div>
+          </section>
         </section>
       </section>
     </main>
