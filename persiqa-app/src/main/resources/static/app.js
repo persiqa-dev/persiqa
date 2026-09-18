@@ -64,7 +64,13 @@ const translations = {
     "derivation.none": "No new derived conclusions are available.", "derivation.hops": "{count} hops",
     "derivation.evidence": "Evidence: {ids}", "derivation.accept": "Record as derived",
     "derivation.found": "Found {count} reviewable proposals.",
-    "derivation.accepted": "Recorded derived statement {statement}."
+    "derivation.accepted": "Recorded derived statement {statement}.",
+    "semantic.title": "Semantic reachability", "semantic.noSource": "Choose a source device to inspect auditable reachable devices.",
+    "semantic.ready": "Inspect every semantically reachable device and its canonical witness.",
+    "semantic.explore": "Explore reachability", "semantic.none": "No reachable devices found.",
+    "semantic.hops": "{count} hops", "semantic.witness": "Witness: {path}",
+    "semantic.showPath": "Show as path", "semantic.results": "{count} reachable devices from {source}.",
+    "semantic.truncated": "Results are limited to {count} hops.",
   },
   hu: {
     "app.title": "Kanonikus tudásmodell", "language.label": "Nyelv",
@@ -131,7 +137,13 @@ const translations = {
     "derivation.none": "Nincs új rögzíthető származtatott következtetés.", "derivation.hops": "{count} lépés",
     "derivation.evidence": "Bizonyíték: {ids}", "derivation.accept": "Rögzítés származtatottként",
     "derivation.found": "{count} ellenőrizhető javaslat található.",
-    "derivation.accepted": "A(z) {statement} származtatott állítás rögzítve."
+    "derivation.accepted": "A(z) {statement} származtatott állítás rögzítve.",
+    "semantic.title": "Szemantikus elérhetőség", "semantic.noSource": "Válassz forrás eszközt az auditálható elérhető eszközök vizsgálatához.",
+    "semantic.ready": "Vizsgáld meg az összes szemantikusan elérhető eszközt és a kanonikus bizonyító útját.",
+    "semantic.explore": "Elérhetőség vizsgálata", "semantic.none": "Nem található elérhető eszköz.",
+    "semantic.hops": "{count} lépés", "semantic.witness": "Bizonyító út: {path}",
+    "semantic.showPath": "Megjelenítés útként", "semantic.results": "{source} forrásból {count} elérhető eszköz.",
+    "semantic.truncated": "Az eredmények legfeljebb {count} lépésig látszanak.",
   }
 };
 
@@ -139,6 +151,7 @@ const state = {
   authorization: null, scopeId: null, relationTypes: [], endpointKinds: new Map(), knowledge: null,
   graphProfile: "ELECTRICAL_SUPPLY", graphLayout: "LEFT_TO_RIGHT", graphSource: null, graphDestination: null, graphDestinations: [], graphDirection: "DOWNSTREAM", graphTopology: null,
   derivationProposals: [], derivationQueried: false,
+  semanticTraversal: null,
   workbenchView: "overview", knowledgeList: "nodes", knowledgeListQuery: "", knowledgeListPage: 0, knowledgePage: null, knowledgeListRequest: 0,
   language: localStorage.getItem("persiqa.language") || navigator.language?.slice(0, 2) || "en"
 };
@@ -161,6 +174,13 @@ const findDerivationProposalsHint = document.querySelector("#find-derivation-pro
 const derivationProposalsDialog = document.querySelector("#derivation-proposals-dialog");
 const closeDerivationProposalsButton = document.querySelector("#close-derivation-proposals");
 const derivationFeedback = document.querySelector("#derivation-feedback");
+const semanticHelp = document.querySelector("#semantic-help");
+const exploreSemanticsButton = document.querySelector("#explore-semantics");
+const exploreSemanticsHint = document.querySelector("#explore-semantics-hint");
+const semanticTraversalDialog = document.querySelector("#semantic-traversal-dialog");
+const closeSemanticTraversalButton = document.querySelector("#close-semantic-traversal");
+const semanticTraversalSummary = document.querySelector("#semantic-traversal-summary");
+const semanticTraversalList = document.querySelector("#semantic-traversal-list");
 const graphState = {
   x: 0, y: 0, scale: 1, dragging: null, nodeDragging: null,
   suppressClickNodeId: null, updateEdges: null
@@ -203,6 +223,7 @@ function applyTranslations() {
   updateGraphMode();
   renderKnowledgeList();
   renderDerivationProposals();
+  renderSemanticTraversal();
 }
 
 function showStatus(message, error = false) {
@@ -321,6 +342,7 @@ function renderKnowledge(knowledge, preserveDerivationProposals = false) {
   state.knowledge = knowledge;
   state.graphTopology = null;
   if (!preserveDerivationProposals) clearDerivationProposals();
+  clearSemanticTraversal();
   renderEndpointOptions(knowledge);
   renderGraphSources(knowledge);
   document.querySelector("#scope-title").textContent = knowledge.scope.name;
@@ -419,6 +441,85 @@ function clearDerivationProposals() {
   state.derivationProposals = [];
   state.derivationQueried = false;
   renderDerivationProposals();
+}
+
+function clearSemanticTraversal() {
+  semanticTraversalDialog.close();
+  state.semanticTraversal = null;
+  renderSemanticTraversal();
+}
+
+function renderSemanticTraversal() {
+  const canQuery = Boolean(state.scopeId && state.graphSource);
+  exploreSemanticsButton.disabled = !canQuery;
+  exploreSemanticsHint.title = canQuery ? "" : t("semantic.noSource");
+  semanticHelp.textContent = t(canQuery ? "semantic.ready" : "semantic.noSource");
+  semanticTraversalList.replaceChildren();
+  semanticTraversalSummary.textContent = "";
+  if (!state.semanticTraversal) return;
+  const traversal = state.semanticTraversal;
+  semanticTraversalSummary.textContent = traversal.truncated
+    ? t("semantic.truncated", { count: traversal.maxHops })
+    : t("semantic.results", { count: traversal.matches.length, source: traversal.anchor.id });
+  if (traversal.matches.length === 0) {
+    semanticTraversalList.textContent = t("semantic.none");
+    return;
+  }
+  traversal.matches.forEach((match) => {
+    const item = document.createElement("div");
+    item.className = "item derivation-proposal";
+    const title = document.createElement("strong");
+    title.textContent = match.target.id;
+    const hops = document.createElement("span");
+    hops.textContent = t("semantic.hops", { count: match.hops });
+    const witness = document.createElement("span");
+    const nodes = [traversal.anchor.id];
+    match.witness.forEach((step) => {
+      const current = nodes.at(-1);
+      nodes.push(
+        step.relation.source.id === current ? step.relation.target.id : step.relation.source.id);
+    });
+    witness.textContent = t("semantic.witness", { path: nodes.join(" → ") });
+    const showPath = document.createElement("button");
+    showPath.type = "button";
+    showPath.textContent = t("semantic.showPath");
+    showPath.addEventListener("click", () => showSemanticPath(match.target.id).catch(report));
+    item.append(title, hops, witness, showPath);
+    semanticTraversalList.append(item);
+  });
+}
+
+async function loadSemanticTraversal() {
+  if (!state.scopeId || !state.graphSource) {
+    showStatus(t("semantic.noSource"), true);
+    return;
+  }
+  exploreSemanticsButton.disabled = true;
+  try {
+    const query = new URLSearchParams({
+      anchor: state.graphSource,
+      relationType: graphProfile().relationType,
+      direction: state.graphDirection,
+      maxHops: "20"
+    });
+    state.semanticTraversal = await request(
+      `/api/scopes/${state.scopeId}/semantic/traversal?${query}`);
+    renderSemanticTraversal();
+    semanticTraversalDialog.showModal();
+  } finally {
+    exploreSemanticsButton.disabled = false;
+  }
+}
+
+async function showSemanticPath(destinationId) {
+  if (!state.graphDestinations.some((node) => node.id === destinationId)) {
+    throw new Error(t("semantic.none"));
+  }
+  state.graphDestination = destinationId;
+  document.querySelector("#graph-destination").value = destinationId;
+  updateGraphMode();
+  semanticTraversalDialog.close();
+  await loadTopologyPath();
 }
 
 function renderDerivationProposals() {
@@ -1348,6 +1449,8 @@ document.querySelector("#close-inspector").addEventListener("click", hideInspect
 document.querySelector("#reset-graph-view").addEventListener("click", resetGraphView);
 findDerivationProposalsButton.addEventListener("click", () => loadDerivationProposals().catch(report));
 closeDerivationProposalsButton.addEventListener("click", () => derivationProposalsDialog.close());
+exploreSemanticsButton.addEventListener("click", () => loadSemanticTraversal().catch(report));
+closeSemanticTraversalButton.addEventListener("click", () => semanticTraversalDialog.close());
 document.querySelector("#graph-layout").addEventListener("change", (event) => {
   state.graphLayout = event.target.value;
   resetGraphView();
@@ -1366,6 +1469,7 @@ document.querySelector("#graph-topology").addEventListener("change", (event) => 
   destination.disabled = true;
   state.graphTopology = null;
   clearDerivationProposals();
+  clearSemanticTraversal();
   updateGraphMode();
   renderGraphSources(state.knowledge);
   loadInitialTopology().catch(report);
@@ -1379,6 +1483,7 @@ document.querySelector("#graph-source").addEventListener("input", async (event) 
     : null;
   state.graphTopology = null;
   clearDerivationProposals();
+  clearSemanticTraversal();
   state.graphDestination = null;
   const destination = document.querySelector("#graph-destination");
   destination.value = "";
@@ -1418,6 +1523,7 @@ document.querySelector("#graph-direction").addEventListener("change", (event) =>
   state.graphDirection = event.target.value;
   state.graphTopology = null;
   clearDerivationProposals();
+  clearSemanticTraversal();
   state.graphDestination = null;
   document.querySelector("#graph-destination").value = "";
   updateGraphMode();

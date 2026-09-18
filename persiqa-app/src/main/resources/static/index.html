@@ -4,8 +4,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Persiqa CKM</title>
-    <link rel="stylesheet" href="/app.css?v=ckm-0.1.0-brand-mark">
-    <script defer src="/app.js?v=ckm-0.1.0-brand-mark"></script>
+    <link rel="stylesheet" href="/app.css?v=ckm-0.1.0-semantic-reachability">
+    <script defer src="/app.js?v=ckm-0.1.0-semantic-reachability"></script>
   </head>
   <body>
     <header class="topbar">
@@ -95,6 +95,15 @@
               <span id="find-derivation-proposals-hint" data-i18n-title="derivation.noSource" title="Choose a source device to find reviewable conclusions."><button id="find-derivation-proposals" type="button" data-i18n="derivation.find" disabled>Find proposals</button></span>
             </div>
             </section>
+            <section class="panel semantic-panel">
+              <div class="section-heading">
+                <div>
+                  <h3 data-i18n="semantic.title">Semantic reachability</h3>
+                  <p id="semantic-help" class="graph-help" data-i18n="semantic.noSource">Choose a source device to inspect auditable reachable devices.</p>
+                </div>
+                <span id="explore-semantics-hint" data-i18n-title="semantic.noSource" title="Choose a source device to inspect auditable reachable devices."><button id="explore-semantics" type="button" data-i18n="semantic.explore" disabled>Explore reachability</button></span>
+              </div>
+            </section>
           </section>
           <dialog id="derivation-proposals-dialog" class="derivation-dialog" aria-labelledby="derivation-dialog-title">
             <div class="section-heading">
@@ -103,6 +112,14 @@
             </div>
             <p id="derivation-feedback" class="derivation-feedback" role="status"></p>
             <div id="derivation-proposal-list" class="item-list"></div>
+          </dialog>
+          <dialog id="semantic-traversal-dialog" class="derivation-dialog semantic-dialog" aria-labelledby="semantic-dialog-title">
+            <div class="section-heading">
+              <h3 id="semantic-dialog-title" data-i18n="semantic.title">Semantic reachability</h3>
+              <button id="close-semantic-traversal" type="button" data-i18n="actions.close">Close</button>
+            </div>
+            <p id="semantic-traversal-summary" class="graph-help"></p>
+            <div id="semantic-traversal-list" class="item-list"></div>
           </dialog>
           <section id="knowledge-view" class="workbench-view hidden">
             <section class="panel knowledge-panel">
