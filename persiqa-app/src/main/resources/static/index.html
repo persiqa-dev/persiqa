@@ -4,8 +4,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Persiqa CKM</title>
-    <link rel="stylesheet" href="/app.css?v=ckm-0.1.0-theme-selector">
-    <script defer src="/app.js?v=ckm-0.1.0-theme-selector"></script>
+    <link rel="stylesheet" href="/app.css?v=ckm-0.1.0-explicit-selection">
+    <script type="module" src="/app.js?v=ckm-0.1.0-ui-modules"></script>
   </head>
   <body>
     <header class="topbar">
@@ -179,22 +179,30 @@
               <label><span data-i18n="statement.identity">Statement identity (optional)</span>
                 <input id="statement-id" name="statementId" data-i18n-placeholder="statement.identityHint" placeholder="Generated from relation and knowledge kind">
               </label>
-              <label><span data-i18n="statement.relationType">Relation Type</span> <select id="relation-type" name="relationType" required></select></label>
-              <div class="endpoint-grid">
-                <label><span data-i18n="endpoint.sourceIdentity">Source identity</span>
-                  <input id="source-id" name="sourceId" list="endpoint-options" data-i18n-placeholder="endpoint.sourceHint" placeholder="Choose or enter MCB-01" required>
-                </label>
-                <label><span data-i18n="endpoint.sourceKind">Source kind</span>
-                  <select id="source-kind" name="sourceKind" class="node-kind" data-kinds="ENTITY,CAPABILITY,CONCEPT,STATE,RELATION"></select>
-                </label>
-                <label><span data-i18n="endpoint.targetIdentity">Target identity</span>
-                  <input id="target-id" name="targetId" list="endpoint-options" data-i18n-placeholder="endpoint.targetHint" placeholder="Choose or enter Outlet-01" required>
-                </label>
-                <label><span data-i18n="endpoint.targetKind">Target kind</span>
-                  <select id="target-kind" name="targetKind" class="node-kind" data-kinds="ENTITY,CAPABILITY,CONCEPT,STATE,RELATION"></select>
-                </label>
+              <div class="relation-recording-flow">
+                <div class="relation-flow-step">
+                  <label><span data-i18n="endpoint.sourceIdentity">Source identity</span>
+                    <input id="source-id" name="sourceId" list="source-endpoint-options" data-i18n-placeholder="endpoint.sourceHint" placeholder="Choose or enter MCB-01" required>
+                  </label>
+                  <label><span data-i18n="endpoint.sourceKind">Source kind</span>
+                    <select id="source-kind" name="sourceKind" class="node-kind" data-kinds="ENTITY,CAPABILITY,CONCEPT,STATE,RELATION" required></select>
+                  </label>
+                </div>
+                <div class="relation-flow-step relation-type-step">
+                  <label><span data-i18n="statement.relationType">Relation Type</span> <select id="relation-type" name="relationType" required></select></label>
+                  <p id="relation-type-help" class="relation-type-help"></p>
+                </div>
+                <div class="relation-flow-step">
+                  <label><span data-i18n="endpoint.targetIdentity">Target identity</span>
+                    <input id="target-id" name="targetId" list="target-endpoint-options" data-i18n-placeholder="endpoint.targetHint" placeholder="Choose or enter Outlet-01" required>
+                  </label>
+                  <label><span data-i18n="endpoint.targetKind">Target kind</span>
+                    <select id="target-kind" name="targetKind" class="node-kind" data-kinds="ENTITY,CAPABILITY,CONCEPT,STATE,RELATION" required></select>
+                  </label>
+                </div>
               </div>
-              <datalist id="endpoint-options"></datalist>
+              <datalist id="source-endpoint-options"></datalist>
+              <datalist id="target-endpoint-options"></datalist>
               <label><span data-i18n="statement.knowledgeKind">Knowledge kind</span>
                 <select id="knowledge-kind" name="knowledgeKind">
                   <option value="EXPLICIT" data-i18n="knowledge.explicit">Explicit</option>

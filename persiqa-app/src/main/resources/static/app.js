@@ -1,3 +1,6 @@
+import { createRecordingController } from "./ui/recording-controller.js";
+import { createSemanticController } from "./ui/semantic-controller.js";
+
 const translations = {
   en: {
     "app.title": "Canonical Knowledge Model", "language.label": "Language",
@@ -40,6 +43,16 @@ const translations = {
     "relation.hasCapability": "Has capability", "relation.hasState": "Has state",
     "relation.hostedOn": "Hosted on", "relation.instanceOf": "Instance of",
     "relation.playsRole": "Plays role", "relation.supplies": "Supplies",
+    "relation.classifiedAs.help": "Assigns a general semantic classification to an entity or concept.",
+    "relation.connectedTo.help": "Records a declared connection between two entities; it is symmetric, not automatically transitive.",
+    "relation.contains.help": "Records structural or spatial containment from one entity to another.",
+    "relation.dependsOn.help": "Records that one entity depends on another; only declared rules may compose it.",
+    "relation.hasCapability.help": "Associates an entity with a capability; it does not mean that the capability is active.",
+    "relation.hasState.help": "Associates an entity or relation with a contextual state.",
+    "relation.hostedOn.help": "Records that one entity is hosted by another entity.",
+    "relation.instanceOf.help": "Associates an entity with a specific product, model, or type concept.",
+    "relation.playsRole.help": "Associates an entity with a contextual role concept.",
+    "relation.supplies.help": "Records directed supply from one entity to another; it may be composed only by declared rules.",
     "inspector.statement": "Statement details", "inspector.supportingStatements": "Supporting Statements",
     "inspector.originalContext": "Original context", "inspector.observations": "Later observations",
     "inspector.evidence": "Evidence", "inspector.none": "None", "inspector.unspecified": "Unspecified",
@@ -114,6 +127,16 @@ const translations = {
     "relation.hasCapability": "Rendelkezik képességgel", "relation.hasState": "Állapota",
     "relation.hostedOn": "Ezen fut", "relation.instanceOf": "Példánya ennek",
     "relation.playsRole": "Ezt a szerepet tölti be", "relation.supplies": "Ellátja",
+    "relation.classifiedAs.help": "Egy entitáshoz vagy fogalomhoz általános szemantikai besorolást kapcsol.",
+    "relation.connectedTo.help": "Két entitás deklarált kapcsolatát rögzíti; szimmetrikus, de nem automatikusan tranzitív.",
+    "relation.contains.help": "Egy entitás szerkezeti vagy térbeli tartalmazását rögzíti egy másik entitás felé.",
+    "relation.dependsOn.help": "Azt rögzíti, hogy az egyik entitás függ a másiktól; összefűzését csak deklarált szabály engedheti.",
+    "relation.hasCapability.help": "Entitást kapcsol képességhez; nem jelenti azt, hogy a képesség éppen aktív.",
+    "relation.hasState.help": "Entitást vagy kapcsolatot kapcsol kontextuális állapothoz.",
+    "relation.hostedOn.help": "Azt rögzíti, hogy egy entitás egy másik entitáson fut vagy van hostolva.",
+    "relation.instanceOf.help": "Egy entitást konkrét termék-, modell- vagy típusfogalomhoz kapcsol.",
+    "relation.playsRole.help": "Egy entitást kontextuális szerepfogalomhoz kapcsol.",
+    "relation.supplies.help": "Irányított ellátást rögzít két entitás között; összefűzése csak deklarált szabály alapján lehetséges.",
     "inspector.statement": "Állítás részletei", "inspector.supportingStatements": "Alátámasztó állítások",
     "inspector.originalContext": "Eredeti kontextus", "inspector.observations": "Későbbi megfigyelések",
     "inspector.evidence": "Bizonyíték", "inspector.none": "Nincs", "inspector.unspecified": "Nincs megadva",
@@ -170,20 +193,6 @@ const graphSvg = document.querySelector("#knowledge-graph");
 const graphViewport = document.querySelector("#graph-viewport");
 const graphLegend = document.querySelector("#graph-legend");
 const graphMode = document.querySelector("#graph-mode");
-const derivationHelp = document.querySelector("#derivation-help");
-const derivationProposalList = document.querySelector("#derivation-proposal-list");
-const findDerivationProposalsButton = document.querySelector("#find-derivation-proposals");
-const findDerivationProposalsHint = document.querySelector("#find-derivation-proposals-hint");
-const derivationProposalsDialog = document.querySelector("#derivation-proposals-dialog");
-const closeDerivationProposalsButton = document.querySelector("#close-derivation-proposals");
-const derivationFeedback = document.querySelector("#derivation-feedback");
-const semanticHelp = document.querySelector("#semantic-help");
-const exploreSemanticsButton = document.querySelector("#explore-semantics");
-const exploreSemanticsHint = document.querySelector("#explore-semantics-hint");
-const semanticTraversalDialog = document.querySelector("#semantic-traversal-dialog");
-const closeSemanticTraversalButton = document.querySelector("#close-semantic-traversal");
-const semanticTraversalSummary = document.querySelector("#semantic-traversal-summary");
-const semanticTraversalList = document.querySelector("#semantic-traversal-list");
 const graphState = {
   x: 0, y: 0, scale: 1, dragging: null, nodeDragging: null,
   suppressClickNodeId: null, updateEdges: null
@@ -192,6 +201,30 @@ const svgNamespace = "http://www.w3.org/2000/svg";
 
 if (!translations[state.language]) state.language = "en";
 if (!["dark", "light"].includes(state.theme)) state.theme = "dark";
+
+const recording = createRecordingController({
+  kindLabel,
+  loadKnowledge,
+  relationTypeLabel,
+  report,
+  request,
+  showStatus,
+  state,
+  translate: t
+});
+
+const semantics = createSemanticController({
+  graphProfile,
+  loadKnowledge,
+  loadTopologyPath,
+  relationTypeLabel,
+  report,
+  request,
+  showStatus,
+  state,
+  translate: t,
+  updateGraphMode
+});
 
 function t(key, values = {}) {
   return translations[state.language][key]?.replace(/\{(\w+)\}/g, (_, name) => values[name] ?? `{${name}}`) || key;
@@ -226,8 +259,8 @@ function applyTranslations() {
   if (state.knowledge) renderKnowledgeGraph(state.knowledge);
   updateGraphMode();
   renderKnowledgeList();
-  renderDerivationProposals();
-  renderSemanticTraversal();
+  semantics.renderDerivationProposals();
+  semantics.renderSemanticTraversal();
 }
 
 function applyTheme() {
@@ -335,23 +368,14 @@ async function loadRelationTypes() {
 }
 
 function renderRelationTypes() {
-  const relationType = document.querySelector("#relation-type");
-  const selected = relationType.value;
-  relationType.replaceChildren();
-  state.relationTypes.forEach((type) => {
-    const option = document.createElement("option");
-    option.value = type.id;
-    option.textContent = relationTypeLabel(type.id);
-    relationType.append(option);
-  });
-  relationType.value = selected || state.relationTypes[0]?.id || "";
+  recording.renderRelationTypes();
 }
 
 function renderKnowledge(knowledge, preserveDerivationProposals = false) {
   state.knowledge = knowledge;
   state.graphTopology = null;
-  if (!preserveDerivationProposals) clearDerivationProposals();
-  clearSemanticTraversal();
+  if (!preserveDerivationProposals) semantics.clearDerivationProposals();
+  semantics.clearSemanticTraversal();
   renderEndpointOptions(knowledge);
   renderGraphSources(knowledge);
   document.querySelector("#scope-title").textContent = knowledge.scope.name;
@@ -442,170 +466,6 @@ async function loadKnowledgeList() {
   }
   state.knowledgeListPage = page.page;
   renderKnowledgeList();
-}
-
-function clearDerivationProposals() {
-  derivationProposalsDialog.close();
-  derivationFeedback.textContent = "";
-  state.derivationProposals = [];
-  state.derivationQueried = false;
-  renderDerivationProposals();
-}
-
-function clearSemanticTraversal() {
-  semanticTraversalDialog.close();
-  state.semanticTraversal = null;
-  renderSemanticTraversal();
-}
-
-function renderSemanticTraversal() {
-  const canQuery = Boolean(state.scopeId && state.graphSource);
-  exploreSemanticsButton.disabled = !canQuery;
-  exploreSemanticsHint.title = canQuery ? "" : t("semantic.noSource");
-  semanticHelp.textContent = t(canQuery ? "semantic.ready" : "semantic.noSource");
-  semanticTraversalList.replaceChildren();
-  semanticTraversalSummary.textContent = "";
-  if (!state.semanticTraversal) return;
-  const traversal = state.semanticTraversal;
-  semanticTraversalSummary.textContent = traversal.truncated
-    ? t("semantic.truncated", { count: traversal.maxHops })
-    : t("semantic.results", { count: traversal.matches.length, source: traversal.anchor.id });
-  if (traversal.matches.length === 0) {
-    semanticTraversalList.textContent = t("semantic.none");
-    return;
-  }
-  traversal.matches.forEach((match) => {
-    const item = document.createElement("div");
-    item.className = "item derivation-proposal";
-    const title = document.createElement("strong");
-    title.textContent = match.target.id;
-    const hops = document.createElement("span");
-    hops.textContent = t("semantic.hops", { count: match.hops });
-    const witness = document.createElement("span");
-    const nodes = [traversal.anchor.id];
-    match.witness.forEach((step) => {
-      const current = nodes.at(-1);
-      nodes.push(
-        step.relation.source.id === current ? step.relation.target.id : step.relation.source.id);
-    });
-    witness.textContent = t("semantic.witness", { path: nodes.join(" → ") });
-    const showPath = document.createElement("button");
-    showPath.type = "button";
-    showPath.textContent = t("semantic.showPath");
-    showPath.addEventListener("click", () => showSemanticPath(match.target.id).catch(report));
-    item.append(title, hops, witness, showPath);
-    semanticTraversalList.append(item);
-  });
-}
-
-async function loadSemanticTraversal() {
-  if (!state.scopeId || !state.graphSource) {
-    showStatus(t("semantic.noSource"), true);
-    return;
-  }
-  exploreSemanticsButton.disabled = true;
-  try {
-    const query = new URLSearchParams({
-      anchor: state.graphSource,
-      relationType: graphProfile().relationType,
-      direction: state.graphDirection,
-      maxHops: "20"
-    });
-    state.semanticTraversal = await request(
-      `/api/scopes/${state.scopeId}/semantic/traversal?${query}`);
-    renderSemanticTraversal();
-    semanticTraversalDialog.showModal();
-  } finally {
-    exploreSemanticsButton.disabled = false;
-  }
-}
-
-async function showSemanticPath(destinationId) {
-  if (!state.graphDestinations.some((node) => node.id === destinationId)) {
-    throw new Error(t("semantic.none"));
-  }
-  state.graphDestination = destinationId;
-  document.querySelector("#graph-destination").value = destinationId;
-  updateGraphMode();
-  semanticTraversalDialog.close();
-  await loadTopologyPath();
-}
-
-function renderDerivationProposals() {
-  const canQuery = Boolean(state.scopeId && state.graphSource);
-  findDerivationProposalsButton.disabled = !canQuery;
-  findDerivationProposalsHint.title = canQuery ? "" : t("derivation.noSource");
-  derivationHelp.textContent = t(canQuery ? "derivation.ready" : "derivation.noSource");
-  derivationProposalList.replaceChildren();
-  if (!canQuery || !state.derivationQueried) return;
-  if (state.derivationProposals.length === 0) {
-    derivationProposalList.textContent = t("derivation.none");
-    return;
-  }
-  state.derivationProposals.forEach((proposal) => {
-    const item = document.createElement("div");
-    item.className = "item derivation-proposal";
-    const title = document.createElement("strong");
-    title.textContent = `${proposal.source.id} —${relationTypeLabel(proposal.relationType)}→ ${proposal.target.id}`;
-    const hops = document.createElement("span");
-    hops.textContent = t("derivation.hops", { count: proposal.hops });
-    const evidence = document.createElement("span");
-    evidence.textContent = t("derivation.evidence", { ids: proposal.evidenceStatementIds.join(", ") });
-    const accept = document.createElement("button");
-    accept.type = "button";
-    accept.textContent = t("derivation.accept");
-    accept.addEventListener("click", () => acceptDerivationProposal(proposal, accept).catch(report));
-    item.append(title, hops, evidence, accept);
-    derivationProposalList.append(item);
-  });
-}
-
-async function loadDerivationProposals() {
-  if (!state.scopeId || !state.graphSource) {
-    showStatus(t("derivation.noSource"), true);
-    return;
-  }
-  findDerivationProposalsButton.disabled = true;
-  try {
-    const query = new URLSearchParams({
-      anchor: state.graphSource,
-      relationType: graphProfile().relationType,
-      direction: state.graphDirection,
-      maxHops: "20"
-    });
-    state.derivationProposals = await request(
-      `/api/scopes/${state.scopeId}/semantic/derivation-proposals?${query}`);
-    state.derivationQueried = true;
-    renderDerivationProposals();
-    derivationProposalsDialog.showModal();
-    showStatus(t("derivation.found", { count: state.derivationProposals.length }));
-  } finally {
-    findDerivationProposalsButton.disabled = false;
-  }
-}
-
-async function acceptDerivationProposal(proposal, button) {
-  button.disabled = true;
-  try {
-    const record = await request(`/api/scopes/${state.scopeId}/semantic/derivations`, {
-      method: "POST",
-      body: JSON.stringify({
-        anchor: state.graphSource,
-        reachable: proposal.reachable.id,
-        relationType: proposal.relationType,
-        direction: state.graphDirection,
-        maxHops: 20
-      })
-    });
-    state.derivationProposals = state.derivationProposals.filter((candidate) => candidate !== proposal);
-    await loadKnowledge(true);
-    renderDerivationProposals();
-    derivationFeedback.textContent = t("derivation.accepted", { statement: record.statement.id });
-    showStatus(t("derivation.accepted", { statement: record.statement.id }));
-  } catch (error) {
-    button.disabled = false;
-    throw error;
-  }
 }
 
 function renderGraphSources(knowledge) {
@@ -1158,40 +1018,7 @@ function showNodeDetails(node, relations) {
 }
 
 function renderEndpointOptions(knowledge) {
-  state.endpointKinds.clear();
-  knowledge.nodes.forEach((node) => state.endpointKinds.set(node.id, node.kind));
-  knowledge.relations.forEach((relation) => state.endpointKinds.set(relation.id, "RELATION"));
-  const options = document.querySelector("#endpoint-options");
-  options.replaceChildren();
-  state.endpointKinds.forEach((kind, id) => {
-    const option = document.createElement("option");
-    option.value = id;
-    option.label = kindLabel(kind);
-    options.append(option);
-  });
-}
-
-function synchronizeEndpointKind(identityInput, kindSelect) {
-  const kind = state.endpointKinds.get(identityInput.value.trim());
-  if (kind) kindSelect.value = kind;
-  kindSelect.disabled = Boolean(kind);
-}
-
-function resetEndpointKind(kindSelect) {
-  kindSelect.disabled = false;
-}
-
-function resetRelationForm(formElement) {
-  formElement.reset();
-  resetEndpointKind(document.querySelector("#source-kind"));
-  resetEndpointKind(document.querySelector("#target-kind"));
-  document.querySelector("#evidence-field").classList.add("hidden");
-}
-
-function endpointFrom(form, identityName, kindName) {
-  const id = form.get(identityName).trim();
-  if (state.endpointKinds.has(id)) return { id };
-  return { id, kind: form.get(kindName) };
+  recording.renderEndpointOptions(knowledge);
 }
 
 async function loadKnowledge(preserveDerivationProposals = false) {
@@ -1374,17 +1201,7 @@ async function selectScope(scopeId) {
 }
 
 function populateNodeKinds() {
-  document.querySelectorAll(".node-kind").forEach((select) => {
-    const selected = select.value;
-    select.replaceChildren();
-    select.dataset.kinds.split(",").forEach((kind) => {
-      const option = document.createElement("option");
-      option.value = kind;
-      option.textContent = kindLabel(kind);
-      select.append(option);
-    });
-    select.value = selected || select.dataset.kinds.split(",")[0];
-  });
+  recording.populateNodeKinds();
 }
 
 function instantFrom(form, field) {
@@ -1456,10 +1273,6 @@ document.querySelector("#knowledge-next-page").addEventListener("click", () => {
 });
 document.querySelector("#close-inspector").addEventListener("click", hideInspector);
 document.querySelector("#reset-graph-view").addEventListener("click", resetGraphView);
-findDerivationProposalsButton.addEventListener("click", () => loadDerivationProposals().catch(report));
-closeDerivationProposalsButton.addEventListener("click", () => derivationProposalsDialog.close());
-exploreSemanticsButton.addEventListener("click", () => loadSemanticTraversal().catch(report));
-closeSemanticTraversalButton.addEventListener("click", () => semanticTraversalDialog.close());
 document.querySelector("#graph-layout").addEventListener("change", (event) => {
   state.graphLayout = event.target.value;
   resetGraphView();
@@ -1477,8 +1290,8 @@ document.querySelector("#graph-topology").addEventListener("change", (event) => 
   destination.value = "";
   destination.disabled = true;
   state.graphTopology = null;
-  clearDerivationProposals();
-  clearSemanticTraversal();
+  semantics.clearDerivationProposals();
+  semantics.clearSemanticTraversal();
   updateGraphMode();
   renderGraphSources(state.knowledge);
   loadInitialTopology().catch(report);
@@ -1491,8 +1304,8 @@ document.querySelector("#graph-source").addEventListener("input", async (event) 
     ? event.target.value
     : null;
   state.graphTopology = null;
-  clearDerivationProposals();
-  clearSemanticTraversal();
+  semantics.clearDerivationProposals();
+  semantics.clearSemanticTraversal();
   state.graphDestination = null;
   const destination = document.querySelector("#graph-destination");
   destination.value = "";
@@ -1531,8 +1344,8 @@ document.querySelector("#graph-destination").addEventListener("input", (event) =
 document.querySelector("#graph-direction").addEventListener("change", (event) => {
   state.graphDirection = event.target.value;
   state.graphTopology = null;
-  clearDerivationProposals();
-  clearSemanticTraversal();
+  semantics.clearDerivationProposals();
+  semantics.clearSemanticTraversal();
   state.graphDestination = null;
   document.querySelector("#graph-destination").value = "";
   updateGraphMode();
@@ -1555,20 +1368,6 @@ document.querySelector("#theme").addEventListener("change", (event) => {
   localStorage.setItem("persiqa.theme", state.theme);
   applyTheme();
 });
-document.querySelector("#knowledge-kind").addEventListener("change", (event) => {
-  document.querySelector("#evidence-field").classList.toggle("hidden", event.target.value !== "DERIVED");
-});
-document.querySelector("#source-id").addEventListener("input", (event) => {
-  synchronizeEndpointKind(
-    event.target,
-    document.querySelector("#source-kind"));
-});
-document.querySelector("#target-id").addEventListener("input", (event) => {
-  synchronizeEndpointKind(
-    event.target,
-    document.querySelector("#target-kind"));
-});
-
 function graphPoint(event) {
   const bounds = graphSvg.getBoundingClientRect();
   const viewBox = graphSvg.viewBox.baseVal;
@@ -1647,49 +1446,10 @@ document.querySelector("#create-scope-form").addEventListener("submit", async (e
   } catch (error) { report(error); }
 });
 
-document.querySelector("#create-node-form").addEventListener("submit", async (event) => {
-  event.preventDefault();
-  if (!state.scopeId) return;
-  const formElement = event.currentTarget;
-  try {
-    const form = new FormData(formElement);
-    await request(`/api/scopes/${state.scopeId}/nodes`, {
-      method: "POST",
-      body: JSON.stringify({ id: form.get("id"), kind: form.get("kind") })
-    });
-    formElement.reset();
-    await loadKnowledge();
-    showStatus(t("status.nodeRecorded"));
-  } catch (error) { report(error); }
-});
-
-document.querySelector("#record-relation-form").addEventListener("submit", async (event) => {
-  event.preventDefault();
-  if (!state.scopeId) return;
-  const formElement = event.currentTarget;
-  try {
-    const form = new FormData(formElement);
-    const knowledgeKind = form.get("knowledgeKind");
-    const evidence = String(form.get("derivedFrom") || "")
-      .split(",").map((value) => value.trim()).filter(Boolean);
-    const record = await request(`/api/scopes/${state.scopeId}/statements`, {
-      method: "POST",
-      body: JSON.stringify({
-        relationId: form.get("relationId"), statementId: form.get("statementId"), knowledgeKind,
-        relationType: form.get("relationType"),
-        source: endpointFrom(form, "sourceId", "sourceKind"),
-        target: endpointFrom(form, "targetId", "targetKind"),
-        derivedFrom: knowledgeKind === "DERIVED" ? evidence : [], context: contextFrom(form)
-      })
-    });
-    resetRelationForm(formElement);
-    await loadKnowledge();
-    showStatus(t("status.statementRecorded", { statement: record.statement.id, relation: record.relation.id }));
-  } catch (error) { report(error); }
-});
-
 function report(error) { showStatus(error.message, true); }
 
 applyTheme();
 applyTranslations();
-resetRelationForm(document.querySelector("#record-relation-form"));
+recording.bind();
+semantics.bind();
+recording.resetRelationForm(document.querySelector("#record-relation-form"));
