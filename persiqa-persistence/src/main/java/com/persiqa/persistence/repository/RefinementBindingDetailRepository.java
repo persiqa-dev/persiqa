@@ -9,4 +9,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface RefinementBindingDetailRepository
     extends JpaRepository<RefinementBindingDetailEntity, RefinementBindingDetailEntity.Key> {
   List<RefinementBindingDetailEntity> findByBindingIdOrderByOrdinalAsc(UUID bindingId);
+
+  void deleteByBindingId(UUID bindingId);
 }

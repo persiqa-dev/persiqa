@@ -9,4 +9,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 /** Persistence operations for derivation evidence links. */
 public interface DerivationRepository extends JpaRepository<DerivationEntity, Key> {
   List<DerivationEntity> findByStatementId(UUID statementId);
+
+  List<DerivationEntity> findByStatementIdIn(List<UUID> statementIds);
 }

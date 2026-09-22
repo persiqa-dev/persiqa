@@ -1,6 +1,7 @@
 package com.persiqa.web;
 
 import com.persiqa.application.KnowledgeApplicationService;
+import com.persiqa.application.ScopeAccessService;
 import com.persiqa.application.SemanticTraversalService;
 import com.persiqa.application.TopologyProjectionService;
 import com.persiqa.application.TopologyProjectionService.DetailLevel;
@@ -8,13 +9,12 @@ import com.persiqa.application.TopologyProjectionService.Direction;
 import com.persiqa.application.TopologyProjectionService.TopologyProfile;
 import com.persiqa.core.PageQuery;
 import com.persiqa.core.PageResult;
-import com.persiqa.core.ScopeAccessDeniedException;
 import com.persiqa.model.Ckm.Kind;
 import com.persiqa.web.dto.KnowledgeDtos.NodeResponse;
 import com.persiqa.web.dto.KnowledgeDtos.ObservationResponse;
 import com.persiqa.web.dto.KnowledgeDtos.PageResponse;
 import com.persiqa.web.dto.KnowledgeDtos.RelationResponse;
-import com.persiqa.web.dto.KnowledgeDtos.ScopeKnowledgeResponse;
+import com.persiqa.web.dto.KnowledgeDtos.ScopeKnowledgeSummaryResponse;
 import com.persiqa.web.dto.KnowledgeDtos.SemanticTraversalResponse;
 import com.persiqa.web.dto.KnowledgeDtos.StatementResponse;
 import com.persiqa.web.dto.KnowledgeDtos.TopologyProjectionResponse;
@@ -22,16 +22,12 @@ import com.persiqa.web.dto.KnowledgeMapper;
 import java.util.List;
 import java.util.UUID;
 import java.util.function.Function;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ResponseStatusException;
 
 /** Read-only HTTP access to the knowledge held by one CKM scope. */
 @RestController
@@ -42,18 +38,21 @@ public class ScopeKnowledgeController {
   private final KnowledgeMapper mapper;
   private final TopologyProjectionService topology;
   private final SemanticTraversalService semanticTraversal;
+  private final ScopeAccessService scopeAccess;
 
   public ScopeKnowledgeController(
       KnowledgeApplicationService knowledge,
       CurrentSubject currentSubject,
       KnowledgeMapper mapper,
       TopologyProjectionService topology,
-      SemanticTraversalService semanticTraversal) {
+      SemanticTraversalService semanticTraversal,
+      ScopeAccessService scopeAccess) {
     this.knowledge = knowledge;
     this.currentSubject = currentSubject;
     this.mapper = mapper;
     this.topology = topology;
     this.semanticTraversal = semanticTraversal;
+    this.scopeAccess = scopeAccess;
   }
 
   /** Lists the canonical Relations in one scope. */
@@ -64,7 +63,7 @@ public class ScopeKnowledgeController {
       @RequestParam(value = "size", defaultValue = "50") int size,
       @RequestParam(value = "q", required = false) String query) {
     var subject = currentSubject.require();
-    requireScopeAccess(scopeId, subject);
+    scopeAccess.requireOwned(scopeId, subject);
     return pageResponse(
         knowledge.findRelations(scopeId, subject, new PageQuery(page, size, query)),
         mapper::toRelation);
@@ -78,22 +77,22 @@ public class ScopeKnowledgeController {
       @RequestParam(value = "size", defaultValue = "50") int size,
       @RequestParam(value = "q", required = false) String query) {
     var subject = currentSubject.require();
-    requireScopeAccess(scopeId, subject);
+    scopeAccess.requireOwned(scopeId, subject);
     return pageResponse(
         knowledge.findNodes(scopeId, subject, new PageQuery(page, size, query)), mapper::toNode);
   }
 
-  /** Returns one client-loading projection of the scope's canonical graph. */
-  @GetMapping("/knowledge")
-  public ScopeKnowledgeResponse findKnowledgeSnapshot(@PathVariable("scopeId") UUID scopeId) {
+  /** Returns scope metadata and collection counts without loading the full canonical graph. */
+  @GetMapping("/knowledge/summary")
+  public ScopeKnowledgeSummaryResponse findKnowledgeSummary(@PathVariable("scopeId") UUID scopeId) {
     var subject = currentSubject.require();
-    requireScopeAccess(scopeId, subject);
-    var snapshot = knowledge.findKnowledgeSnapshot(scopeId, subject);
-    return new ScopeKnowledgeResponse(
-        mapper.toScope(snapshot.scope()),
-        snapshot.nodes().stream().map(mapper::toNode).toList(),
-        mapper.toRelations(snapshot.relations()),
-        mapper.toStatements(snapshot.statements()));
+    scopeAccess.requireOwned(scopeId, subject);
+    var summary = knowledge.findKnowledgeSummary(scopeId, subject);
+    return new ScopeKnowledgeSummaryResponse(
+        mapper.toScope(summary.scope()),
+        summary.nodeCount(),
+        summary.relationCount(),
+        summary.statementCount());
   }
 
   /** Returns a server-calculated display projection of a composable relation topology. */
@@ -105,7 +104,7 @@ public class ScopeKnowledgeController {
       @RequestParam(value = "relationType", defaultValue = "supplies") String relationType,
       @RequestParam(value = "detailLevel", defaultValue = "DETAIL") DetailLevel detailLevel) {
     var subject = currentSubject.require();
-    requireScopeAccess(scopeId, subject);
+    scopeAccess.requireOwned(scopeId, subject);
     var projection =
         topology.project(scopeId, subject, anchor, direction, relationType, detailLevel);
     return new TopologyProjectionResponse(
@@ -121,7 +120,7 @@ public class ScopeKnowledgeController {
           TopologyProfile profile,
       @RequestParam(value = "direction", defaultValue = "DOWNSTREAM") Direction direction) {
     var subject = currentSubject.require();
-    requireScopeAccess(scopeId, subject);
+    scopeAccess.requireOwned(scopeId, subject);
     var projection = topology.initial(scopeId, subject, profile, direction);
     return new TopologyProjectionResponse(
         projection.nodes().stream().map(mapper::toTopologyNode).toList(),
@@ -136,7 +135,7 @@ public class ScopeKnowledgeController {
       @RequestParam(value = "direction", defaultValue = "DOWNSTREAM") Direction direction,
       @RequestParam(value = "relationType", defaultValue = "supplies") String relationType) {
     var subject = currentSubject.require();
-    requireScopeAccess(scopeId, subject);
+    scopeAccess.requireOwned(scopeId, subject);
     return topology.destinations(scopeId, subject, source, direction, relationType).stream()
         .map(mapper::toNode)
         .toList();
@@ -151,7 +150,7 @@ public class ScopeKnowledgeController {
       @RequestParam(value = "direction", defaultValue = "DOWNSTREAM") Direction direction,
       @RequestParam(value = "relationType", defaultValue = "supplies") String relationType) {
     var subject = currentSubject.require();
-    requireScopeAccess(scopeId, subject);
+    scopeAccess.requireOwned(scopeId, subject);
     var projection =
         topology.projectPath(scopeId, subject, source, destination, direction, relationType);
     return new TopologyProjectionResponse(
@@ -168,7 +167,7 @@ public class ScopeKnowledgeController {
       @RequestParam(value = "direction", defaultValue = "DOWNSTREAM") Direction direction,
       @RequestParam(value = "maxHops", defaultValue = "20") int maxHops) {
     var subject = currentSubject.require();
-    requireScopeAccess(scopeId, subject);
+    scopeAccess.requireOwned(scopeId, subject);
     return mapper.toSemanticTraversal(
         semanticTraversal.traverse(scopeId, subject, anchor, relationType, direction, maxHops));
   }
@@ -181,7 +180,7 @@ public class ScopeKnowledgeController {
       @RequestParam(value = "size", defaultValue = "50") int size,
       @RequestParam(value = "q", required = false) String query) {
     var subject = currentSubject.require();
-    requireScopeAccess(scopeId, subject);
+    scopeAccess.requireOwned(scopeId, subject);
     return pageResponse(
         knowledge.findStatements(scopeId, subject, new PageQuery(page, size, query)),
         mapper::toStatement);
@@ -194,7 +193,7 @@ public class ScopeKnowledgeController {
       @PathVariable("kind") Kind kind,
       @PathVariable("nodeId") String nodeId) {
     var subject = currentSubject.require();
-    requireScopeAccess(scopeId, subject);
+    scopeAccess.requireOwned(scopeId, subject);
     var node = knowledge.findNode(scopeId, subject, nodeId);
     if (node == null || node.kind() != kind) {
       return ResponseEntity.notFound().build();
@@ -207,7 +206,7 @@ public class ScopeKnowledgeController {
   public ResponseEntity<StatementResponse> findStatement(
       @PathVariable("scopeId") UUID scopeId, @PathVariable("statementId") String statementId) {
     var subject = currentSubject.require();
-    requireScopeAccess(scopeId, subject);
+    scopeAccess.requireOwned(scopeId, subject);
     var statement = knowledge.findStatement(scopeId, subject, statementId);
     return statement == null
         ? ResponseEntity.notFound().build()
@@ -219,7 +218,7 @@ public class ScopeKnowledgeController {
   public ResponseEntity<List<ObservationResponse>> findObservations(
       @PathVariable("scopeId") UUID scopeId, @PathVariable("statementId") String statementId) {
     var subject = currentSubject.require();
-    requireScopeAccess(scopeId, subject);
+    scopeAccess.requireOwned(scopeId, subject);
     if (knowledge.findStatement(scopeId, subject, statementId) == null) {
       return ResponseEntity.notFound().build();
     }
@@ -232,25 +231,12 @@ public class ScopeKnowledgeController {
   public ResponseEntity<List<StatementResponse>> findRelationStatements(
       @PathVariable("scopeId") UUID scopeId, @PathVariable("relationId") String relationId) {
     var subject = currentSubject.require();
-    requireScopeAccess(scopeId, subject);
+    scopeAccess.requireOwned(scopeId, subject);
     if (knowledge.findRelation(scopeId, subject, relationId) == null) {
       return ResponseEntity.notFound().build();
     }
     return ResponseEntity.ok(
         mapper.toStatements(knowledge.findStatementsForRelation(scopeId, subject, relationId)));
-  }
-
-  @ExceptionHandler(ScopeAccessDeniedException.class)
-  public ResponseEntity<ProblemDetail> forbidden(ScopeAccessDeniedException error) {
-    return ResponseEntity.status(HttpStatus.FORBIDDEN)
-        .body(ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, error.getMessage()));
-  }
-
-  /** Translates invalid list filters into HTTP 400. */
-  @ExceptionHandler(IllegalArgumentException.class)
-  public ResponseEntity<ProblemDetail> invalidRequest(IllegalArgumentException error) {
-    return ResponseEntity.badRequest()
-        .body(ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, error.getMessage()));
   }
 
   private static <T, R> PageResponse<R> pageResponse(
@@ -263,13 +249,4 @@ public class ScopeKnowledgeController {
         page.totalPages());
   }
 
-  private void requireScopeAccess(UUID scopeId, String subject) {
-    var scope = knowledge.findScope(scopeId);
-    if (scope == null) {
-      throw new ResponseStatusException(HttpStatus.NOT_FOUND, "unknown scope: " + scopeId);
-    }
-    if (!scope.ownerSubject().equals(subject)) {
-      throw new ScopeAccessDeniedException("subject is not the owner of scope " + scopeId);
-    }
-  }
 }

@@ -17,6 +17,11 @@ public interface CanonicalObjectRepository extends JpaRepository<CanonicalObject
 
   List<CanonicalObjectEntity> findByScopeIdOrderByIdentityKey(UUID scopeId);
 
+  List<CanonicalObjectEntity> findByScopeIdAndIdIn(UUID scopeId, Collection<UUID> objectIds);
+
+  List<CanonicalObjectEntity> findByScopeIdAndIdentityKeyIn(
+      UUID scopeId, Collection<String> identityKeys);
+
   List<CanonicalObjectEntity> findByScopeIdAndKindOrderByIdentityKey(UUID scopeId, String kind);
 
   Page<CanonicalObjectEntity> findByScopeIdAndKindInOrderByIdentityKey(
@@ -29,4 +34,8 @@ public interface CanonicalObjectRepository extends JpaRepository<CanonicalObject
   Page<CanonicalObjectEntity>
       findByScopeIdAndKindAndIdentityKeyContainingIgnoreCaseOrderByIdentityKey(
       UUID scopeId, String kind, String identityKey, Pageable pageable);
+
+  long countByScopeIdAndKindIn(UUID scopeId, Collection<String> kinds);
+
+  long countByScopeIdAndKind(UUID scopeId, String kind);
 }

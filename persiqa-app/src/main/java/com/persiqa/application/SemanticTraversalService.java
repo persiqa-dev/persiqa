@@ -48,13 +48,13 @@ public class SemanticTraversalService {
     if (maxHops < 1 || maxHops > 100) {
       throw new IllegalArgumentException("maxHops must be between 1 and 100");
     }
-    var snapshot = knowledge.findKnowledgeSnapshot(scopeId, subject);
-    var relations = matchingComposableRelations(snapshot.relations(), relationType);
-    var anchor = allNodes(snapshot.nodes(), relations).get(anchorId);
+    var graph = knowledge.findRelationGraph(scopeId, subject, relationType);
+    var relations = matchingComposableRelations(graph.relations(), relationType);
+    var anchor = allNodes(List.of(), relations).get(anchorId);
     if (anchor == null) {
       throw new IllegalArgumentException("unknown semantic query anchor: " + anchorId);
     }
-    var statementsByRelation = statementsByRelation(relations, snapshot.statements());
+    var statementsByRelation = statementsByRelation(relations, graph.statements());
     var paths = new HashMap<String, WitnessPath>();
     var queue = new ArrayDeque<WitnessPath>();
     var anchorPath = WitnessPath.anchor(anchor);

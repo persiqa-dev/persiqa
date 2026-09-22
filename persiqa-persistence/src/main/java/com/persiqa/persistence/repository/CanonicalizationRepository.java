@@ -11,4 +11,6 @@ public interface CanonicalizationRepository extends JpaRepository<Canonicalizati
   List<CanonicalizationEntity> findByStatementId(UUID statementId);
 
   List<CanonicalizationEntity> findByCanonicalObjectId(UUID canonicalObjectId);
+
+  List<CanonicalizationEntity> findByCanonicalObjectIdIn(List<UUID> canonicalObjectIds);
 }

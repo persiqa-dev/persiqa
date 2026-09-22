@@ -1,12 +1,8 @@
 package com.persiqa.application;
 
 import com.persiqa.core.CanonicalStore;
+import com.persiqa.core.RefinementBindingStore;
 import com.persiqa.model.Ckm.Relation;
-import com.persiqa.persistence.entity.RefinementBindingDetailEntity;
-import com.persiqa.persistence.entity.RefinementBindingEntity;
-import com.persiqa.persistence.repository.CanonicalObjectRepository;
-import com.persiqa.persistence.repository.RefinementBindingDetailRepository;
-import com.persiqa.persistence.repository.RefinementBindingRepository;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -22,72 +18,65 @@ public class RefinementBindingService {
   private static final String AUTOMATIC_DECLARER = "automatic-refinement-v0.1";
 
   private final CanonicalStore store;
-  private final CanonicalObjectRepository objects;
-  private final RefinementBindingRepository bindings;
-  private final RefinementBindingDetailRepository details;
+  private final RefinementBindingStore bindings;
 
   public RefinementBindingService(
       CanonicalStore store,
-      CanonicalObjectRepository objects,
-      RefinementBindingRepository bindings,
-      RefinementBindingDetailRepository details) {
+      RefinementBindingStore bindings) {
     this.store = store;
-    this.objects = objects;
     this.bindings = bindings;
-    this.details = details;
   }
 
-  /** Persists every newly discoverable, unambiguous refinement in the given scope. */
+  /** Recomputes only one relation-type topology after recording a new explicit Relation. */
   @Transactional
-  public void detectAndBind(UUID scopeId) {
-    var relations = store.findRelations(scopeId).stream()
+  public void detectAndBind(UUID scopeId, String relationType) {
+    detectAndBind(scopeId, store.findRelationsByType(scopeId, relationType));
+  }
+
+  private void detectAndBind(UUID scopeId, List<Relation> scopeRelations) {
+    var relations = scopeRelations.stream()
         .filter(relation -> relation.type().composable())
         .toList();
+    var existingBindings = bindings.findAll(scopeId);
     for (var coarse : relations) {
-      reconcileBinding(scopeId, coarse, relations);
+      reconcileBinding(scopeId, coarse, relations, existingBindings.get(coarse.id()));
     }
   }
 
   /** Returns coarse relation identities that a persisted refinement replaces in detailed views. */
   @Transactional(readOnly = true)
   public Set<String> refinedCoarseRelationIds(UUID scopeId) {
-    return bindings.findByScopeIdAndInvalidatedAtIsNull(scopeId).stream()
-        .map(RefinementBindingEntity::coarseRelationId)
-        .map(objects::findById)
-        .flatMap(java.util.Optional::stream)
-        .map(object -> object.identityKey())
-        .collect(java.util.stream.Collectors.toUnmodifiableSet());
+    return bindings.activeCoarseRelationIds(scopeId);
   }
 
-  private void reconcileBinding(UUID scopeId, Relation coarse, List<Relation> relations) {
-    var coarseId = objectId(scopeId, coarse.id());
+  private void reconcileBinding(
+      UUID scopeId,
+      Relation coarse,
+      List<Relation> relations,
+      RefinementBindingStore.Binding existing) {
     var paths = detailedPaths(coarse, relations);
-    var existing = bindings.findByScopeId(scopeId).stream()
-        .filter(binding -> binding.coarseRelationId().equals(coarseId))
-        .findFirst();
-    if (existing.isPresent()) {
-      invalidateWhenAmbiguous(existing.get(), paths);
+    if (existing != null) {
+      reconcileExistingBinding(existing, paths);
       return;
     }
     if (paths.size() != 1) {
       return;
     }
-    var bindingId = UUID.randomUUID();
-    bindings.save(
-        new RefinementBindingEntity(
-            bindingId, scopeId, coarseId, AUTOMATIC_DECLARER, Instant.now()));
     var path = paths.getFirst();
-    for (var ordinal = 0; ordinal < path.size(); ordinal++) {
-      details.save(
-          new RefinementBindingDetailEntity(
-              bindingId, ordinal, objectId(scopeId, path.get(ordinal).id())));
-    }
+    bindings.save(
+        scopeId,
+        coarse.id(),
+        path.stream().map(Relation::id).toList(),
+        AUTOMATIC_DECLARER,
+        Instant.now());
   }
 
-  private void invalidateWhenAmbiguous(
-      RefinementBindingEntity binding, List<List<Relation>> paths) {
+  private void reconcileExistingBinding(
+      RefinementBindingStore.Binding binding, List<List<Relation>> paths) {
     if (binding.active() && paths.size() != 1) {
-      binding.invalidate("automatic-refinement-ambiguous");
+      bindings.invalidate(binding, "automatic-refinement-ambiguous");
+    } else if (!binding.active() && paths.size() == 1) {
+      bindings.reactivate(binding, paths.getFirst().stream().map(Relation::id).toList());
     }
   }
 
@@ -133,9 +122,5 @@ public class RefinementBindingService {
       }
       path.removeLast();
     }
-  }
-
-  private UUID objectId(UUID scopeId, String identity) {
-    return objects.findByScopeIdAndIdentityKey(scopeId, identity).orElseThrow().id();
   }
 }

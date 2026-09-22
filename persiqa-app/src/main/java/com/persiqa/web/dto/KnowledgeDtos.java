@@ -32,12 +32,9 @@ public final class KnowledgeDtos {
   public record RelationResponse(
       String id, RelationTypeResponse type, NodeResponse source, NodeResponse target) {}
 
-  /** A client-loading projection of one scope's canonical graph, not a saved Representation. */
-  public record ScopeKnowledgeResponse(
-      ScopeResponse scope,
-      List<NodeResponse> nodes,
-      List<RelationResponse> relations,
-      List<StatementResponse> statements) {}
+  /** Compact scope overview; canonical collections are obtained through their paged endpoints. */
+  public record ScopeKnowledgeSummaryResponse(
+      ScopeResponse scope, long nodeCount, long relationCount, long statementCount) {}
 
   /** Server-calculated display projection; it does not create canonical CKM knowledge. */
   public record TopologyProjectionResponse(
@@ -96,6 +93,15 @@ public final class KnowledgeDtos {
       ObservationResponse context) {}
 
   public record ObservationResponse(
+      String provenance,
+      BigDecimal confidence,
+      Instant observedAt,
+      Instant validFrom,
+      Instant validTo,
+      String scenario) {}
+
+  /** HTTP input for statement provenance and temporal context. */
+  public record ContextRequest(
       String provenance,
       BigDecimal confidence,
       Instant observedAt,

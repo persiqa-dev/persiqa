@@ -5,6 +5,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.persiqa.application.KnowledgeApplicationService;
+import com.persiqa.application.RefinementBindingService;
 import com.persiqa.core.ScopeAccessDeniedException;
 import com.persiqa.model.Ckm.Context;
 import com.persiqa.model.Ckm.Entity;
@@ -45,6 +46,7 @@ class ScopeKnowledgeControllerIntegrationTest {
   @Autowired private ObjectMapper json;
   @Autowired private RefinementBindingRepository refinementBindings;
   @Autowired private RefinementBindingDetailRepository refinementDetails;
+  @Autowired private RefinementBindingService refinementService;
 
   @Test
   void returns_canonical_relations_and_statements_for_one_scope() throws Exception {
@@ -70,12 +72,14 @@ class ScopeKnowledgeControllerIntegrationTest {
         .andExpect(jsonPath("$.content[0].id").value("supply-observation"))
         .andExpect(jsonPath("$.content[0].knowledgeKind").value("EXPLICIT"))
         .andExpect(jsonPath("$.content[0].context.provenance").value("inspection"));
-    http.perform(MockMvcRequestBuilders.get("/api/scopes/{scopeId}/knowledge", scope).with(ALICE))
+    http.perform(
+            MockMvcRequestBuilders.get("/api/scopes/{scopeId}/knowledge/summary", scope)
+                .with(ALICE))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.scope.name").value("http-read-test"))
-        .andExpect(jsonPath("$.nodes[?(@.id == 'MCB-01')].kind").value("ENTITY"))
-        .andExpect(jsonPath("$.relations[0].id").value("supply-mcb-lamp"))
-        .andExpect(jsonPath("$.statements[0].id").value("supply-observation"));
+        .andExpect(jsonPath("$.nodeCount").value(2))
+        .andExpect(jsonPath("$.relationCount").value(1))
+        .andExpect(jsonPath("$.statementCount").value(1));
   }
 
   @Test
@@ -352,6 +356,29 @@ class ScopeKnowledgeControllerIntegrationTest {
         .andExpect(
             jsonPath("$.edges[?(@.supportingRelationIds[0] == 'supply-breaker-circuit')]")
                 .exists());
+  }
+
+  @Test
+  void reactivates_a_refinement_when_one_detailed_path_is_unambiguous_again() {
+    var scope = UUID.randomUUID();
+    var breaker = new Entity("MCB-01");
+    var junctionBox = new Entity("JunctionBox-01");
+    var circuit = new Entity("Circuit-01");
+    knowledge.createScope(scope, "reactivated-refinement-test", "alice");
+    assertSupply(scope, "supply-breaker-circuit", breaker, circuit);
+    assertSupply(scope, "supply-breaker-junction", breaker, junctionBox);
+    assertSupply(scope, "supply-junction-circuit", junctionBox, circuit);
+
+    var binding = refinementBindings.findByScopeId(scope).getFirst();
+    binding.invalidate("test-ambiguity-resolved");
+    refinementBindings.save(binding);
+
+    refinementService.detectAndBind(scope, "supplies");
+
+    Assertions.assertEquals(
+        1, refinementBindings.findByScopeIdAndInvalidatedAtIsNull(scope).size());
+    Assertions.assertEquals(
+        2, refinementDetails.findByBindingIdOrderByOrdinalAsc(binding.id()).size());
   }
 
   @Test

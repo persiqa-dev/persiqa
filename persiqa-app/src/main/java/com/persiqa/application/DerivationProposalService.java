@@ -36,7 +36,7 @@ public class DerivationProposalService {
       int maxHops) {
     var semanticTraversal =
         traversal.traverse(scopeId, subject, anchorId, relationType, direction, maxHops);
-    var relations = knowledge.findRelations(scopeId, subject);
+    var relations = knowledge.findRelationGraph(scopeId, subject, relationType).relations();
     return semanticTraversal.matches().stream()
         .filter(match -> match.hops() > 1)
         .filter(DerivationProposalService::hasCompleteEvidence)

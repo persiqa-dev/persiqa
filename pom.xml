@@ -24,6 +24,7 @@
     <maven.pmd.version>3.28.0</maven.pmd.version>
     <mapstruct.version>1.6.3</mapstruct.version>
     <springdoc.version>3.1.1</springdoc.version>
+    <archunit.version>1.5.0</archunit.version>
   </properties>
 
   <dependencyManagement>

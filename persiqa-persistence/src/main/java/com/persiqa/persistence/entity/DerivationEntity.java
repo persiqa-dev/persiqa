@@ -36,6 +36,10 @@ public class DerivationEntity {
     return evidenceObjectId;
   }
 
+  public UUID statementId() {
+    return statementId;
+  }
+
   public static class Key implements Serializable {
     private UUID statementId;
     private UUID evidenceObjectId;

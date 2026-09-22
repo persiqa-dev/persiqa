@@ -5,6 +5,7 @@
  * ES module while the application keeps one shared source of truth.
  */
 export function createRecordingController({
+  findEndpointCandidates,
   kindLabel,
   loadKnowledge,
   relationTypeLabel,
@@ -22,6 +23,7 @@ export function createRecordingController({
   const targetIdentity = document.querySelector("#target-id");
   const targetKind = document.querySelector("#target-kind");
   const targetOptions = document.querySelector("#target-endpoint-options");
+  let endpointSearchTimer;
 
   function renderRelationTypes() {
     updateGuidance();
@@ -169,10 +171,29 @@ export function createRecordingController({
     sourceIdentity.addEventListener("input", () => {
       synchronizeEndpointKind(sourceIdentity, sourceKind);
       updateGuidance();
+      scheduleEndpointSearch(sourceIdentity, sourceOptions, sourceKind);
     });
-    targetIdentity.addEventListener("input", () => synchronizeEndpointKind(targetIdentity, targetKind));
+    targetIdentity.addEventListener("input", () => {
+      synchronizeEndpointKind(targetIdentity, targetKind);
+      scheduleEndpointSearch(targetIdentity, targetOptions, targetKind);
+    });
     document.querySelector("#create-node-form").addEventListener("submit", recordNode);
     document.querySelector("#record-relation-form").addEventListener("submit", recordRelation);
+  }
+
+  function scheduleEndpointSearch(identity, options, kind) {
+    clearTimeout(endpointSearchTimer);
+    endpointSearchTimer = setTimeout(() => {
+      searchEndpointCandidates(identity, options, kind).catch(report);
+    }, 180);
+  }
+
+  async function searchEndpointCandidates(identity, options, kind) {
+    const candidates = await findEndpointCandidates(identity.value.trim());
+    candidates.forEach((candidate) => state.endpointKinds.set(candidate.id, candidate.kind));
+    const allowedKinds = Array.from(kind.options).map((option) => option.value).filter(Boolean);
+    renderEndpointOptionsFor(options, allowedKinds);
+    synchronizeEndpointKind(identity, kind);
   }
 
   async function recordNode(event) {

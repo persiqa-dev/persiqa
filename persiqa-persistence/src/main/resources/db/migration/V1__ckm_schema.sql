@@ -16,6 +16,13 @@ CREATE TABLE canonical_object (
 CREATE UNIQUE INDEX canonical_object_scope_identity_idx ON canonical_object(scope_id, identity_key);
 CREATE INDEX canonical_object_scope_kind_idx ON canonical_object(scope_id, kind);
 
+CREATE TABLE identity_counter (
+  scope_id UUID NOT NULL REFERENCES model_scope(scope_id),
+  identity_prefix TEXT NOT NULL,
+  next_ordinal BIGINT NOT NULL CHECK (next_ordinal > 0),
+  PRIMARY KEY (scope_id, identity_prefix)
+);
+
 CREATE TABLE relation_type (
   relation_type_id UUID PRIMARY KEY,
   semantic_identifier TEXT NOT NULL,
@@ -39,6 +46,7 @@ CREATE TABLE relation (
 );
 CREATE INDEX relation_source_type_idx ON relation(source_object_id, relation_type_id);
 CREATE INDEX relation_target_type_idx ON relation(target_object_id, relation_type_id);
+CREATE INDEX relation_type_idx ON relation(relation_type_id);
 
 CREATE TABLE state (
   state_id UUID PRIMARY KEY REFERENCES canonical_object(object_id),
@@ -89,6 +97,7 @@ CREATE TABLE canonicalization (
   policy_identifier TEXT NOT NULL,
   PRIMARY KEY (statement_id, canonical_object_id, mode)
 );
+CREATE INDEX canonicalization_object_idx ON canonicalization(canonical_object_id);
 
 CREATE TABLE representation (
   representation_id UUID PRIMARY KEY,
@@ -108,6 +117,7 @@ CREATE TABLE refinement_binding (
   invalidated_reason TEXT,
   UNIQUE (scope_id, coarse_relation_id)
 );
+CREATE INDEX refinement_binding_scope_active_idx ON refinement_binding(scope_id, invalidated_at);
 
 CREATE TABLE refinement_binding_detail (
   binding_id UUID NOT NULL REFERENCES refinement_binding(binding_id) ON DELETE CASCADE,

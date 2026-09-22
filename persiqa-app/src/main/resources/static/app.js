@@ -173,7 +173,7 @@ const translations = {
 };
 
 const state = {
-  authorization: null, scopeId: null, relationTypes: [], endpointKinds: new Map(), knowledge: null,
+  authorization: null, scopeId: null, relationTypes: [], endpointKinds: new Map(), endpointCatalog: [], knowledge: null,
   graphProfile: "ELECTRICAL_SUPPLY", graphLayout: "LEFT_TO_RIGHT", graphSource: null, graphDestination: null, graphDestinations: [], graphDirection: "DOWNSTREAM", graphTopology: null,
   derivationProposals: [], derivationQueried: false,
   semanticTraversal: null,
@@ -203,6 +203,7 @@ if (!translations[state.language]) state.language = "en";
 if (!["dark", "light"].includes(state.theme)) state.theme = "dark";
 
 const recording = createRecordingController({
+  findEndpointCandidates,
   kindLabel,
   loadKnowledge,
   relationTypeLabel,
@@ -381,7 +382,7 @@ function renderKnowledge(knowledge, preserveDerivationProposals = false) {
   document.querySelector("#scope-title").textContent = knowledge.scope.name;
   const summary = document.querySelector("#graph-summary");
   summary.replaceChildren();
-  [["summary.nodes", knowledge.nodes.length], ["summary.relations", knowledge.relations.length], ["summary.statements", knowledge.statements.length]]
+  [["summary.nodes", knowledge.nodeCount], ["summary.relations", knowledge.relationCount], ["summary.statements", knowledge.statementCount]]
     .forEach(([label, count]) => {
       const card = document.createElement("div");
       const number = document.createElement("strong");
@@ -471,7 +472,7 @@ async function loadKnowledgeList() {
 function renderGraphSources(knowledge) {
   const options = document.querySelector("#graph-source-options");
   options.replaceChildren();
-  graphNodes(knowledge, knowledge.relations.filter((relation) => relation.type.id === graphProfile().relationType))
+  state.endpointCatalog
     .filter((node) => node.kind === "ENTITY")
     .forEach((node) => {
       const option = document.createElement("option");
@@ -1021,10 +1022,33 @@ function renderEndpointOptions(knowledge) {
   recording.renderEndpointOptions(knowledge);
 }
 
+async function findEndpointCandidates(query) {
+  if (!state.scopeId) return [];
+  const parameters = new URLSearchParams({ page: "0", size: "25" });
+  if (query) parameters.set("q", query);
+  const [nodes, relations] = await Promise.all([
+    request(`/api/scopes/${state.scopeId}/nodes?${parameters}`),
+    request(`/api/scopes/${state.scopeId}/relations?${parameters}`)
+  ]);
+  return [...nodes.content, ...relations.content.map((relation) => ({ id: relation.id, kind: "RELATION" }))];
+}
+
 async function loadKnowledge(preserveDerivationProposals = false) {
   if (!state.scopeId) return;
+  const [summary, endpointCatalog] = await Promise.all([
+    request(`/api/scopes/${state.scopeId}/knowledge/summary`),
+    findEndpointCandidates("")
+  ]);
+  state.endpointCatalog = endpointCatalog;
   renderKnowledge(
-    await request(`/api/scopes/${state.scopeId}/knowledge`),
+    {
+      ...summary,
+      nodes: endpointCatalog.filter((entry) => entry.kind !== "RELATION"),
+      relations: endpointCatalog
+        .filter((entry) => entry.kind === "RELATION")
+        .map((entry) => ({ id: entry.id })),
+      statements: []
+    },
     preserveDerivationProposals);
   if (state.graphSource && state.graphDestination) {
     await loadTopologyPath();
@@ -1297,12 +1321,7 @@ document.querySelector("#graph-topology").addEventListener("change", (event) => 
   loadInitialTopology().catch(report);
 });
 document.querySelector("#graph-source").addEventListener("input", async (event) => {
-  const candidates = graphNodes(
-    state.knowledge,
-    state.knowledge.relations.filter((relation) => relation.type.id === graphProfile().relationType));
-  state.graphSource = candidates.some((node) => node.kind === "ENTITY" && node.id === event.target.value)
-    ? event.target.value
-    : null;
+  state.graphSource = event.target.value.trim() || null;
   state.graphTopology = null;
   semantics.clearDerivationProposals();
   semantics.clearSemanticTraversal();

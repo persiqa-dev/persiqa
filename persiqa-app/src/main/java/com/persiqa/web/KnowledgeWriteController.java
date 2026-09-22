@@ -2,8 +2,8 @@ package com.persiqa.web;
 
 import com.persiqa.application.DerivationProposalService;
 import com.persiqa.application.KnowledgeApplicationService;
+import com.persiqa.application.ScopeAccessService;
 import com.persiqa.application.TopologyProjectionService.Direction;
-import com.persiqa.core.ScopeAccessDeniedException;
 import com.persiqa.model.Ckm.Capability;
 import com.persiqa.model.Ckm.Concept;
 import com.persiqa.model.Ckm.Context;
@@ -12,20 +12,21 @@ import com.persiqa.model.Ckm.Kind;
 import com.persiqa.model.Ckm.KnowledgeKind;
 import com.persiqa.model.Ckm.Node;
 import com.persiqa.model.Ckm.State;
+import com.persiqa.web.dto.KnowledgeDtos.ContextRequest;
 import com.persiqa.web.dto.KnowledgeDtos.DerivationProposalResponse;
 import com.persiqa.web.dto.KnowledgeDtos.NodeResponse;
 import com.persiqa.web.dto.KnowledgeDtos.RelationRecordResponse;
 import com.persiqa.web.dto.KnowledgeDtos.ScopeResponse;
 import com.persiqa.web.dto.KnowledgeMapper;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import java.net.URI;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -33,7 +34,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.util.UriComponentsBuilder;
 
 /** HTTP commands for recording statement-first CKM knowledge. */
@@ -44,21 +44,24 @@ public class KnowledgeWriteController {
   private final CurrentSubject currentSubject;
   private final KnowledgeMapper mapper;
   private final DerivationProposalService derivations;
+  private final ScopeAccessService scopeAccess;
 
   public KnowledgeWriteController(
       KnowledgeApplicationService knowledge,
       CurrentSubject currentSubject,
       KnowledgeMapper mapper,
-      DerivationProposalService derivations) {
+      DerivationProposalService derivations,
+      ScopeAccessService scopeAccess) {
     this.knowledge = knowledge;
     this.currentSubject = currentSubject;
     this.mapper = mapper;
     this.derivations = derivations;
+    this.scopeAccess = scopeAccess;
   }
 
   /** Creates a scope with a server-assigned persistence identity owned by the caller. */
   @PostMapping("/scopes")
-  public ResponseEntity<ScopeResponse> createScope(@RequestBody CreateScopeRequest request) {
+  public ResponseEntity<ScopeResponse> createScope(@Valid @RequestBody CreateScopeRequest request) {
     var scopeId = UUID.randomUUID();
     var owner = currentSubject.require();
     var scope = knowledge.createScope(scopeId, request.name(), owner);
@@ -68,9 +71,9 @@ public class KnowledgeWriteController {
   /** Creates a standalone Entity, Capability, or Concept with no invented surrounding knowledge. */
   @PostMapping("/scopes/{scopeId}/nodes")
   public ResponseEntity<NodeResponse> createNode(
-      @PathVariable("scopeId") UUID scopeId, @RequestBody CreateNodeRequest request) {
+      @PathVariable("scopeId") UUID scopeId, @Valid @RequestBody CreateNodeRequest request) {
     var subject = currentSubject.require();
-    requireScopeAccess(scopeId, subject);
+    scopeAccess.requireOwned(scopeId, subject);
     var node = request.toNode();
     knowledge.saveNode(scopeId, subject, node);
     var location =
@@ -83,12 +86,13 @@ public class KnowledgeWriteController {
   /** Records one explicit or derived Relation assertion and its canonical Relation. */
   @PostMapping("/scopes/{scopeId}/statements")
   public ResponseEntity<RelationRecordResponse> recordRelation(
-      @PathVariable("scopeId") UUID scopeId, @RequestBody RecordRelationRequest request) {
+      @PathVariable("scopeId") UUID scopeId, @Valid @RequestBody RecordRelationRequest request) {
     var subject = currentSubject.require();
-    requireScopeAccess(scopeId, subject);
+    scopeAccess.requireOwned(scopeId, subject);
     var source = request.source().resolve(scopeId, subject, knowledge);
     var target = request.target().resolve(scopeId, subject, knowledge);
-    var context = Objects.requireNonNullElseGet(request.context(), Context::unspecified);
+    var context =
+        request.context() == null ? Context.unspecified() : mapper.toContext(request.context());
     var record =
         knowledge.recordRelation(
             scopeId,
@@ -115,7 +119,7 @@ public class KnowledgeWriteController {
       @RequestParam(value = "direction", defaultValue = "DOWNSTREAM") Direction direction,
       @RequestParam(value = "maxHops", defaultValue = "20") int maxHops) {
     var subject = currentSubject.require();
-    requireScopeAccess(scopeId, subject);
+    scopeAccess.requireOwned(scopeId, subject);
     return derivations.propose(scopeId, subject, anchor, relationType, direction, maxHops).stream()
         .map(mapper::toDerivationProposal)
         .toList();
@@ -124,9 +128,10 @@ public class KnowledgeWriteController {
   /** Accepts one current proposal and records it as a normal derived Statement. */
   @PostMapping("/scopes/{scopeId}/semantic/derivations")
   public ResponseEntity<RelationRecordResponse> acceptDerivation(
-      @PathVariable("scopeId") UUID scopeId, @RequestBody DerivationAcceptanceRequest request) {
+      @PathVariable("scopeId") UUID scopeId,
+      @Valid @RequestBody DerivationAcceptanceRequest request) {
     var subject = currentSubject.require();
-    requireScopeAccess(scopeId, subject);
+    scopeAccess.requireOwned(scopeId, subject);
     var record =
         derivations.accept(
             scopeId,
@@ -136,7 +141,9 @@ public class KnowledgeWriteController {
             request.relationType(),
             Objects.requireNonNullElse(request.direction(), Direction.DOWNSTREAM),
             Objects.requireNonNullElse(request.maxHops(), 20),
-            Objects.requireNonNullElseGet(request.context(), Context::unspecified));
+            request.context() == null
+                ? Context.unspecified()
+                : mapper.toContext(request.context()));
     return ResponseEntity.created(
             URI.create("/api/scopes/" + scopeId + "/statements/" + record.statement().id()))
         .body(mapper.toRelationRecord(record));
@@ -147,52 +154,19 @@ public class KnowledgeWriteController {
   public ResponseEntity<Void> appendObservation(
       @PathVariable("scopeId") UUID scopeId,
       @PathVariable("statementId") String statementId,
-      @RequestBody Context context) {
+      @Valid @RequestBody ContextRequest context) {
     var subject = currentSubject.require();
-    requireScopeAccess(scopeId, subject);
-    knowledge.appendObservation(scopeId, subject, statementId, context);
+    scopeAccess.requireOwned(scopeId, subject);
+    knowledge.appendObservation(scopeId, subject, statementId, mapper.toContext(context));
     return ResponseEntity.noContent().build();
   }
 
-  /** Translates client input and CKM validation errors into a stable HTTP response. */
-  @ExceptionHandler(IllegalArgumentException.class)
-  public ResponseEntity<ProblemDetail> invalidRequest(IllegalArgumentException error) {
-    return ResponseEntity.badRequest()
-        .body(ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, error.getMessage()));
-  }
-
-  /** Translates scope ownership failures into HTTP 403. */
-  @ExceptionHandler(ScopeAccessDeniedException.class)
-  public ResponseEntity<ProblemDetail> forbidden(ScopeAccessDeniedException error) {
-    return ResponseEntity.status(HttpStatus.FORBIDDEN)
-        .body(ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, error.getMessage()));
-  }
-
-  private void requireScopeAccess(UUID scopeId, String subject) {
-    var scope = knowledge.findScope(scopeId);
-    if (scope == null) {
-      throw new ResponseStatusException(HttpStatus.NOT_FOUND, "unknown scope: " + scopeId);
-    }
-    if (!scope.ownerSubject().equals(subject)) {
-      throw new ScopeAccessDeniedException("subject is not the owner of scope " + scopeId);
-    }
-  }
-
   /** Request body for server-assigned CKM scope creation. */
-  public record CreateScopeRequest(String name) {
-    public CreateScopeRequest {
-      if (name == null || name.isBlank()) {
-        throw new IllegalArgumentException("scope name must not be blank");
-      }
-    }
-  }
+  public record CreateScopeRequest(@NotBlank String name) {}
 
   /** Request body for a standalone canonical Node. */
-  public record CreateNodeRequest(String id, Kind kind) {
+  public record CreateNodeRequest(@NotBlank String id, @NotNull Kind kind) {
     public CreateNodeRequest {
-      if (id == null || id.isBlank()) {
-        throw new IllegalArgumentException("node id must not be blank");
-      }
       if (kind != Kind.ENTITY && kind != Kind.CAPABILITY && kind != Kind.CONCEPT) {
         throw new IllegalArgumentException(
             "standalone node kind must be ENTITY, CAPABILITY, or CONCEPT");
@@ -213,43 +187,75 @@ public class KnowledgeWriteController {
   public record RecordRelationRequest(
       String relationId,
       String statementId,
-      KnowledgeKind knowledgeKind,
-      String relationType,
-      NodeReference source,
-      NodeReference target,
+      @NotNull KnowledgeKind knowledgeKind,
+      @NotBlank String relationType,
+      @NotNull @Valid NodeReference source,
+      @NotNull @Valid NodeReference target,
       Set<String> derivedFrom,
-      Context context) {
+      ContextRequest context) {
     public RecordRelationRequest {
-      if (knowledgeKind == null) {
-        throw new IllegalArgumentException("knowledgeKind is required");
-      }
-      if (relationType == null || relationType.isBlank()) {
-        throw new IllegalArgumentException("relationType must not be blank");
-      }
-      source = Objects.requireNonNull(source, "source is required");
-      target = Objects.requireNonNull(target, "target is required");
       derivedFrom = Set.copyOf(Objects.requireNonNullElse(derivedFrom, Set.of()));
+    }
+
+    public RecordRelationRequest(
+        String relationId,
+        String statementId,
+        KnowledgeKind knowledgeKind,
+        String relationType,
+        NodeReference source,
+        NodeReference target,
+        Set<String> derivedFrom,
+        Context context) {
+      this(
+          relationId,
+          statementId,
+          knowledgeKind,
+          relationType,
+          source,
+          target,
+          derivedFrom,
+          context == null
+              ? null
+              : new ContextRequest(
+                  context.provenance(),
+                  context.confidence(),
+                  context.observedAt(),
+                  context.validFrom(),
+                  context.validTo(),
+                  context.scenario()));
     }
   }
 
   /** Identifies one currently reviewable semantic derivation proposal to accept. */
   public record DerivationAcceptanceRequest(
-      String anchor,
-      String reachable,
-      String relationType,
+      @NotBlank String anchor,
+      @NotBlank String reachable,
+      @NotBlank String relationType,
       Direction direction,
       Integer maxHops,
-      Context context) {
-    public DerivationAcceptanceRequest {
-      if (anchor == null || anchor.isBlank()) {
-        throw new IllegalArgumentException("anchor is required");
-      }
-      if (reachable == null || reachable.isBlank()) {
-        throw new IllegalArgumentException("reachable is required");
-      }
-      if (relationType == null || relationType.isBlank()) {
-        throw new IllegalArgumentException("relationType is required");
-      }
+      ContextRequest context) {
+    public DerivationAcceptanceRequest(
+        String anchor,
+        String reachable,
+        String relationType,
+        Direction direction,
+        Integer maxHops,
+        Context context) {
+      this(
+          anchor,
+          reachable,
+          relationType,
+          direction,
+          maxHops,
+          context == null
+              ? null
+              : new ContextRequest(
+                  context.provenance(),
+                  context.confidence(),
+                  context.observedAt(),
+                  context.validFrom(),
+                  context.validTo(),
+                  context.scenario()));
     }
   }
 
@@ -260,12 +266,7 @@ public class KnowledgeWriteController {
    * be omitted; when supplied, it must match the canonical kind. A kind is required only when the
    * identity introduces a new Node.
    */
-  public record NodeReference(String id, Kind kind) {
-    public NodeReference {
-      if (id == null || id.isBlank()) {
-        throw new IllegalArgumentException("node id must not be blank");
-      }
-    }
+  public record NodeReference(@NotBlank String id, Kind kind) {
 
     private Node resolve(UUID scopeId, String subject, KnowledgeApplicationService knowledge) {
       var existingNode = knowledge.findNode(scopeId, subject, id);

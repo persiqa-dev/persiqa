@@ -6,7 +6,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import com.persiqa.core.CanonicalKnowledgeModel;
 import com.persiqa.core.ConflictDetector;
 import com.persiqa.core.KnowledgeBase;
-import com.persiqa.core.PdsFixtureParser;
 import com.persiqa.core.RelationRegistry;
 import com.persiqa.model.Ckm.Capability;
 import com.persiqa.model.Ckm.Concept;

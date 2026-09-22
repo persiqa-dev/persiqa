@@ -64,6 +64,9 @@ public interface CanonicalStore {
   /** Returns one page of standalone Nodes, optionally filtered by canonical identity. */
   PageResult<Node> findNodes(UUID scopeId, PageQuery pageQuery);
 
+  /** Returns the number of standalone canonical Nodes in one scope without loading them. */
+  long countNodes(UUID scopeId);
+
   /** Reconstructs a Relation, or {@code null} when unknown. */
   Relation findRelation(UUID scopeId, String identityKey);
 
@@ -72,6 +75,12 @@ public interface CanonicalStore {
 
   /** Returns one page of Relations, optionally filtered by canonical identity. */
   PageResult<Relation> findRelations(UUID scopeId, PageQuery pageQuery);
+
+  /** Returns Relations of one semantic type without materializing the rest of the scope. */
+  List<Relation> findRelationsByType(UUID scopeId, String relationType);
+
+  /** Returns the number of canonical Relations in one scope without reconstructing them. */
+  long countRelations(UUID scopeId);
 
   /**
    * Reconstructs a Statement with its original assertion context.
@@ -88,6 +97,12 @@ public interface CanonicalStore {
   /** Returns one page of Statements, optionally filtered by canonical identity. */
   PageResult<Statement> findStatements(UUID scopeId, PageQuery pageQuery);
 
+  /** Returns the number of canonical Statements in one scope without reconstructing them. */
+  long countStatements(UUID scopeId);
+
   /** Returns Statements canonically associated with one Relation. */
   List<Statement> findStatementsForRelation(UUID scopeId, String relationIdentity);
+
+  /** Returns Statements canonically associated with the supplied Relations. */
+  List<Statement> findStatementsForRelations(UUID scopeId, List<Relation> relations);
 }

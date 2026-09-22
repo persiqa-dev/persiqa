@@ -66,4 +66,10 @@ public class RefinementBindingEntity {
       invalidatedReason = reason;
     }
   }
+
+  /** Restores an automatically invalidated binding after ambiguity has been resolved. */
+  public void reactivate() {
+    invalidatedAt = null;
+    invalidatedReason = null;
+  }
 }

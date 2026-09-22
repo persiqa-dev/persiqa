@@ -37,9 +37,9 @@ public class TopologyProjectionService {
       Direction direction,
       String relationType,
       DetailLevel detailLevel) {
-    var snapshot = knowledge.findKnowledgeSnapshot(scopeId, subject);
-    var relations = topologyRelations(snapshot, relationType);
-    var anchor = findAnchor(snapshot.nodes(), relations, anchorId);
+    var graph = knowledge.findRelationGraph(scopeId, subject, relationType);
+    var relations = topologyRelations(graph, relationType);
+    var anchor = findAnchor(List.of(), relations, anchorId);
     var paths = discover(anchor, relations, direction);
     return switch (detailLevel) {
       case OVERVIEW -> overview(anchor, paths, relationType);
@@ -52,8 +52,8 @@ public class TopologyProjectionService {
   @Transactional(readOnly = true)
   public TopologyProjection initial(
       UUID scopeId, String subject, TopologyProfile profile, Direction direction) {
-    var snapshot = knowledge.findKnowledgeSnapshot(scopeId, subject);
-    var relations = topologyRelations(snapshot, profile.relationType());
+    var graph = knowledge.findRelationGraph(scopeId, subject, profile.relationType());
+    var relations = topologyRelations(graph, profile.relationType());
     return forest(withoutRefinedCoarseRelations(scopeId, relations), direction);
   }
 
@@ -61,9 +61,9 @@ public class TopologyProjectionService {
   @Transactional(readOnly = true)
   public List<Node> destinations(
       UUID scopeId, String subject, String sourceId, Direction direction, String relationType) {
-    var snapshot = knowledge.findKnowledgeSnapshot(scopeId, subject);
-    var relations = topologyRelations(snapshot, relationType);
-    var source = findAnchor(snapshot.nodes(), relations, sourceId);
+    var graph = knowledge.findRelationGraph(scopeId, subject, relationType);
+    var relations = topologyRelations(graph, relationType);
+    var source = findAnchor(List.of(), relations, sourceId);
     return discover(source, relations, direction).values().stream()
         .map(Path::node)
         .filter(node -> !node.id().equals(sourceId))
@@ -80,10 +80,10 @@ public class TopologyProjectionService {
       String destinationId,
       Direction direction,
       String relationType) {
-    var snapshot = knowledge.findKnowledgeSnapshot(scopeId, subject);
-    var relations = topologyRelations(snapshot, relationType);
-    var source = findAnchor(snapshot.nodes(), relations, sourceId);
-    var destination = findAnchor(snapshot.nodes(), relations, destinationId);
+    var graph = knowledge.findRelationGraph(scopeId, subject, relationType);
+    var relations = topologyRelations(graph, relationType);
+    var source = findAnchor(List.of(), relations, sourceId);
+    var destination = findAnchor(List.of(), relations, destinationId);
     var detailedRelations = withoutRefinedCoarseRelations(scopeId, relations);
     var paths = discover(source, detailedRelations, direction);
     var selectedPath = paths.get(destination.id());
@@ -111,10 +111,10 @@ public class TopologyProjectionService {
    * its derived Statement remain canonical and queryable through the semantic API.
    */
   private static List<Relation> topologyRelations(
-      KnowledgeApplicationService.ScopeKnowledgeSnapshot snapshot, String relationType) {
-    var candidates = matchingRelations(snapshot.relations(), relationType);
+      KnowledgeApplicationService.RelationGraph graph, String relationType) {
+    var candidates = matchingRelations(graph.relations(), relationType);
     var explicitRelations = candidates.stream()
-        .filter(relation -> isExplicitlySupportedOrUnasserted(relation, snapshot.statements()))
+        .filter(relation -> isExplicitlySupportedOrUnasserted(relation, graph.statements()))
         .toList();
     return candidates.stream()
         .filter(

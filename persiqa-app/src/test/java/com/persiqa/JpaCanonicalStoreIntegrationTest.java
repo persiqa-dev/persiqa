@@ -21,11 +21,14 @@ import com.persiqa.persistence.repository.DerivationRepository;
 import com.persiqa.persistence.repository.RepresentationRepository;
 import com.persiqa.persistence.repository.StateRepository;
 import com.persiqa.persistence.repository.StatementContextRepository;
+import jakarta.persistence.EntityManagerFactory;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import org.hibernate.SessionFactory;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -42,6 +45,77 @@ class JpaCanonicalStoreIntegrationTest {
   @Autowired private CanonicalizationRepository canonicalizations;
   @Autowired private StateRepository states;
   @Autowired private RepresentationRepository representations;
+  @Autowired private EntityManagerFactory entityManagerFactory;
+
+  @Test
+  void allocates_identity_ordinals_from_a_scope_local_counter() {
+    var scope = UUID.randomUUID();
+    store.createScope(scope, "identity-counter-test", "test");
+
+    var prefix = "stmt-supply-explicit";
+    store.save(scope, new Entity(prefix + "-001"));
+
+    assertEquals(2L, store.nextIdentityOrdinal(scope, prefix));
+    assertEquals(3L, store.nextIdentityOrdinal(scope, prefix));
+    assertEquals(1L, store.nextIdentityOrdinal(scope, "rel-supply"));
+  }
+
+  @Test
+  void reads_a_relation_page_with_a_bounded_number_of_queries() {
+    var scope = UUID.randomUUID();
+    store.createScope(scope, "relation-page-query-test", "test");
+    var supplies =
+        new RelationType("supplies", Set.of(Kind.ENTITY), Set.of(Kind.ENTITY), false, "none", true);
+    var source = new Entity("source");
+    for (var ordinal = 1; ordinal <= 30; ordinal++) {
+      store.save(
+          scope,
+          new Relation("supply-" + ordinal, supplies, source, new Entity("target-" + ordinal)));
+    }
+
+    var statistics = entityManagerFactory.unwrap(SessionFactory.class).getStatistics();
+    statistics.setStatisticsEnabled(true);
+    statistics.clear();
+
+    var page = store.findRelations(scope, new com.persiqa.core.PageQuery(0, 25, null));
+
+    assertEquals(25, page.content().size());
+    org.junit.jupiter.api.Assertions.assertTrue(
+        statistics.getPrepareStatementCount() <= 8,
+        () -> "relation page used " + statistics.getPrepareStatementCount() + " SQL statements");
+  }
+
+  @Test
+  void reads_a_relation_type_subgraph_without_loading_other_relation_types() {
+    var scope = UUID.randomUUID();
+    store.createScope(scope, "typed-subgraph-test", "test");
+    var source = new Entity("source");
+    var target = new Entity("target");
+    var supplies =
+        new RelationType("supplies", Set.of(Kind.ENTITY), Set.of(Kind.ENTITY), false, "none", true);
+    var dependsOn =
+        new RelationType(
+            "dependsOn", Set.of(Kind.ENTITY), Set.of(Kind.ENTITY), false, "none", true);
+    var supply = new Relation("supply-source-target", supplies, source, target);
+    store.save(scope, supply);
+    store.save(scope, new Relation("dependency-source-target", dependsOn, source, target));
+    var statement =
+        new Statement(
+            "supply-statement",
+            KnowledgeKind.EXPLICIT,
+            "supplies",
+            source,
+            target,
+            Set.of(),
+            Context.unspecified());
+    store.save(scope, statement);
+    store.canonicalize(scope, statement, supply, "ASSERTS", "statement-first-v0.1");
+
+    var subgraph = store.findRelationsByType(scope, "supplies");
+
+    assertEquals(List.of(supply), subgraph);
+    assertEquals(List.of(statement), store.findStatementsForRelations(scope, subgraph));
+  }
 
   @Test
   void persists_the_statement_first_electrical_model_without_losing_semantics() {

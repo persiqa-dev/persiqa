@@ -13,6 +13,7 @@ import com.persiqa.model.Ckm.Node;
 import com.persiqa.model.Ckm.Relation;
 import com.persiqa.model.Ckm.RelationType;
 import com.persiqa.model.Ckm.Statement;
+import com.persiqa.web.dto.KnowledgeDtos.ContextRequest;
 import com.persiqa.web.dto.KnowledgeDtos.DerivationProposalResponse;
 import com.persiqa.web.dto.KnowledgeDtos.NodeResponse;
 import com.persiqa.web.dto.KnowledgeDtos.ObservationResponse;
@@ -47,6 +48,8 @@ public interface KnowledgeMapper {
   RelationResponse toRelation(Relation relation);
 
   ObservationResponse toObservation(Context context);
+
+  Context toContext(ContextRequest request);
 
   List<ObservationResponse> toObservations(List<Context> contexts);
 

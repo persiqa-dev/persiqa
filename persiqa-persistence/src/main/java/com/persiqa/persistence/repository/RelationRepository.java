@@ -10,4 +10,6 @@ public interface RelationRepository extends JpaRepository<RelationEntity, UUID> 
   List<RelationEntity> findBySourceObjectId(UUID sourceObjectId);
 
   List<RelationEntity> findByTargetObjectId(UUID targetObjectId);
+
+  List<RelationEntity> findByRelationTypeId(UUID relationTypeId);
 }

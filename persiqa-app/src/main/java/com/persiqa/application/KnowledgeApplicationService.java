@@ -68,15 +68,23 @@ public class KnowledgeApplicationService {
     return store.findScopesByOwner(subject, pageQuery);
   }
 
-  /** Returns the canonical graph elements held by one scope. */
+  /** Returns scope metadata and counts without materializing the canonical graph. */
   @Transactional(readOnly = true)
-  public ScopeKnowledgeSnapshot findKnowledgeSnapshot(UUID scopeId, String subject) {
+  public ScopeKnowledgeSummary findKnowledgeSummary(UUID scopeId, String subject) {
     var scope = requireOwner(scopeId, subject);
-    return new ScopeKnowledgeSnapshot(
+    return new ScopeKnowledgeSummary(
         scope,
-        store.findNodes(scopeId),
-        store.findRelations(scopeId),
-        store.findStatements(scopeId));
+        store.countNodes(scopeId),
+        store.countRelations(scopeId),
+        store.countStatements(scopeId));
+  }
+
+  /** Returns one relation-type subgraph for bounded topology and semantic queries. */
+  @Transactional(readOnly = true)
+  public RelationGraph findRelationGraph(UUID scopeId, String subject, String relationType) {
+    requireOwner(scopeId, subject);
+    var relations = store.findRelationsByType(scopeId, relationType);
+    return new RelationGraph(relations, store.findStatementsForRelations(scopeId, relations));
   }
 
   /** Persists a standalone canonical Node without requiring a Relation assertion. */
@@ -268,7 +276,7 @@ public class KnowledgeApplicationService {
         canonicalizationMode,
         ASSERTION_POLICY);
     if (prepared.statement().knowledgeKind() == KnowledgeKind.EXPLICIT) {
-      refinements.detectAndBind(scopeId);
+      refinements.detectAndBind(scopeId, prepared.relation().type().id());
     }
     return new RelationRecord(prepared.statement(), prepared.relation());
   }
@@ -314,9 +322,12 @@ public class KnowledgeApplicationService {
     return scope;
   }
 
-  /** Canonical graph elements available to an authorized reader of one scope. */
-  public record ScopeKnowledgeSnapshot(
-      ModelScope scope, List<Node> nodes, List<Relation> relations, List<Statement> statements) {}
+  /** Compact scope overview for clients that load graph and lists through dedicated projections. */
+  public record ScopeKnowledgeSummary(
+      ModelScope scope, long nodeCount, long relationCount, long statementCount) {}
+
+  /** Targeted relation-type graph input for server-side graph algorithms. */
+  public record RelationGraph(List<Relation> relations, List<Statement> statements) {}
 
   /** Result of a statement-first relation recording use case. */
   public record RelationRecord(Statement statement, Relation relation) {}

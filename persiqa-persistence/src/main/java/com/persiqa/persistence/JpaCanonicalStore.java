@@ -29,6 +29,7 @@ import com.persiqa.persistence.json.TypedJsonValue;
 import com.persiqa.persistence.repository.CanonicalObjectRepository;
 import com.persiqa.persistence.repository.CanonicalizationRepository;
 import com.persiqa.persistence.repository.DerivationRepository;
+import com.persiqa.persistence.repository.IdentityCounterRepository;
 import com.persiqa.persistence.repository.ModelScopeRepository;
 import com.persiqa.persistence.repository.RelationRepository;
 import com.persiqa.persistence.repository.RelationTypeRepository;
@@ -70,8 +71,11 @@ public class JpaCanonicalStore implements CanonicalStore {
   private final StatementRepository statements;
   private final StatementContextRepository contexts;
   private final DerivationRepository derivations;
+  private final IdentityCounterRepository identityCounters;
   private final CanonicalizationRepository canonicalizations;
   private final RepresentationRepository representations;
+  private final JpaRelationReader relationReader;
+  private final JpaStatementReader statementReader;
 
   public JpaCanonicalStore(
       CanonicalObjectRepository objects,
@@ -82,6 +86,7 @@ public class JpaCanonicalStore implements CanonicalStore {
       StatementRepository statements,
       StatementContextRepository contexts,
       DerivationRepository derivations,
+      IdentityCounterRepository identityCounters,
       CanonicalizationRepository canonicalizations,
       RepresentationRepository representations) {
     this.objects = objects;
@@ -92,8 +97,14 @@ public class JpaCanonicalStore implements CanonicalStore {
     this.statements = statements;
     this.contexts = contexts;
     this.derivations = derivations;
+    this.identityCounters = identityCounters;
     this.canonicalizations = canonicalizations;
     this.representations = representations;
+    var objectGraphLoader = new JpaObjectGraphLoader(objects, relations);
+    this.relationReader = new JpaRelationReader(relations, relationTypes, objectGraphLoader);
+    this.statementReader =
+        new JpaStatementReader(
+            statements, contexts, derivations, relationReader, objectGraphLoader);
   }
 
   /** Creates the scope when it does not exist and rejects renamed or reassigned scopes. */
@@ -161,10 +172,11 @@ public class JpaCanonicalStore implements CanonicalStore {
     scopes
         .findByIdForIdentityAllocation(scopeId)
         .orElseThrow(() -> new IllegalArgumentException("unknown model scope: " + scopeId));
-    long ordinal = 1;
-    while (objects.existsByScopeIdAndIdentityKey(scopeId, identity(identityPrefix, ordinal))) {
-      ordinal++;
-    }
+    var counter = identityCounters.findOrCreate(scopeId, identityPrefix);
+    long ordinal;
+    do {
+      ordinal = counter.allocate();
+    } while (objects.existsByScopeIdAndIdentityKey(scopeId, identity(identityPrefix, ordinal)));
     return ordinal;
   }
 
@@ -204,6 +216,12 @@ public class JpaCanonicalStore implements CanonicalStore {
             : objects.findByScopeIdAndKindInAndIdentityKeyContainingIgnoreCaseOrderByIdentityKey(
                 scopeId, standaloneNodeKinds(), pageQuery.query(), pageable(pageQuery));
     return page(page, object -> node(scopeId, object.id()));
+  }
+
+  @Override
+  @Transactional(readOnly = true)
+  public long countNodes(UUID scopeId) {
+    return objects.countByScopeIdAndKindIn(scopeId, standaloneNodeKinds());
   }
 
   /** Persists a Node and returns its storage identifier without changing its CKM identity. */
@@ -299,9 +317,7 @@ public class JpaCanonicalStore implements CanonicalStore {
   @Transactional(readOnly = true)
   public List<Relation> findRelations(UUID scopeId) {
     requireScope(scopeId);
-    return objects.findByScopeIdAndKindOrderByIdentityKey(scopeId, Kind.RELATION.name()).stream()
-        .map(object -> findRelation(scopeId, object.identityKey()))
-        .toList();
+    return relationReader.read(scopeId, objects.findByScopeIdOrderByIdentityKey(scopeId));
   }
 
   /** Returns one page of Relations, optionally filtered by canonical identity. */
@@ -315,7 +331,32 @@ public class JpaCanonicalStore implements CanonicalStore {
                 scopeId, Set.of(Kind.RELATION.name()), pageable(pageQuery))
             : objects.findByScopeIdAndKindAndIdentityKeyContainingIgnoreCaseOrderByIdentityKey(
                 scopeId, Kind.RELATION.name(), pageQuery.query(), pageable(pageQuery));
-    return page(page, object -> findRelation(scopeId, object.identityKey()));
+    var relationsById = relationReader.readSelected(
+            scopeId,
+            page.getContent().stream().map(CanonicalObjectEntity::id).collect(Collectors.toSet()))
+        .stream()
+        .collect(Collectors.toMap(Relation::id, relation -> relation));
+    return page(page, object -> relationsById.get(object.identityKey()));
+  }
+
+  @Override
+  @Transactional(readOnly = true)
+  public long countRelations(UUID scopeId) {
+    return objects.countByScopeIdAndKind(scopeId, Kind.RELATION.name());
+  }
+
+  @Override
+  @Transactional(readOnly = true)
+  public List<Relation> findRelationsByType(UUID scopeId, String relationType) {
+    requireScope(scopeId);
+    var type = relationTypes.findByIdentifierAndVersion(relationType, RELATION_TYPE_VERSION);
+    if (type.isEmpty()) {
+      return List.of();
+    }
+    var relationIds = relations.findByRelationTypeId(type.get().id()).stream()
+        .map(RelationEntity::id)
+        .collect(Collectors.toSet());
+    return relationReader.readSelected(scopeId, relationIds);
   }
 
   /**
@@ -360,9 +401,7 @@ public class JpaCanonicalStore implements CanonicalStore {
   @Transactional(readOnly = true)
   public List<Statement> findStatements(UUID scopeId) {
     requireScope(scopeId);
-    return objects.findByScopeIdAndKindOrderByIdentityKey(scopeId, Kind.STATEMENT.name()).stream()
-        .map(object -> findStatement(scopeId, object.identityKey()))
-        .toList();
+    return statementReader.read(scopeId, objects.findByScopeIdOrderByIdentityKey(scopeId));
   }
 
   /** Returns one page of Statements, optionally filtered by canonical identity. */
@@ -376,7 +415,18 @@ public class JpaCanonicalStore implements CanonicalStore {
                 scopeId, Set.of(Kind.STATEMENT.name()), pageable(pageQuery))
             : objects.findByScopeIdAndKindAndIdentityKeyContainingIgnoreCaseOrderByIdentityKey(
                 scopeId, Kind.STATEMENT.name(), pageQuery.query(), pageable(pageQuery));
-    return page(page, object -> findStatement(scopeId, object.identityKey()));
+    var statementsById = statementReader.readSelected(
+            scopeId,
+            page.getContent().stream().map(CanonicalObjectEntity::id).collect(Collectors.toSet()))
+        .stream()
+        .collect(Collectors.toMap(Statement::id, statement -> statement));
+    return page(page, object -> statementsById.get(object.identityKey()));
+  }
+
+  @Override
+  @Transactional(readOnly = true)
+  public long countStatements(UUID scopeId) {
+    return objects.countByScopeIdAndKind(scopeId, Kind.STATEMENT.name());
   }
 
   /** Returns every Statement canonically associated with one Relation in stable identity order. */
@@ -392,6 +442,22 @@ public class JpaCanonicalStore implements CanonicalStore {
         .map(statementIdentity -> findStatement(scopeId, statementIdentity))
         .sorted(java.util.Comparator.comparing(Statement::id))
         .toList();
+  }
+
+  @Override
+  @Transactional(readOnly = true)
+  public List<Statement> findStatementsForRelations(UUID scopeId, List<Relation> relations) {
+    if (relations.isEmpty()) {
+      return List.of();
+    }
+    var relationObjectIds = objects.findByScopeIdAndIdentityKeyIn(
+            scopeId, relations.stream().map(Relation::id).toList()).stream()
+        .map(CanonicalObjectEntity::id)
+        .toList();
+    var statementIds = canonicalizations.findByCanonicalObjectIdIn(relationObjectIds).stream()
+        .map(CanonicalizationEntity::statementId)
+        .collect(Collectors.toSet());
+    return statementReader.readSelected(scopeId, statementIds);
   }
 
   private UUID saveNode(UUID scopeId, Node node) {
