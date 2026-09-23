@@ -4,6 +4,7 @@ import com.persiqa.application.KnowledgeApplicationService;
 import com.persiqa.application.PowerImpactAnalysisService;
 import com.persiqa.application.ScopeAccessService;
 import com.persiqa.application.SemanticTraversalService;
+import com.persiqa.application.TopologyDiagnosticsService;
 import com.persiqa.application.TopologyProjectionService;
 import com.persiqa.application.TopologyProjectionService.DetailLevel;
 import com.persiqa.application.TopologyProjectionService.Direction;
@@ -19,6 +20,7 @@ import com.persiqa.web.dto.KnowledgeDtos.RelationResponse;
 import com.persiqa.web.dto.KnowledgeDtos.ScopeKnowledgeSummaryResponse;
 import com.persiqa.web.dto.KnowledgeDtos.SemanticTraversalResponse;
 import com.persiqa.web.dto.KnowledgeDtos.StatementResponse;
+import com.persiqa.web.dto.KnowledgeDtos.TopologyDiagnosticsResponse;
 import com.persiqa.web.dto.KnowledgeDtos.TopologyProjectionResponse;
 import com.persiqa.web.dto.KnowledgeMapper;
 import java.util.List;
@@ -42,6 +44,7 @@ public class ScopeKnowledgeController {
   private final SemanticTraversalService semanticTraversal;
   private final ScopeAccessService scopeAccess;
   private final PowerImpactAnalysisService powerImpact;
+  private final TopologyDiagnosticsService topologyDiagnostics;
 
   public ScopeKnowledgeController(
       KnowledgeApplicationService knowledge,
@@ -50,7 +53,8 @@ public class ScopeKnowledgeController {
       TopologyProjectionService topology,
       SemanticTraversalService semanticTraversal,
       ScopeAccessService scopeAccess,
-      PowerImpactAnalysisService powerImpact) {
+      PowerImpactAnalysisService powerImpact,
+      TopologyDiagnosticsService topologyDiagnostics) {
     this.knowledge = knowledge;
     this.currentSubject = currentSubject;
     this.mapper = mapper;
@@ -58,6 +62,7 @@ public class ScopeKnowledgeController {
     this.semanticTraversal = semanticTraversal;
     this.scopeAccess = scopeAccess;
     this.powerImpact = powerImpact;
+    this.topologyDiagnostics = topologyDiagnostics;
   }
 
   /** Lists the canonical Relations in one scope. */
@@ -177,13 +182,23 @@ public class ScopeKnowledgeController {
         semanticTraversal.traverse(scopeId, subject, anchor, relationType, direction, maxHops));
   }
 
-  /** Calculates which downstream Nodes lose supplied power in one temporary interruption. */
+  /** Calculates which downstream Nodes lose supplied power in a temporary interruption. */
   @GetMapping("/analysis/power-impact")
   public PowerImpactResponse analyzePowerImpact(
-      @PathVariable("scopeId") UUID scopeId, @RequestParam("interrupted") String interrupted) {
+      @PathVariable("scopeId") UUID scopeId,
+      @RequestParam("interrupted") List<String> interrupted) {
     var subject = currentSubject.require();
     scopeAccess.requireOwned(scopeId, subject);
     return mapper.toPowerImpact(powerImpact.analyze(scopeId, subject, interrupted));
+  }
+
+  /** Lists non-destructive diagnostics for the physical electrical supply topology. */
+  @GetMapping("/analysis/topology-diagnostics")
+  public TopologyDiagnosticsResponse analyzeTopologyDiagnostics(
+      @PathVariable("scopeId") UUID scopeId) {
+    var subject = currentSubject.require();
+    scopeAccess.requireOwned(scopeId, subject);
+    return mapper.toTopologyDiagnostics(topologyDiagnostics.analyze(scopeId, subject));
   }
 
   /** Lists the Statements in one scope. */

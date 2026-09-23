@@ -20,6 +20,10 @@ export function createPowerImpactController({
   const closeButton = document.querySelector("#close-power-impact");
   const summary = document.querySelector("#power-impact-summary");
   const list = document.querySelector("#power-impact-list");
+  const additionalInterruptions = document.querySelector("#power-impact-additional");
+  const addInterruptionButton = document.querySelector("#add-power-impact-interruption");
+  const interruptionChips = document.querySelector("#power-impact-interruption-chips");
+  const selectedInterruptions = new Set();
 
   function queryability() {
     if (!state.scopeId || !state.graphSource) return { allowed: false, reason: "powerImpact.noSource" };
@@ -35,8 +39,44 @@ export function createPowerImpactController({
     render();
   }
 
-  function witnessPath(impact, match) {
-    const nodes = [impact.interruptedNode.id];
+  function interruptedNodeIds() {
+    return [state.graphSource, ...selectedInterruptions].filter(Boolean);
+  }
+
+  function renderInterruptionChips() {
+    interruptionChips.replaceChildren();
+    selectedInterruptions.forEach((nodeId) => {
+      const chip = document.createElement("span");
+      chip.className = "power-impact-interruption-chip";
+      const label = document.createElement("span");
+      label.textContent = nodeId;
+      const remove = document.createElement("button");
+      remove.type = "button";
+      remove.textContent = "×";
+      remove.title = translate("powerImpact.remove", { device: nodeId });
+      remove.setAttribute("aria-label", translate("powerImpact.remove", { device: nodeId }));
+      remove.addEventListener("click", () => {
+        selectedInterruptions.delete(nodeId);
+        renderInterruptionChips();
+      });
+      chip.append(label, remove);
+      interruptionChips.append(chip);
+    });
+  }
+
+  function addInterruption() {
+    const nodeId = additionalInterruptions.value.trim();
+    if (!nodeId || nodeId === state.graphSource || selectedInterruptions.has(nodeId)) {
+      additionalInterruptions.value = "";
+      return;
+    }
+    selectedInterruptions.add(nodeId);
+    additionalInterruptions.value = "";
+    renderInterruptionChips();
+  }
+
+  function witnessPath(match) {
+    const nodes = [match.interruptionNode.id];
     match.witness.forEach((step) => {
       const current = nodes.at(-1);
       nodes.push(step.relation.source.id === current ? step.relation.target.id : step.relation.source.id);
@@ -59,7 +99,7 @@ export function createPowerImpactController({
       ? translate("powerImpact.truncated")
       : translate("powerImpact.results", {
           count: impact.impacted.length,
-          device: impact.interruptedNode.id
+          devices: impact.interruptedNodes.map((node) => node.id).join(", ")
         });
     if (impact.impacted.length === 0) {
       list.textContent = translate("powerImpact.none");
@@ -73,15 +113,20 @@ export function createPowerImpactController({
       const hops = document.createElement("span");
       hops.textContent = translate("semantic.hops", { count: match.hops });
       const witness = document.createElement("span");
-      witness.textContent = translate("semantic.witness", { path: witnessPath(impact, match) });
+      witness.textContent = translate("semantic.witness", { path: witnessPath(match) });
+      const interruption = document.createElement("span");
+      interruption.textContent = translate("powerImpact.witnessFrom", {
+        device: match.interruptionNode.id
+      });
+      item.append(title, hops, witness, interruption);
       const path = document.createElement("button");
       path.type = "button";
       path.textContent = translate("semantic.showPath");
       path.addEventListener("click", () => {
         dialog.close();
-        showPath(match.target.id).catch(report);
+        showPath(match.interruptionNode.id, match.target.id).catch(report);
       });
-      item.append(title, hops, witness, path);
+      item.append(path);
       list.append(item);
     });
   }
@@ -94,7 +139,8 @@ export function createPowerImpactController({
     }
     analyzeButton.disabled = true;
     try {
-      const query = new URLSearchParams({ interrupted: state.graphSource });
+      const query = new URLSearchParams();
+      interruptedNodeIds().forEach((nodeId) => query.append("interrupted", nodeId));
       state.powerImpact = await request(`/api/scopes/${state.scopeId}/analysis/power-impact?${query}`);
       render();
       dialog.showModal();
@@ -107,6 +153,12 @@ export function createPowerImpactController({
   function bind() {
     analyzeButton.addEventListener("click", () => analyze().catch(report));
     closeButton.addEventListener("click", () => dialog.close());
+    addInterruptionButton.addEventListener("click", addInterruption);
+    additionalInterruptions.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter") return;
+      event.preventDefault();
+      addInterruption();
+    });
   }
 
   return { bind, clear, render };

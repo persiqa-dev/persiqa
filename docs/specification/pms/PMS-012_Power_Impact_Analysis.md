@@ -11,7 +11,8 @@
 This chapter defines a read-only question over an electrical supply topology:
 
 ```text
-If MCB-01 is switched off, which modeled devices lose every known power feed?
+If MCB-01 and RCD-01 are switched off, which modeled devices lose every known
+power feed?
 ```
 
 The result SHALL be a temporary analysis result. It SHALL NOT create, update,
@@ -21,22 +22,23 @@ record `MCB-01` as `Off`.
 
 This contract is deliberately narrower than PMS-011. A semantic traversal
 proves that one path exists. A power-impact analysis determines whether any
-known physical supply path remains after one selected Node is removed.
+known physical supply path remains after one or more selected Nodes are removed.
 
 ## 2. Query input
 
-A request SHALL identify an accessible scope and one existing Node identity
-called the *interrupted Node*.
+A request SHALL identify an accessible scope and one or more existing Node
+identities called the *interrupted Nodes*. Duplicate identities SHALL be treated
+as one interruption.
 
 The initial implementation exposes:
 
 ```text
-GET /api/scopes/{scopeId}/analysis/power-impact?interrupted=MCB-01
+GET /api/scopes/{scopeId}/analysis/power-impact?interrupted=MCB-01&interrupted=RCD-01
 ```
 
-The interrupted Node SHALL participate in a composable `supplies` topology.
-An unknown Node SHALL cause the request to fail rather than be interpreted as
-an empty impact.
+Each interrupted Node SHALL participate in a composable `supplies` topology.
+An unknown Node SHALL cause the request to fail rather than be interpreted as an
+empty impact.
 
 ## 3. Physical supply topology
 
@@ -63,22 +65,22 @@ new source.
 
 ## 4. Counterfactual semantics
 
-The analysis SHALL remove the interrupted Node and every physical supply
-Relation incident to it. Starting from every remaining original supply root,
-it SHALL determine the Nodes still reachable through the remaining physical
-`supplies` Relations.
+The analysis SHALL remove every interrupted Node and every physical supply
+Relation incident to any of them. Starting from every remaining original supply
+root, it SHALL determine the Nodes still reachable through the remaining
+physical `supplies` Relations.
 
 A Node is *impacted* exactly when both conditions hold:
 
-1. it is downstream-reachable from the interrupted Node in the canonical,
-   composable `supplies` graph; and
+1. it is downstream-reachable from at least one interrupted Node in the
+   canonical, composable `supplies` graph; and
 2. it is not reachable from any remaining original physical supply root after
    the interruption.
 
 The analysis SHALL return a deterministic shortest canonical `supplies`
-witness from the interrupted Node for every impacted Node. The witness
-explains why the Node was downstream of the interruption; it is not a claim
-that this was the only original route.
+witness from one interrupted Node for every impacted Node and SHALL identify
+that Node with the witness. The witness explains why the Node was downstream of
+an interruption; it is not a claim that this was the only original route.
 
 No unrecorded backup feed SHALL be inferred. If a source, cable, transfer
 switch, or supply Relation is unknown, the analysis SHALL only reflect the
@@ -109,10 +111,9 @@ result unless a physically supported Relation establishes the alternate path.
 
 ## 6. Limits and non-goals
 
-The initial contract models one interrupted Node and only the connectivity
-meaning of `supplies`. It does not yet model:
+The initial contract models one or more simultaneously interrupted Nodes and
+only the connectivity meaning of `supplies`. It does not yet model:
 
-- multiple simultaneous interruptions;
 - switch, transfer-switch, RCD, RCBO, or breaker-specific operating rules;
 - phase, voltage, load capacity, protection rating, or cable constraints;
 - automatic discovery of unknown backup feeds; or

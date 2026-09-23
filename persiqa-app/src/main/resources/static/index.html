@@ -4,8 +4,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Persiqa CKM</title>
-    <link rel="stylesheet" href="/app.css?v=ckm-0.1.0-power-impact">
-    <script type="module" src="/app.js?v=ckm-0.1.0-power-impact"></script>
+    <link rel="stylesheet" href="/app.css?v=ckm-0.1.0-graph-loading-fix">
+    <script type="module" src="/app.js?v=ckm-0.1.0-graph-loading-fix"></script>
   </head>
   <body>
     <header class="topbar">
@@ -115,8 +115,25 @@
                 <div>
                   <h3 data-i18n="powerImpact.title">Power interruption impact</h3>
                   <p id="power-impact-help" class="graph-help" data-i18n="powerImpact.noSource">Choose an electrical source device to inspect what loses power.</p>
+                  <label class="power-impact-interruptions">
+                    <span data-i18n="powerImpact.additional">Additional interrupted devices</span>
+                    <span class="power-impact-additional-input">
+                      <input id="power-impact-additional" list="graph-source-options" data-i18n-placeholder="powerImpact.additionalHint" placeholder="Choose RCD-01">
+                      <button id="add-power-impact-interruption" type="button" data-i18n="powerImpact.add">Add</button>
+                    </span>
+                    <span id="power-impact-interruption-chips" class="power-impact-interruption-chips" aria-live="polite"></span>
+                  </label>
                 </div>
                 <span id="analyze-power-impact-hint" data-i18n-title="powerImpact.noSource" title="Choose an electrical source device to inspect what loses power."><button id="analyze-power-impact" type="button" data-i18n="powerImpact.analyze" disabled>Analyze interruption</button></span>
+              </div>
+            </section>
+            <section class="panel topology-diagnostics-panel">
+              <div class="section-heading">
+                <div>
+                  <h3 data-i18n="diagnostics.title">Topology diagnostics</h3>
+                  <p id="topology-diagnostics-help" class="graph-help" data-i18n="diagnostics.ready">Inspect noteworthy physical electrical-topology structures without changing knowledge.</p>
+                </div>
+                <span id="inspect-topology-hint" data-i18n-title="diagnostics.notElectrical" title="Switch the topology to Electrical supply to inspect it."><button id="inspect-topology" type="button" data-i18n="diagnostics.inspect" disabled>Inspect topology</button></span>
               </div>
             </section>
           </section>
@@ -143,6 +160,13 @@
             </div>
             <p id="power-impact-summary" class="graph-help"></p>
             <div id="power-impact-list" class="item-list"></div>
+          </dialog>
+          <dialog id="topology-diagnostics-dialog" class="derivation-dialog" aria-labelledby="topology-diagnostics-dialog-title">
+            <div class="section-heading">
+              <h3 id="topology-diagnostics-dialog-title" data-i18n="diagnostics.title">Topology diagnostics</h3>
+              <button id="close-topology-diagnostics" type="button" data-i18n="actions.close">Close</button>
+            </div>
+            <div id="topology-diagnostics-list" class="item-list"></div>
           </dialog>
           <section id="knowledge-view" class="workbench-view hidden">
             <section class="panel knowledge-panel">

@@ -69,7 +69,24 @@ public final class KnowledgeDtos {
 
   /** Read-only impact of temporarily removing supply from one selected topology Node. */
   public record PowerImpactResponse(
-      NodeResponse interruptedNode, boolean truncated, List<SemanticMatchResponse> impacted) {}
+      NodeResponse interruptedNode,
+      List<NodeResponse> interruptedNodes,
+      boolean truncated,
+      List<PowerImpactMatchResponse> impacted) {}
+
+  /** An affected Node and the selected interruption from which its witness starts. */
+  public record PowerImpactMatchResponse(
+      NodeResponse interruptionNode,
+      NodeResponse target,
+      int hops,
+      List<SemanticStepResponse> witness) {}
+
+  /** One non-destructive diagnostic about the physical electrical supply topology. */
+  public record TopologyDiagnosticResponse(
+      String code, String severity, NodeResponse node, List<NodeResponse> relatedNodes) {}
+
+  /** Read-only diagnostics for the selected scope. */
+  public record TopologyDiagnosticsResponse(List<TopologyDiagnosticResponse> diagnostics) {}
 
   /** A reviewable, non-persisted derived-knowledge conclusion. */
   public record DerivationProposalResponse(

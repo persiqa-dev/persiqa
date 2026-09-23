@@ -77,7 +77,14 @@ h3 { font-size: 1rem; }
 .summary div { background: var(--surface-quiet); border-radius: 7px; box-shadow: inset 0 2px 0 var(--persiqa-amber); padding: 0.7rem 1rem; }
 .summary strong { display: block; font-size: 1.35rem; }
 .topology-panel { margin-bottom: 1rem; }
-.derivation-panel, .power-impact-panel { margin-bottom: 1rem; }
+.derivation-panel, .power-impact-panel, .topology-diagnostics-panel { margin-bottom: 1rem; }
+.power-impact-interruptions { display: grid; gap: 0.3rem; margin-top: 0.8rem; max-width: 25rem; }
+.power-impact-additional-input { display: flex; gap: 0.4rem; }
+.power-impact-additional-input button { flex: 0 0 auto; }
+.power-impact-interruption-chips { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.power-impact-interruption-chip { align-items: center; background: var(--surface-quiet); border: 1px solid var(--border); border-radius: 999px; display: inline-flex; font-size: 0.8rem; gap: 0.3rem; padding: 0.15rem 0.3rem 0.15rem 0.55rem; }
+.power-impact-interruption-chip button { background: transparent; color: var(--text-muted); font-size: 1rem; line-height: 1; padding: 0 0.15rem; }
+.power-impact-interruption-chip button:hover { background: transparent; color: var(--persiqa-amber-light); }
 .derivation-panel .section-heading > span { display: inline-block; }
 .derivation-proposal { display: grid; gap: 0.35rem; }
 .derivation-proposal button { justify-self: start; margin-top: 0.25rem; }

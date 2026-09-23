@@ -3,9 +3,12 @@ package com.persiqa.web.dto;
 import com.persiqa.application.DerivationProposalService.DerivationProposal;
 import com.persiqa.application.KnowledgeApplicationService.RelationRecord;
 import com.persiqa.application.PowerImpactAnalysisService.PowerImpactAnalysis;
+import com.persiqa.application.PowerImpactAnalysisService.PowerImpactMatch;
 import com.persiqa.application.SemanticTraversalService.SemanticMatch;
 import com.persiqa.application.SemanticTraversalService.SemanticStep;
 import com.persiqa.application.SemanticTraversalService.SemanticTraversal;
+import com.persiqa.application.TopologyDiagnosticsService.TopologyDiagnostic;
+import com.persiqa.application.TopologyDiagnosticsService.TopologyDiagnostics;
 import com.persiqa.application.TopologyProjectionService.ProjectedEdge;
 import com.persiqa.application.TopologyProjectionService.ProjectedNode;
 import com.persiqa.core.ModelScope;
@@ -18,6 +21,7 @@ import com.persiqa.web.dto.KnowledgeDtos.ContextRequest;
 import com.persiqa.web.dto.KnowledgeDtos.DerivationProposalResponse;
 import com.persiqa.web.dto.KnowledgeDtos.NodeResponse;
 import com.persiqa.web.dto.KnowledgeDtos.ObservationResponse;
+import com.persiqa.web.dto.KnowledgeDtos.PowerImpactMatchResponse;
 import com.persiqa.web.dto.KnowledgeDtos.PowerImpactResponse;
 import com.persiqa.web.dto.KnowledgeDtos.RelationRecordResponse;
 import com.persiqa.web.dto.KnowledgeDtos.RelationResponse;
@@ -27,6 +31,8 @@ import com.persiqa.web.dto.KnowledgeDtos.SemanticMatchResponse;
 import com.persiqa.web.dto.KnowledgeDtos.SemanticStepResponse;
 import com.persiqa.web.dto.KnowledgeDtos.SemanticTraversalResponse;
 import com.persiqa.web.dto.KnowledgeDtos.StatementResponse;
+import com.persiqa.web.dto.KnowledgeDtos.TopologyDiagnosticResponse;
+import com.persiqa.web.dto.KnowledgeDtos.TopologyDiagnosticsResponse;
 import com.persiqa.web.dto.KnowledgeDtos.TopologyEdgeResponse;
 import com.persiqa.web.dto.KnowledgeDtos.TopologyNodeResponse;
 import java.util.List;
@@ -76,6 +82,12 @@ public interface KnowledgeMapper {
   SemanticStepResponse toSemanticStep(SemanticStep step);
 
   PowerImpactResponse toPowerImpact(PowerImpactAnalysis analysis);
+
+  PowerImpactMatchResponse toPowerImpactMatch(PowerImpactMatch impact);
+
+  TopologyDiagnosticResponse toTopologyDiagnostic(TopologyDiagnostic diagnostic);
+
+  TopologyDiagnosticsResponse toTopologyDiagnostics(TopologyDiagnostics diagnostics);
 
   DerivationProposalResponse toDerivationProposal(DerivationProposal proposal);
 

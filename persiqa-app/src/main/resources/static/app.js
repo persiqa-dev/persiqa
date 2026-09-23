@@ -1,6 +1,7 @@
 import { createRecordingController } from "./ui/recording-controller.js";
 import { createPowerImpactController } from "./ui/power-impact-controller.js";
 import { createSemanticController } from "./ui/semantic-controller.js";
+import { createTopologyDiagnosticsController } from "./ui/topology-diagnostics-controller.js";
 
 const translations = {
   en: {
@@ -94,9 +95,16 @@ const translations = {
     "powerImpact.notElectrical": "Switch the topology to Electrical supply to analyze a power interruption.",
     "powerImpact.ready": "Assume the selected device is switched off and inspect downstream devices without another known supply path.",
     "powerImpact.analyze": "Analyze interruption", "powerImpact.none": "No downstream device is affected.",
-    "powerImpact.results": "{count} devices lose power if {device} is switched off and no other known supply path remains.",
+    "powerImpact.additional": "Additional interrupted devices", "powerImpact.additionalHint": "Choose RCD-01",
+    "powerImpact.add": "Add", "powerImpact.remove": "Remove {device}",
+    "powerImpact.results": "{count} devices lose power after interrupting {devices}, with no other known supply path remaining.",
+    "powerImpact.witnessFrom": "Witness begins at: {device}",
     "powerImpact.truncated": "The affected-device list was limited for this analysis.",
     "powerImpact.found": "Found {count} affected devices.",
+    "diagnostics.title": "Topology diagnostics", "diagnostics.ready": "Inspect noteworthy physical electrical-topology structures without changing knowledge.",
+    "diagnostics.notElectrical": "Switch the topology to Electrical supply to inspect it.", "diagnostics.inspect": "Inspect topology",
+    "diagnostics.none": "No notable physical supply-topology structure was found.",
+    "diagnostics.DIRECTED_SUPPLY_CYCLE": "Directed supply cycle", "diagnostics.MULTIPLE_PHYSICAL_FEEDS": "Multiple physical feeds",
   },
   hu: {
     "app.title": "Kanonikus tudásmodell", "language.label": "Nyelv",
@@ -189,9 +197,16 @@ const translations = {
     "powerImpact.notElectrical": "Áramkimaradás elemzéséhez válts Elektromos ellátás topológiára.",
     "powerImpact.ready": "A kiválasztott eszközt lekapcsoltnak feltételezve vizsgáld meg a más ismert betápút nélkül maradó downstream eszközöket.",
     "powerImpact.analyze": "Lekapcsolás elemzése", "powerImpact.none": "Nincs érintett downstream eszköz.",
-    "powerImpact.results": "{device} lekapcsolásakor {count} eszköz marad áram nélkül, mert nincs más ismert betápútja.",
+    "powerImpact.additional": "További lekapcsolt eszközök", "powerImpact.additionalHint": "Válaszd ki: RCD-01",
+    "powerImpact.add": "Hozzáadás", "powerImpact.remove": "{device} eltávolítása",
+    "powerImpact.results": "{devices} lekapcsolásakor {count} eszköz marad áram nélkül, mert nincs más ismert betápútja.",
+    "powerImpact.witnessFrom": "A bizonyító út kezdete: {device}",
     "powerImpact.truncated": "Az érintett eszközök listája ehhez az elemzéshez korlátozva lett.",
     "powerImpact.found": "{count} érintett eszköz található.",
+    "diagnostics.title": "Topológiai diagnosztika", "diagnostics.ready": "Vizsgáld meg a figyelemre méltó fizikai elektromos-topológiai szerkezeteket a tudás módosítása nélkül.",
+    "diagnostics.notElectrical": "A vizsgálathoz válts Elektromos ellátás topológiára.", "diagnostics.inspect": "Topológia vizsgálata",
+    "diagnostics.none": "Nem található figyelemre méltó fizikai ellátási topológia.",
+    "diagnostics.DIRECTED_SUPPLY_CYCLE": "Irányított ellátási kör", "diagnostics.MULTIPLE_PHYSICAL_FEEDS": "Több fizikai betáp",
   }
 };
 
@@ -260,6 +275,15 @@ const powerImpact = createPowerImpactController({
   translate: t
 });
 
+const topologyDiagnostics = createTopologyDiagnosticsController({
+  graphProfile,
+  report,
+  request,
+  showStatus,
+  state,
+  translate: t
+});
+
 function t(key, values = {}) {
   return translations[state.language][key]?.replace(/\{(\w+)\}/g, (_, name) => values[name] ?? `{${name}}`) || key;
 }
@@ -296,6 +320,7 @@ function applyTranslations() {
   semantics.renderDerivationProposals();
   semantics.renderSemanticTraversal();
   powerImpact.render();
+  topologyDiagnostics.render();
 }
 
 function applyTheme() {
@@ -412,6 +437,7 @@ function renderKnowledge(knowledge, preserveDerivationProposals = false) {
   if (!preserveDerivationProposals) semantics.clearDerivationProposals();
   semantics.clearSemanticTraversal();
   powerImpact.clear();
+  topologyDiagnostics.clear();
   renderEndpointOptions(knowledge);
   renderGraphSources(knowledge);
   document.querySelector("#scope-title").textContent = knowledge.scope.name;
@@ -810,7 +836,15 @@ function renderKnowledgeGraph(knowledge) {
   graphViewport.replaceChildren();
   graphLegend.replaceChildren();
   const serverTopology = state.graphTopology;
-  const supplyRelations = knowledge.relations.filter((relation) => relation.type.id === "supplies");
+  const hasCompleteRelations = knowledge.relations.every((relation) =>
+    relation.type && relation.source && relation.target);
+  if (!serverTopology && !hasCompleteRelations) {
+    const message = svgElement("text", { x: "500", y: "300", "text-anchor": "middle", fill: "#c3b9af" });
+    message.textContent = t("graph.empty");
+    graphViewport.append(message);
+    resetGraphView();
+    return;
+  }
   const projection = serverTopology
     ? {
       depths: new Map(serverTopology.nodes.map((entry) => [entry.node.id, entry.depth])),
@@ -826,7 +860,7 @@ function renderKnowledgeGraph(knowledge) {
       supportingRelationIds: edge.supportingRelationIds
     }))
     : knowledge.relations.filter((relation) => relation.type.id !== "hasState");
-  const states = statesByEntity(knowledge.relations);
+  const states = hasCompleteRelations ? statesByEntity(knowledge.relations) : new Map();
   const refinement = serverTopology
     ? { overviewRelationIds: new Set(), detailRelationIds: new Set(), detailNodeIds: new Set(), detailCounts: new Map() }
     : suppliesRefinementProjection(topologyRelations);
@@ -973,7 +1007,7 @@ function renderKnowledgeGraph(knowledge) {
         graphState.suppressClickNodeId = null;
         return;
       }
-      showNodeDetails(node, knowledge.relations);
+      showNodeDetails(node, topologyRelations);
     };
     group.addEventListener("pointerdown", (event) => {
       if (event.button !== 0) return;
@@ -1124,12 +1158,15 @@ async function loadTopologyPath() {
   renderKnowledgeGraph(state.knowledge);
 }
 
-async function showGraphPath(destinationId) {
-  if (!state.graphDestinations.some((node) => node.id === destinationId)) {
+async function showGraphPath(sourceOrDestinationId, destinationId) {
+  const sourceId = destinationId ? sourceOrDestinationId : state.graphSource;
+  const targetId = destinationId || sourceOrDestinationId;
+  if (sourceId !== state.graphSource) await selectGraphSource(sourceId);
+  if (!state.graphDestinations.some((node) => node.id === targetId)) {
     throw new Error(t("semantic.none"));
   }
-  state.graphDestination = destinationId;
-  document.querySelector("#graph-destination").value = destinationId;
+  state.graphDestination = targetId;
+  document.querySelector("#graph-destination").value = targetId;
   updateGraphMode();
   await loadTopologyPath();
 }
@@ -1362,16 +1399,19 @@ document.querySelector("#graph-topology").addEventListener("change", (event) => 
   semantics.clearDerivationProposals();
   semantics.clearSemanticTraversal();
   powerImpact.clear();
+  topologyDiagnostics.clear();
   updateGraphMode();
   renderGraphSources(state.knowledge);
   loadInitialTopology().catch(report);
 });
-document.querySelector("#graph-source").addEventListener("input", async (event) => {
-  state.graphSource = event.target.value.trim() || null;
+async function selectGraphSource(sourceId) {
+  state.graphSource = sourceId?.trim() || null;
+  document.querySelector("#graph-source").value = state.graphSource || "";
   state.graphTopology = null;
   semantics.clearDerivationProposals();
   semantics.clearSemanticTraversal();
   powerImpact.clear();
+  topologyDiagnostics.clear();
   state.graphDestination = null;
   const destination = document.querySelector("#graph-destination");
   destination.value = "";
@@ -1382,22 +1422,23 @@ document.querySelector("#graph-source").addEventListener("input", async (event) 
     await loadInitialTopology();
     return;
   }
-  try {
-    const query = new URLSearchParams({
-      source: state.graphSource,
-      direction: state.graphDirection,
-      relationType: graphProfile().relationType
-    });
-    state.graphDestinations = await request(`/api/scopes/${state.scopeId}/topology/destinations?${query}`);
-    const options = document.querySelector("#graph-destination-options");
-    options.replaceChildren();
-    state.graphDestinations.forEach((node) => {
-      const option = document.createElement("option");
-      option.value = node.id;
-      options.append(option);
-    });
-    await loadAnchoredTopology();
-  } catch (error) { report(error); }
+  const query = new URLSearchParams({
+    source: state.graphSource,
+    direction: state.graphDirection,
+    relationType: graphProfile().relationType
+  });
+  state.graphDestinations = await request(`/api/scopes/${state.scopeId}/topology/destinations?${query}`);
+  const options = document.querySelector("#graph-destination-options");
+  options.replaceChildren();
+  state.graphDestinations.forEach((node) => {
+    const option = document.createElement("option");
+    option.value = node.id;
+    options.append(option);
+  });
+  await loadAnchoredTopology();
+}
+document.querySelector("#graph-source").addEventListener("input", (event) => {
+  selectGraphSource(event.target.value).catch(report);
 });
 document.querySelector("#graph-destination").addEventListener("input", (event) => {
   state.graphDestination = state.graphDestinations.some((node) => node.id === event.target.value)
@@ -1413,6 +1454,7 @@ document.querySelector("#graph-direction").addEventListener("change", (event) =>
   semantics.clearDerivationProposals();
   semantics.clearSemanticTraversal();
   powerImpact.clear();
+  topologyDiagnostics.clear();
   state.graphDestination = null;
   document.querySelector("#graph-destination").value = "";
   updateGraphMode();
@@ -1520,4 +1562,5 @@ applyTranslations();
 recording.bind();
 semantics.bind();
 powerImpact.bind();
+topologyDiagnostics.bind();
 recording.resetRelationForm(document.querySelector("#record-relation-form"));

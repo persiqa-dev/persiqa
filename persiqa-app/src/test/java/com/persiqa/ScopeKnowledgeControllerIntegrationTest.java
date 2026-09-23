@@ -210,6 +210,28 @@ class ScopeKnowledgeControllerIntegrationTest {
   }
 
   @Test
+  void calculates_the_combined_impact_of_multiple_interruptions() throws Exception {
+    var scope = UUID.randomUUID();
+    knowledge.createScope(scope, "multiple-power-impact-test", "alice");
+    assertSupply(scope, "main-mcb", new Entity("MainSupply-01"), new Entity("MCB-01"));
+    assertSupply(scope, "mcb-rcd", new Entity("MCB-01"), new Entity("RCD-01"));
+    assertSupply(scope, "rcd-boiler", new Entity("RCD-01"), new Entity("ElectricBoiler-01"));
+    assertSupply(scope, "mcb-light", new Entity("MCB-01"), new Entity("ShedLight-01"));
+
+    http.perform(
+            MockMvcRequestBuilders.get("/api/scopes/{scopeId}/analysis/power-impact", scope)
+                .param("interrupted", "MCB-01", "RCD-01")
+                .with(ALICE))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.interruptedNodes.length()").value(2))
+        .andExpect(jsonPath("$.impacted.length()").value(2))
+        .andExpect(jsonPath("$.impacted[0].target.id").value("ElectricBoiler-01"))
+        .andExpect(jsonPath("$.impacted[0].interruptionNode.id").value("RCD-01"))
+        .andExpect(jsonPath("$.impacted[1].target.id").value("ShedLight-01"))
+        .andExpect(jsonPath("$.impacted[1].interruptionNode.id").value("MCB-01"));
+  }
+
+  @Test
   void does_not_treat_a_derived_supply_shortcut_as_an_alternative_physical_feed()
       throws Exception {
     var scope = UUID.randomUUID();
@@ -237,6 +259,25 @@ class ScopeKnowledgeControllerIntegrationTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.impacted.length()").value(1))
         .andExpect(jsonPath("$.impacted[0].target.id").value("BoilerCircuit-01"));
+  }
+
+  @Test
+  void reports_multiple_physical_feeds_and_directed_supply_cycles() throws Exception {
+    var scope = UUID.randomUUID();
+    knowledge.createScope(scope, "topology-diagnostics-test", "alice");
+    assertSupply(scope, "main-circuit", new Entity("MainSupply-01"), new Entity("Circuit-01"));
+    assertSupply(scope, "backup-circuit", new Entity("BackupSupply-01"), new Entity("Circuit-01"));
+    assertSupply(scope, "cycle-first", new Entity("CycleA-01"), new Entity("CycleB-01"));
+    assertSupply(scope, "cycle-second", new Entity("CycleB-01"), new Entity("CycleA-01"));
+
+    http.perform(
+            MockMvcRequestBuilders.get("/api/scopes/{scopeId}/analysis/topology-diagnostics", scope)
+                .with(ALICE))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.diagnostics.length()").value(2))
+        .andExpect(jsonPath("$.diagnostics[0].code").value("DIRECTED_SUPPLY_CYCLE"))
+        .andExpect(jsonPath("$.diagnostics[1].code").value("MULTIPLE_PHYSICAL_FEEDS"))
+        .andExpect(jsonPath("$.diagnostics[1].node.id").value("Circuit-01"));
   }
 
   @Test

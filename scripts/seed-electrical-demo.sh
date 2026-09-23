@@ -42,4 +42,6 @@ for edge in \
   IFS='|' read -r source type target kind <<< "$edge"; relation "$source" "$type" "$target" "$kind"
 done
 
-curl --silent --show-error --fail-with-body --user "$user:$password" "$api/scopes/$scope_id/knowledge" | jq --arg scope_id "$scope_id" '{scopeId: $scope_id, scope: .scope.name, nodes: (.nodes | length), relations: (.relations | length), statements: (.statements | length)}'
+curl --silent --show-error --fail-with-body --user "$user:$password" "$api/scopes/$scope_id/knowledge/summary" \
+  | jq --arg scope_id "$scope_id" \
+    '{scopeId: $scope_id, scope: .scope.name, nodes: .nodeCount, relations: .relationCount, statements: .statementCount}'
