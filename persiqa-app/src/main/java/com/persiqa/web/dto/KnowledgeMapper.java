@@ -2,6 +2,7 @@ package com.persiqa.web.dto;
 
 import com.persiqa.application.DerivationProposalService.DerivationProposal;
 import com.persiqa.application.KnowledgeApplicationService.RelationRecord;
+import com.persiqa.application.PowerImpactAnalysisService.PowerImpactAnalysis;
 import com.persiqa.application.SemanticTraversalService.SemanticMatch;
 import com.persiqa.application.SemanticTraversalService.SemanticStep;
 import com.persiqa.application.SemanticTraversalService.SemanticTraversal;
@@ -17,6 +18,7 @@ import com.persiqa.web.dto.KnowledgeDtos.ContextRequest;
 import com.persiqa.web.dto.KnowledgeDtos.DerivationProposalResponse;
 import com.persiqa.web.dto.KnowledgeDtos.NodeResponse;
 import com.persiqa.web.dto.KnowledgeDtos.ObservationResponse;
+import com.persiqa.web.dto.KnowledgeDtos.PowerImpactResponse;
 import com.persiqa.web.dto.KnowledgeDtos.RelationRecordResponse;
 import com.persiqa.web.dto.KnowledgeDtos.RelationResponse;
 import com.persiqa.web.dto.KnowledgeDtos.RelationTypeResponse;
@@ -72,6 +74,8 @@ public interface KnowledgeMapper {
   SemanticMatchResponse toSemanticMatch(SemanticMatch match);
 
   SemanticStepResponse toSemanticStep(SemanticStep step);
+
+  PowerImpactResponse toPowerImpact(PowerImpactAnalysis analysis);
 
   DerivationProposalResponse toDerivationProposal(DerivationProposal proposal);
 

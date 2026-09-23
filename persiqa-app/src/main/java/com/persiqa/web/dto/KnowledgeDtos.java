@@ -67,6 +67,10 @@ public final class KnowledgeDtos {
   public record SemanticStepResponse(
       RelationResponse relation, List<StatementResponse> supportingStatements) {}
 
+  /** Read-only impact of temporarily removing supply from one selected topology Node. */
+  public record PowerImpactResponse(
+      NodeResponse interruptedNode, boolean truncated, List<SemanticMatchResponse> impacted) {}
+
   /** A reviewable, non-persisted derived-knowledge conclusion. */
   public record DerivationProposalResponse(
       NodeResponse reachable,

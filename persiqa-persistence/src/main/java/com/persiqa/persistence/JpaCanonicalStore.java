@@ -104,7 +104,9 @@ public class JpaCanonicalStore implements CanonicalStore {
     this.relationReader = new JpaRelationReader(relations, relationTypes, objectGraphLoader);
     this.statementReader =
         new JpaStatementReader(
-            statements, contexts, derivations, relationReader, objectGraphLoader);
+            statements,
+            contexts,
+            derivations, relationReader, objectGraphLoader);
   }
 
   /** Creates the scope when it does not exist and rejects renamed or reassigned scopes. */
@@ -437,9 +439,11 @@ public class JpaCanonicalStore implements CanonicalStore {
     if (relationObject == null || Kind.valueOf(relationObject.kind()) != Kind.RELATION) {
       return List.of();
     }
-    return canonicalizations.findByCanonicalObjectId(relationObject.id()).stream()
-        .map(link -> objectIdentity(scopeId, link.statementId()))
-        .map(statementIdentity -> findStatement(scopeId, statementIdentity))
+    var statementIds =
+        canonicalizations.findByCanonicalObjectId(relationObject.id()).stream()
+            .map(CanonicalizationEntity::statementId)
+            .collect(Collectors.toSet());
+    return statementReader.readSelected(scopeId, statementIds).stream()
         .sorted(java.util.Comparator.comparing(Statement::id))
         .toList();
   }

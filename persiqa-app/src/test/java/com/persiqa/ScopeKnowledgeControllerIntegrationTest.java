@@ -159,6 +159,87 @@ class ScopeKnowledgeControllerIntegrationTest {
   }
 
   @Test
+  void calculates_downstream_power_impact_without_recording_a_state_change() throws Exception {
+    var scope = UUID.randomUUID();
+    var breaker = new Entity("MCB-01");
+    knowledge.createScope(scope, "power-impact-test", "alice");
+    assertSupply(scope, "supply-breaker-circuit", breaker, new Entity("Circuit-01"));
+    assertSupply(
+        scope,
+        "supply-circuit-boiler",
+        new Entity("Circuit-01"),
+        new Entity("ElectricBoiler-01"));
+
+    http.perform(
+            MockMvcRequestBuilders.get("/api/scopes/{scopeId}/analysis/power-impact", scope)
+                .param("interrupted", "MCB-01")
+                .with(ALICE))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.interruptedNode.id").value("MCB-01"))
+        .andExpect(jsonPath("$.impacted.length()").value(2))
+        .andExpect(jsonPath("$.impacted[0].target.id").value("Circuit-01"))
+        .andExpect(jsonPath("$.impacted[1].target.id").value("ElectricBoiler-01"))
+        .andExpect(jsonPath("$.impacted[1].witness.length()").value(2));
+  }
+
+  @Test
+  void excludes_devices_that_keep_an_alternative_physical_supply_path() throws Exception {
+    var scope = UUID.randomUUID();
+    knowledge.createScope(scope, "power-impact-redundancy-test", "alice");
+    assertSupply(scope, "main-supply-breaker", new Entity("MainSupply-01"), new Entity("MCB-01"));
+    assertSupply(scope, "breaker-circuit", new Entity("MCB-01"), new Entity("BoilerCircuit-01"));
+    assertSupply(
+        scope,
+        "backup-circuit",
+        new Entity("BackupSupply-01"),
+        new Entity("BoilerCircuit-01"));
+    assertSupply(
+        scope,
+        "circuit-boiler",
+        new Entity("BoilerCircuit-01"),
+        new Entity("ElectricBoiler-01"));
+    assertSupply(scope, "breaker-light", new Entity("MCB-01"), new Entity("ShedLight-01"));
+
+    http.perform(
+            MockMvcRequestBuilders.get("/api/scopes/{scopeId}/analysis/power-impact", scope)
+                .param("interrupted", "MCB-01")
+                .with(ALICE))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.impacted.length()").value(1))
+        .andExpect(jsonPath("$.impacted[0].target.id").value("ShedLight-01"));
+  }
+
+  @Test
+  void does_not_treat_a_derived_supply_shortcut_as_an_alternative_physical_feed()
+      throws Exception {
+    var scope = UUID.randomUUID();
+    var mainSupply = new Entity("MainSupply-01");
+    var breaker = new Entity("MCB-01");
+    var circuit = new Entity("BoilerCircuit-01");
+    knowledge.createScope(scope, "power-impact-derived-shortcut-test", "alice");
+    assertSupply(scope, "main-supply-breaker", mainSupply, breaker);
+    assertSupply(scope, "breaker-circuit", breaker, circuit);
+    knowledge.recordDerivedRelation(
+        scope,
+        "alice",
+        "derived-main-circuit",
+        "derived-main-circuit-statement",
+        "supplies",
+        mainSupply,
+        circuit,
+        Set.of("statement-main-supply-breaker", "statement-breaker-circuit"),
+        Context.unspecified());
+
+    http.perform(
+            MockMvcRequestBuilders.get("/api/scopes/{scopeId}/analysis/power-impact", scope)
+                .param("interrupted", "MCB-01")
+                .with(ALICE))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.impacted.length()").value(1))
+        .andExpect(jsonPath("$.impacted[0].target.id").value("BoilerCircuit-01"));
+  }
+
+  @Test
   void returns_auditable_semantic_traversal_with_canonical_statement_witnesses() throws Exception {
     var scope = UUID.randomUUID();
     var breaker = new Entity("MCB-01");

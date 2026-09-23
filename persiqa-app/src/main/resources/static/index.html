@@ -4,8 +4,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Persiqa CKM</title>
-    <link rel="stylesheet" href="/app.css?v=ckm-0.1.0-state-recording">
-    <script type="module" src="/app.js?v=ckm-0.1.0-state-recording"></script>
+    <link rel="stylesheet" href="/app.css?v=ckm-0.1.0-power-impact">
+    <script type="module" src="/app.js?v=ckm-0.1.0-power-impact"></script>
   </head>
   <body>
     <header class="topbar">
@@ -110,6 +110,15 @@
                 <span id="explore-semantics-hint" data-i18n-title="semantic.noSource" title="Choose a source device to inspect auditable reachable devices."><button id="explore-semantics" type="button" data-i18n="semantic.explore" disabled>Explore reachability</button></span>
               </div>
             </section>
+            <section class="panel power-impact-panel">
+              <div class="section-heading">
+                <div>
+                  <h3 data-i18n="powerImpact.title">Power interruption impact</h3>
+                  <p id="power-impact-help" class="graph-help" data-i18n="powerImpact.noSource">Choose an electrical source device to inspect what loses power.</p>
+                </div>
+                <span id="analyze-power-impact-hint" data-i18n-title="powerImpact.noSource" title="Choose an electrical source device to inspect what loses power."><button id="analyze-power-impact" type="button" data-i18n="powerImpact.analyze" disabled>Analyze interruption</button></span>
+              </div>
+            </section>
           </section>
           <dialog id="derivation-proposals-dialog" class="derivation-dialog" aria-labelledby="derivation-dialog-title">
             <div class="section-heading">
@@ -126,6 +135,14 @@
             </div>
             <p id="semantic-traversal-summary" class="graph-help"></p>
             <div id="semantic-traversal-list" class="item-list"></div>
+          </dialog>
+          <dialog id="power-impact-dialog" class="derivation-dialog" aria-labelledby="power-impact-dialog-title">
+            <div class="section-heading">
+              <h3 id="power-impact-dialog-title" data-i18n="powerImpact.title">Power interruption impact</h3>
+              <button id="close-power-impact" type="button" data-i18n="actions.close">Close</button>
+            </div>
+            <p id="power-impact-summary" class="graph-help"></p>
+            <div id="power-impact-list" class="item-list"></div>
           </dialog>
           <section id="knowledge-view" class="workbench-view hidden">
             <section class="panel knowledge-panel">

@@ -1,6 +1,7 @@
 package com.persiqa.web;
 
 import com.persiqa.application.KnowledgeApplicationService;
+import com.persiqa.application.PowerImpactAnalysisService;
 import com.persiqa.application.ScopeAccessService;
 import com.persiqa.application.SemanticTraversalService;
 import com.persiqa.application.TopologyProjectionService;
@@ -13,6 +14,7 @@ import com.persiqa.model.Ckm.Kind;
 import com.persiqa.web.dto.KnowledgeDtos.NodeResponse;
 import com.persiqa.web.dto.KnowledgeDtos.ObservationResponse;
 import com.persiqa.web.dto.KnowledgeDtos.PageResponse;
+import com.persiqa.web.dto.KnowledgeDtos.PowerImpactResponse;
 import com.persiqa.web.dto.KnowledgeDtos.RelationResponse;
 import com.persiqa.web.dto.KnowledgeDtos.ScopeKnowledgeSummaryResponse;
 import com.persiqa.web.dto.KnowledgeDtos.SemanticTraversalResponse;
@@ -39,6 +41,7 @@ public class ScopeKnowledgeController {
   private final TopologyProjectionService topology;
   private final SemanticTraversalService semanticTraversal;
   private final ScopeAccessService scopeAccess;
+  private final PowerImpactAnalysisService powerImpact;
 
   public ScopeKnowledgeController(
       KnowledgeApplicationService knowledge,
@@ -46,13 +49,15 @@ public class ScopeKnowledgeController {
       KnowledgeMapper mapper,
       TopologyProjectionService topology,
       SemanticTraversalService semanticTraversal,
-      ScopeAccessService scopeAccess) {
+      ScopeAccessService scopeAccess,
+      PowerImpactAnalysisService powerImpact) {
     this.knowledge = knowledge;
     this.currentSubject = currentSubject;
     this.mapper = mapper;
     this.topology = topology;
     this.semanticTraversal = semanticTraversal;
     this.scopeAccess = scopeAccess;
+    this.powerImpact = powerImpact;
   }
 
   /** Lists the canonical Relations in one scope. */
@@ -170,6 +175,15 @@ public class ScopeKnowledgeController {
     scopeAccess.requireOwned(scopeId, subject);
     return mapper.toSemanticTraversal(
         semanticTraversal.traverse(scopeId, subject, anchor, relationType, direction, maxHops));
+  }
+
+  /** Calculates which downstream Nodes lose supplied power in one temporary interruption. */
+  @GetMapping("/analysis/power-impact")
+  public PowerImpactResponse analyzePowerImpact(
+      @PathVariable("scopeId") UUID scopeId, @RequestParam("interrupted") String interrupted) {
+    var subject = currentSubject.require();
+    scopeAccess.requireOwned(scopeId, subject);
+    return mapper.toPowerImpact(powerImpact.analyze(scopeId, subject, interrupted));
   }
 
   /** Lists the Statements in one scope. */

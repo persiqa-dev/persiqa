@@ -1,4 +1,5 @@
 import { createRecordingController } from "./ui/recording-controller.js";
+import { createPowerImpactController } from "./ui/power-impact-controller.js";
 import { createSemanticController } from "./ui/semantic-controller.js";
 
 const translations = {
@@ -89,6 +90,13 @@ const translations = {
     "semantic.hops": "{count} hops", "semantic.witness": "Witness: {path}",
     "semantic.showPath": "Show as path", "semantic.results": "{count} reachable devices from {source}.",
     "semantic.truncated": "Results are limited to {count} hops.",
+    "powerImpact.title": "Power interruption impact", "powerImpact.noSource": "Choose an electrical source device to inspect what loses power.",
+    "powerImpact.notElectrical": "Switch the topology to Electrical supply to analyze a power interruption.",
+    "powerImpact.ready": "Assume the selected device is switched off and inspect downstream devices without another known supply path.",
+    "powerImpact.analyze": "Analyze interruption", "powerImpact.none": "No downstream device is affected.",
+    "powerImpact.results": "{count} devices lose power if {device} is switched off and no other known supply path remains.",
+    "powerImpact.truncated": "The affected-device list was limited for this analysis.",
+    "powerImpact.found": "Found {count} affected devices.",
   },
   hu: {
     "app.title": "Kanonikus tudásmodell", "language.label": "Nyelv",
@@ -177,6 +185,13 @@ const translations = {
     "semantic.hops": "{count} lépés", "semantic.witness": "Bizonyító út: {path}",
     "semantic.showPath": "Megjelenítés útként", "semantic.results": "{source} forrásból {count} elérhető eszköz.",
     "semantic.truncated": "Az eredmények legfeljebb {count} lépésig látszanak.",
+    "powerImpact.title": "Áramkimaradás hatása", "powerImpact.noSource": "Válassz elektromos forráseszközt annak vizsgálatához, mi marad áram nélkül.",
+    "powerImpact.notElectrical": "Áramkimaradás elemzéséhez válts Elektromos ellátás topológiára.",
+    "powerImpact.ready": "A kiválasztott eszközt lekapcsoltnak feltételezve vizsgáld meg a más ismert betápút nélkül maradó downstream eszközöket.",
+    "powerImpact.analyze": "Lekapcsolás elemzése", "powerImpact.none": "Nincs érintett downstream eszköz.",
+    "powerImpact.results": "{device} lekapcsolásakor {count} eszköz marad áram nélkül, mert nincs más ismert betápútja.",
+    "powerImpact.truncated": "Az érintett eszközök listája ehhez az elemzéshez korlátozva lett.",
+    "powerImpact.found": "{count} érintett eszköz található.",
   }
 };
 
@@ -185,6 +200,7 @@ const state = {
   graphProfile: "ELECTRICAL_SUPPLY", graphLayout: "LEFT_TO_RIGHT", graphSource: null, graphDestination: null, graphDestinations: [], graphDirection: "DOWNSTREAM", graphTopology: null,
   derivationProposals: [], derivationQueried: false,
   semanticTraversal: null,
+  powerImpact: null,
   workbenchView: "overview", knowledgeList: "nodes", knowledgeListQuery: "", knowledgeListPage: 0, knowledgePage: null, knowledgeListRequest: 0,
   language: localStorage.getItem("persiqa.language") || navigator.language?.slice(0, 2) || "en",
   theme: localStorage.getItem("persiqa.theme") || "dark"
@@ -225,14 +241,23 @@ const recording = createRecordingController({
 const semantics = createSemanticController({
   graphProfile,
   loadKnowledge,
-  loadTopologyPath,
   relationTypeLabel,
   report,
   request,
+  showPath: showGraphPath,
   showStatus,
   state,
-  translate: t,
-  updateGraphMode
+  translate: t
+});
+
+const powerImpact = createPowerImpactController({
+  graphProfile,
+  report,
+  request,
+  showPath: showGraphPath,
+  showStatus,
+  state,
+  translate: t
 });
 
 function t(key, values = {}) {
@@ -270,6 +295,7 @@ function applyTranslations() {
   renderKnowledgeList();
   semantics.renderDerivationProposals();
   semantics.renderSemanticTraversal();
+  powerImpact.render();
 }
 
 function applyTheme() {
@@ -385,6 +411,7 @@ function renderKnowledge(knowledge, preserveDerivationProposals = false) {
   state.graphTopology = null;
   if (!preserveDerivationProposals) semantics.clearDerivationProposals();
   semantics.clearSemanticTraversal();
+  powerImpact.clear();
   renderEndpointOptions(knowledge);
   renderGraphSources(knowledge);
   document.querySelector("#scope-title").textContent = knowledge.scope.name;
@@ -1097,6 +1124,16 @@ async function loadTopologyPath() {
   renderKnowledgeGraph(state.knowledge);
 }
 
+async function showGraphPath(destinationId) {
+  if (!state.graphDestinations.some((node) => node.id === destinationId)) {
+    throw new Error(t("semantic.none"));
+  }
+  state.graphDestination = destinationId;
+  document.querySelector("#graph-destination").value = destinationId;
+  updateGraphMode();
+  await loadTopologyPath();
+}
+
 function showTopologyEdgeDetails(relation) {
   showInspector(`${relationTypeLabel(relation.type.id)}: ${t("graph.moreDetail", { count: relation.hiddenNodeCount })}`);
   appendMetadata(inspectorContent, [
@@ -1324,6 +1361,7 @@ document.querySelector("#graph-topology").addEventListener("change", (event) => 
   state.graphTopology = null;
   semantics.clearDerivationProposals();
   semantics.clearSemanticTraversal();
+  powerImpact.clear();
   updateGraphMode();
   renderGraphSources(state.knowledge);
   loadInitialTopology().catch(report);
@@ -1333,6 +1371,7 @@ document.querySelector("#graph-source").addEventListener("input", async (event) 
   state.graphTopology = null;
   semantics.clearDerivationProposals();
   semantics.clearSemanticTraversal();
+  powerImpact.clear();
   state.graphDestination = null;
   const destination = document.querySelector("#graph-destination");
   destination.value = "";
@@ -1373,6 +1412,7 @@ document.querySelector("#graph-direction").addEventListener("change", (event) =>
   state.graphTopology = null;
   semantics.clearDerivationProposals();
   semantics.clearSemanticTraversal();
+  powerImpact.clear();
   state.graphDestination = null;
   document.querySelector("#graph-destination").value = "";
   updateGraphMode();
@@ -1479,4 +1519,5 @@ applyTheme();
 applyTranslations();
 recording.bind();
 semantics.bind();
+powerImpact.bind();
 recording.resetRelationForm(document.querySelector("#record-relation-form"));

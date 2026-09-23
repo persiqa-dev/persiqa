@@ -7,14 +7,13 @@
 export function createSemanticController({
   graphProfile,
   loadKnowledge,
-  loadTopologyPath,
   relationTypeLabel,
   report,
   request,
+  showPath,
   showStatus,
   state,
-  translate,
-  updateGraphMode
+  translate
 }) {
   const derivationHelp = document.querySelector("#derivation-help");
   const derivationProposalList = document.querySelector("#derivation-proposal-list");
@@ -30,7 +29,6 @@ export function createSemanticController({
   const closeSemanticTraversalButton = document.querySelector("#close-semantic-traversal");
   const semanticTraversalSummary = document.querySelector("#semantic-traversal-summary");
   const semanticTraversalList = document.querySelector("#semantic-traversal-list");
-  const graphDestination = document.querySelector("#graph-destination");
 
   function canQuery() {
     return Boolean(state.scopeId && state.graphSource);
@@ -112,14 +110,8 @@ export function createSemanticController({
   }
 
   async function showSemanticPath(destinationId) {
-    if (!state.graphDestinations.some((node) => node.id === destinationId)) {
-      throw new Error(translate("semantic.none"));
-    }
-    state.graphDestination = destinationId;
-    graphDestination.value = destinationId;
-    updateGraphMode();
     semanticTraversalDialog.close();
-    await loadTopologyPath();
+    await showPath(destinationId);
   }
 
   function renderDerivationProposals() {
