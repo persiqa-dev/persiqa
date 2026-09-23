@@ -42,8 +42,36 @@ public final class Ckm {
     }
   }
 
-  /** A contextual state object. */
-  public record State(String id) implements Node {
+  /**
+   * A contextual State owned by an Entity or Relation.
+   *
+   * <p>The identifier is an implementation address, not an Entity-like continuity identity. A
+   * State is identified in context by its owner and predicate; its scalar value may change while
+   * that contextual identity remains stable.
+   */
+  public record State(String id, String predicate, Object value) implements Node {
+    /**
+     * Creates a legacy value-only State.
+     *
+     * <p>New callers SHOULD provide a semantic predicate and a typed value explicitly.
+     */
+    public State(String id) {
+      this(id, "state", id);
+    }
+
+    /** Validates the scalar State value independently from any storage representation. */
+    public State {
+      if (predicate == null || predicate.isBlank()) {
+        throw new IllegalArgumentException("state predicate must not be blank");
+      }
+      if (value != null
+          && !(value instanceof String)
+          && !(value instanceof Boolean)
+          && !(value instanceof Number)) {
+        throw new IllegalArgumentException("state value must be String, Number, or Boolean");
+      }
+    }
+
     public Kind kind() {
       return Kind.STATE;
     }

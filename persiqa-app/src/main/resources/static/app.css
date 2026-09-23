@@ -131,6 +131,7 @@ h3 { font-size: 1rem; }
 .graph-legend .graph-secondary-marker { background: transparent; border: 2px dashed var(--text-muted); border-radius: 0; height: 0; width: 1.4rem; }
 .command-grid { display: grid; gap: 1rem; margin-bottom: 1rem; }
 .command-grid { grid-template-columns: minmax(240px, 0.75fr) minmax(420px, 1.25fr); }
+#record-relation-form { grid-column: 1 / -1; }
 .item-list { display: grid; gap: 0.45rem; max-height: 360px; overflow: auto; }
 .knowledge-heading { align-items: end; }
 .knowledge-search { min-width: min(100%, 22rem); }

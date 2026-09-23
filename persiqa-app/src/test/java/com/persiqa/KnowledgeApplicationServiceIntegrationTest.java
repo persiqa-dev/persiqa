@@ -7,6 +7,7 @@ import com.persiqa.application.KnowledgeApplicationService;
 import com.persiqa.model.Ckm.Context;
 import com.persiqa.model.Ckm.Entity;
 import com.persiqa.model.Ckm.KnowledgeKind;
+import com.persiqa.model.Ckm.State;
 import java.math.BigDecimal;
 import java.util.Set;
 import java.util.UUID;
@@ -103,5 +104,39 @@ class KnowledgeApplicationServiceIntegrationTest {
             .collect(Collectors.toSet());
     assertEquals(
         Set.of("supply-0", "supply-1", "supply-2", "supply-summary"), statementIds);
+  }
+
+  @Test
+  void records_a_mutable_state_with_contextual_owner_identity() {
+    var scope = UUID.randomUUID();
+    var breaker = new Entity("MCB-01");
+    knowledge.createScope(scope, "state-recording-test", OWNER);
+
+    var first =
+        knowledge.recordState(
+            scope,
+            OWNER,
+            null,
+            breaker,
+            "switchPosition",
+            "On",
+            new Context("inspection", new BigDecimal("0.9"), "as-built"));
+    var second =
+        knowledge.recordState(
+            scope,
+            OWNER,
+            null,
+            breaker,
+            "switchPosition",
+            "Off",
+            new Context("reinspection", new BigDecimal("0.95"), "as-maintained"));
+
+    assertEquals(first.relation().id(), second.relation().id());
+    assertEquals("state-mcb-01-switchposition", first.relation().target().id());
+    var current = (State) knowledge.findRelation(scope, OWNER, first.relation().id()).target();
+    assertEquals("switchPosition", current.predicate());
+    assertEquals("Off", current.value());
+    assertEquals(
+        2, knowledge.findStatementsForRelation(scope, OWNER, first.relation().id()).size());
   }
 }

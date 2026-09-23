@@ -18,6 +18,8 @@ import com.persiqa.web.KnowledgeWriteController.CreateScopeRequest;
 import com.persiqa.web.KnowledgeWriteController.DerivationAcceptanceRequest;
 import com.persiqa.web.KnowledgeWriteController.NodeReference;
 import com.persiqa.web.KnowledgeWriteController.RecordRelationRequest;
+import com.persiqa.web.KnowledgeWriteController.RecordStateRequest;
+import com.persiqa.web.dto.KnowledgeDtos.ContextRequest;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.util.Set;
@@ -503,6 +505,38 @@ class ScopeKnowledgeControllerIntegrationTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$[0].id").value("supply-0"))
         .andExpect(jsonPath("$[1].id").value("supply-3"));
+  }
+
+  @Test
+  void records_a_contextual_state_without_exposing_a_standalone_state_node() throws Exception {
+    var scope = UUID.randomUUID();
+    knowledge.createScope(scope, "state-write-test", "alice");
+
+    http.perform(
+            MockMvcRequestBuilders.post("/api/scopes/{scopeId}/states", scope)
+                .with(ALICE)
+                .contentType("application/json")
+                .content(
+                    json.writeValueAsString(
+                        new RecordStateRequest(
+                            null,
+                            new NodeReference("MCB-01", Kind.ENTITY),
+                            "switchPosition",
+                            "On",
+                            new ContextRequest(
+                                "inspection",
+                                new BigDecimal("0.9"),
+                                null,
+                                null,
+                                null,
+                                "as-built")))))
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.relation.type.id").value("hasState"))
+        .andExpect(jsonPath("$.relation.target.id").value("state-mcb-01-switchposition"));
+    http.perform(MockMvcRequestBuilders.get("/api/scopes/{scopeId}/nodes", scope).with(ALICE))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.content[0].id").value("MCB-01"))
+        .andExpect(jsonPath("$.totalElements").value(1));
   }
 
   @Test

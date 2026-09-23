@@ -10,6 +10,7 @@ import com.persiqa.model.Ckm.Context;
 import com.persiqa.model.Ckm.KnowledgeKind;
 import com.persiqa.model.Ckm.Node;
 import com.persiqa.model.Ckm.Relation;
+import com.persiqa.model.Ckm.State;
 import com.persiqa.model.Ckm.Statement;
 import java.text.Normalizer;
 import java.util.List;
@@ -135,6 +136,42 @@ public class KnowledgeApplicationService {
                 context);
     var mode = knowledgeKind == KnowledgeKind.EXPLICIT ? "ASSERTS" : "DERIVES";
     return persist(scopeId, prepared, mode);
+  }
+
+  /**
+   * Records or updates a contextual State through its required {@code hasState} association.
+   *
+   * <p>The State's implementation address is deterministically scoped to its owner and semantic
+   * predicate. A later value therefore updates the current State view without changing the owner
+   * or manufacturing an Entity-like identity.
+   */
+  @Transactional
+  public RelationRecord recordState(
+      UUID scopeId,
+      String subject,
+      String statementId,
+      Node owner,
+      String predicate,
+      Object value,
+      Context context) {
+    requireOwner(scopeId, subject);
+    if (owner.kind() != com.persiqa.model.Ckm.Kind.ENTITY
+        && owner.kind() != com.persiqa.model.Ckm.Kind.RELATION) {
+      throw new IllegalArgumentException("State owner must be an Entity or Relation");
+    }
+    var state = new State(generatedStateIdentity(owner, predicate), predicate, value);
+    var relationId = generatedStateRelationIdentity(owner, state);
+    return recordRelation(
+        scopeId,
+        subject,
+        relationId,
+        statementId,
+        KnowledgeKind.EXPLICIT,
+        "hasState",
+        owner,
+        state,
+        Set.of(),
+        context);
   }
 
   /** Returns a standalone canonical Node, or {@code null} when the identity is unknown. */
@@ -293,6 +330,14 @@ public class KnowledgeApplicationService {
     var prefix =
         "stmt-" + slug(relationId) + "-" + knowledgeKind.name().toLowerCase(Locale.ROOT);
     return numberedIdentity(prefix, store.nextIdentityOrdinal(scopeId, prefix));
+  }
+
+  private static String generatedStateIdentity(Node owner, String predicate) {
+    return "state-" + slug(owner.id()) + "-" + slug(predicate);
+  }
+
+  private static String generatedStateRelationIdentity(Node owner, State state) {
+    return "rel-" + slug(owner.id()) + "-hasstate-" + slug(state.id());
   }
 
   private static String suppliedOrGenerated(

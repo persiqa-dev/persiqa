@@ -110,6 +110,31 @@ public class KnowledgeWriteController {
         .body(mapper.toRelationRecord(record));
   }
 
+  /**
+   * Records an Entity or Relation State without exposing State as a standalone authoring object.
+   */
+  @PostMapping("/scopes/{scopeId}/states")
+  public ResponseEntity<RelationRecordResponse> recordState(
+      @PathVariable("scopeId") UUID scopeId, @Valid @RequestBody RecordStateRequest request) {
+    var subject = currentSubject.require();
+    scopeAccess.requireOwned(scopeId, subject);
+    var owner = request.owner().resolve(scopeId, subject, knowledge);
+    var context =
+        request.context() == null ? Context.unspecified() : mapper.toContext(request.context());
+    var record =
+        knowledge.recordState(
+            scopeId,
+            subject,
+            request.statementId(),
+            owner,
+            request.predicate(),
+            request.value(),
+            context);
+    return ResponseEntity.created(
+            URI.create("/api/scopes/" + scopeId + "/statements/" + record.statement().id()))
+        .body(mapper.toRelationRecord(record));
+  }
+
   /** Lists reviewable transitive conclusions without writing derived knowledge. */
   @GetMapping("/scopes/{scopeId}/semantic/derivation-proposals")
   public List<DerivationProposalResponse> findDerivationProposals(
@@ -225,6 +250,14 @@ public class KnowledgeWriteController {
                   context.scenario()));
     }
   }
+
+  /** Request body for one explicit State observation owned by an Entity or Relation. */
+  public record RecordStateRequest(
+      String statementId,
+      @NotNull @Valid NodeReference owner,
+      @NotBlank String predicate,
+      @NotNull Object value,
+      ContextRequest context) {}
 
   /** Identifies one currently reviewable semantic derivation proposal to accept. */
   public record DerivationAcceptanceRequest(

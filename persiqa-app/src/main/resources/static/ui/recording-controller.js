@@ -23,6 +23,9 @@ export function createRecordingController({
   const targetIdentity = document.querySelector("#target-id");
   const targetKind = document.querySelector("#target-kind");
   const targetOptions = document.querySelector("#target-endpoint-options");
+  const stateOwnerIdentity = document.querySelector("#state-owner-id");
+  const stateOwnerKind = document.querySelector("#state-owner-kind");
+  const stateOwnerOptions = document.querySelector("#state-owner-options");
   let endpointSearchTimer;
 
   function renderRelationTypes() {
@@ -33,16 +36,23 @@ export function createRecordingController({
     state.endpointKinds.clear();
     knowledge.nodes.forEach((node) => state.endpointKinds.set(node.id, node.kind));
     knowledge.relations.forEach((relation) => state.endpointKinds.set(relation.id, "RELATION"));
+    renderStateOwnerOptions();
     updateGuidance();
   }
 
+  function renderStateOwnerOptions() {
+    renderEndpointOptionsFor(stateOwnerOptions, ["ENTITY", "RELATION"]);
+    synchronizeEndpointKind(stateOwnerIdentity, stateOwnerKind);
+  }
+
   function updateGuidance() {
-    const sourceKinds = [...new Set(state.relationTypes.flatMap((type) => type.sources))];
+    const relationTypes = state.relationTypes.filter((type) => type.id !== "hasState");
+    const sourceKinds = [...new Set(relationTypes.flatMap((type) => type.sources))];
     updateKindChoices(sourceIdentity, sourceKind, sourceKinds, false);
     const selectedSourceKind = sourceKind.value;
     const eligibleTypes = selectedSourceKind
-      ? state.relationTypes.filter((type) => type.sources.includes(selectedSourceKind))
-      : state.relationTypes;
+      ? relationTypes.filter((type) => type.sources.includes(selectedSourceKind))
+      : relationTypes;
     renderRelationTypeOptions(eligibleTypes);
     const selectedType = eligibleTypes.find((type) => type.id === relationType.value);
     renderEndpointOptionsFor(
@@ -178,7 +188,12 @@ export function createRecordingController({
       scheduleEndpointSearch(targetIdentity, targetOptions, targetKind);
     });
     document.querySelector("#create-node-form").addEventListener("submit", recordNode);
+    document.querySelector("#record-state-form").addEventListener("submit", recordState);
     document.querySelector("#record-relation-form").addEventListener("submit", recordRelation);
+    stateOwnerIdentity.addEventListener("input", () => {
+      synchronizeEndpointKind(stateOwnerIdentity, stateOwnerKind);
+      scheduleEndpointSearch(stateOwnerIdentity, stateOwnerOptions, stateOwnerKind);
+    });
   }
 
   function scheduleEndpointSearch(identity, options, kind) {
@@ -248,6 +263,42 @@ export function createRecordingController({
     } catch (error) {
       report(error);
     }
+  }
+
+  async function recordState(event) {
+    event.preventDefault();
+    if (!state.scopeId) return;
+    const form = event.currentTarget;
+    try {
+      const data = new FormData(form);
+      const record = await request(`/api/scopes/${state.scopeId}/states`, {
+        method: "POST",
+        body: JSON.stringify({
+          owner: endpointFrom(data, "ownerId", "ownerKind"),
+          predicate: data.get("predicate"),
+          value: typedValue(data.get("value")),
+          context: contextFrom(data)
+        })
+      });
+      form.reset();
+      stateOwnerKind.disabled = false;
+      await loadKnowledge();
+      showStatus(
+        translate("status.statementRecorded", {
+          statement: record.statement.id,
+          relation: record.relation.id
+        }));
+    } catch (error) {
+      report(error);
+    }
+  }
+
+  function typedValue(value) {
+    const text = String(value).trim();
+    if (text === "true") return true;
+    if (text === "false") return false;
+    if (/^-?(?:\\d+|\\d*\\.\\d+)$/.test(text)) return Number(text);
+    return text;
   }
 
   return { bind, populateNodeKinds, renderEndpointOptions, renderRelationTypes, resetRelationForm };

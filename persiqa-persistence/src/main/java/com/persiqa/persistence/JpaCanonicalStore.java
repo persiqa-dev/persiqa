@@ -487,11 +487,16 @@ public class JpaCanonicalStore implements CanonicalStore {
       }
       states
           .findById(targetId)
-          .orElseGet(
+          .ifPresentOrElse(
+              existing -> updateState(existing, sourceId, state),
               () ->
                   states.save(
                       new StateEntity(
-                          targetId, sourceId, "hasState", state.id(), Map.of())));
+                          targetId,
+                          sourceId,
+                          state.predicate(),
+                          TypedJsonValue.write(state.value()),
+                          Map.of())));
     }
     return relationId;
   }
@@ -505,6 +510,16 @@ public class JpaCanonicalStore implements CanonicalStore {
       throw new IllegalArgumentException(
           "Relation target kind is not allowed by its type: " + relation.type().id());
     }
+  }
+
+  private static void updateState(StateEntity existing, UUID ownerObjectId, State state) {
+    if (!existing.ownerObjectId().equals(ownerObjectId)) {
+      throw new IllegalArgumentException("State belongs to a different owner: " + state.id());
+    }
+    if (!existing.predicate().equals(state.predicate())) {
+      throw new IllegalArgumentException("State identity cannot change predicate: " + state.id());
+    }
+    existing.updateValue(TypedJsonValue.write(state.value()));
   }
 
   private UUID saveStatement(UUID scopeId, Statement statement) {
@@ -662,11 +677,27 @@ public class JpaCanonicalStore implements CanonicalStore {
       case ENTITY -> new Entity(object.identityKey());
       case CAPABILITY -> new Capability(object.identityKey());
       case CONCEPT -> new Concept(object.identityKey());
-      case STATE -> new State(object.identityKey());
+      case STATE -> state(scopeId, object);
       case RELATION -> findRelation(scopeId, object.identityKey());
       case STATEMENT, TYPED_VALUE ->
           throw new IllegalStateException("unsupported endpoint kind: " + object.kind());
     };
+  }
+
+  private State state(UUID scopeId, CanonicalObjectEntity object) {
+    var persisted =
+        states
+            .findById(object.id())
+            .orElseThrow(
+                () ->
+                    new IllegalStateException(
+                        "State is missing ownership metadata: " + object.identityKey()));
+    var owner = objects.findById(persisted.ownerObjectId()).orElseThrow();
+    if (!owner.scopeId().equals(scopeId)) {
+      throw new IllegalStateException("cross-scope State owner");
+    }
+    return new State(
+        object.identityKey(), persisted.predicate(), TypedJsonValue.read(persisted.typedValue()));
   }
 
   private CanonicalObjectEntity object(UUID scopeId, String identityKey) {
@@ -675,12 +706,15 @@ public class JpaCanonicalStore implements CanonicalStore {
 
   private static boolean isStandaloneNode(CanonicalObjectEntity object) {
     var kind = Kind.valueOf(object.kind());
-    return kind != Kind.RELATION && kind != Kind.STATEMENT && kind != Kind.TYPED_VALUE;
+    return kind != Kind.RELATION
+        && kind != Kind.STATE
+        && kind != Kind.STATEMENT
+        && kind != Kind.TYPED_VALUE;
   }
 
   private static Set<String> standaloneNodeKinds() {
     return Set.of(
-        Kind.ENTITY.name(), Kind.CAPABILITY.name(), Kind.CONCEPT.name(), Kind.STATE.name());
+        Kind.ENTITY.name(), Kind.CAPABILITY.name(), Kind.CONCEPT.name());
   }
 
   private static PageRequest pageable(PageQuery pageQuery) {

@@ -45,4 +45,24 @@ public class StateEntity {
     this.typedValue = typedValue;
     this.contextKey = Map.copyOf(contextKey);
   }
+
+  /** Returns the canonical Entity or Relation that owns this State. */
+  public UUID ownerObjectId() {
+    return ownerObjectId;
+  }
+
+  /** Returns the semantic State predicate within the owner's context. */
+  public String predicate() {
+    return predicate;
+  }
+
+  /** Returns the persistence-normalized current scalar value. */
+  public Object typedValue() {
+    return typedValue;
+  }
+
+  /** Updates the current view while preserving this contextual State identity and ownership. */
+  public void updateValue(Object value) {
+    typedValue = value;
+  }
 }

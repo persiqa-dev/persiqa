@@ -212,6 +212,29 @@ class JpaCanonicalStoreIntegrationTest {
   }
 
   @Test
+  void rejects_reusing_a_state_for_a_different_owner() {
+    var scope = UUID.randomUUID();
+    store.createScope(scope, "state-owner-invariant-test", "test");
+    var hasState =
+        new RelationType(
+            "hasState",
+            Set.of(Kind.ENTITY, Kind.RELATION),
+            Set.of(Kind.STATE),
+            false,
+            "none",
+            false);
+    var state = new State("state-mcb-switch-position", "switchPosition", "On");
+    store.save(scope, new Relation("mcb-state", hasState, new Entity("MCB-01"), state));
+
+    assertThrows(
+        IllegalArgumentException.class,
+        () ->
+            store.save(
+                scope,
+                new Relation("lamp-state", hasState, new Entity("Lamp-01"), state)));
+  }
+
+  @Test
   void keeps_representation_metadata_outside_the_canonical_model() {
     var scope = UUID.randomUUID();
     store.createScope(scope, "representation-test", "test");

@@ -4,8 +4,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Persiqa CKM</title>
-    <link rel="stylesheet" href="/app.css?v=ckm-0.1.0-explicit-selection">
-    <script type="module" src="/app.js?v=ckm-0.1.0-searchable-endpoints"></script>
+    <link rel="stylesheet" href="/app.css?v=ckm-0.1.0-state-recording">
+    <script type="module" src="/app.js?v=ckm-0.1.0-state-recording"></script>
   </head>
   <body>
     <header class="topbar">
@@ -169,6 +169,34 @@
                 <select name="kind" class="node-kind" data-kinds="ENTITY,CAPABILITY,CONCEPT"></select>
               </label>
               <button type="submit" data-i18n="node.add">Add node</button>
+            </form>
+
+            <form id="record-state-form" class="panel command-form">
+              <h3 data-i18n="state.record">Record state</h3>
+              <p class="relation-type-help" data-i18n="state.recordHelp">Record a contextual state owned by an entity or relation.</p>
+              <label><span data-i18n="state.ownerIdentity">Owner identity</span>
+                <input id="state-owner-id" name="ownerId" list="state-owner-options" data-i18n-placeholder="state.ownerHint" placeholder="Choose MCB-01" required>
+              </label>
+              <label><span data-i18n="state.ownerKind">Owner kind</span>
+                <select id="state-owner-kind" name="ownerKind" class="node-kind" data-kinds="ENTITY,RELATION" required></select>
+              </label>
+              <datalist id="state-owner-options"></datalist>
+              <label><span data-i18n="state.predicate">State predicate</span>
+                <input name="predicate" data-i18n-placeholder="state.predicateHint" placeholder="switchPosition" required>
+              </label>
+              <label><span data-i18n="state.value">Value</span>
+                <input name="value" data-i18n-placeholder="state.valueHint" placeholder="On, 22.5, or true" required>
+              </label>
+              <details>
+                <summary data-i18n="context.title">Knowledge context</summary>
+                <label><span data-i18n="context.provenance">Provenance</span> <input name="provenance" data-i18n-placeholder="context.provenanceHint" placeholder="as-built inspection"></label>
+                <label><span data-i18n="context.confidence">Confidence</span> <input name="confidence" type="number" min="0" max="1" step="0.01"></label>
+                <label><span data-i18n="context.observedAt">Observed at</span> <input name="observedAt" type="datetime-local"></label>
+                <label><span data-i18n="context.validFrom">Valid from</span> <input name="validFrom" type="datetime-local"></label>
+                <label><span data-i18n="context.validTo">Valid to</span> <input name="validTo" type="datetime-local"></label>
+                <label><span data-i18n="context.scenario">Scenario</span> <input name="scenario" data-i18n-placeholder="context.scenarioHint" placeholder="installed"></label>
+              </details>
+              <button type="submit" data-i18n="state.record">Record state</button>
             </form>
 
             <form id="record-relation-form" class="panel command-form">
